@@ -12,7 +12,7 @@
 #define CHECK_Parser false
 
 #define EMPTY_CONTEXT \
-Context([](ContextStk& cstk, _command_set& _vec, Word& w) {\
+Context([](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {\
 	return _command_set{ };\
 })\
 //
@@ -139,23 +139,25 @@ class TNode {
 enum class Context_Type :int {
 	NORMAL,	// 普通类型
 	END,	// 结束的上下文
+	ALWAYS	// 一直存在于栈中的上下文
 };
 
 // 上下文类
+class Parser;
 using _command_set = std::vector<Command>;
 class Context {
 	friend class Parser;
-	std::function<_command_set(std::stack<Context>&, _command_set&, Word& w)> _generate;
+	std::function<_command_set(std::stack<Context>&, _command_set&, Word& w, Parser* p)> _generate;
 	std::string name;
 	Context_Type type;
 public:
 	// 空对象
 	Context() :
-		_generate([](std::stack<Context>&, _command_set&, Word& w) {return _command_set{}; }),
+		_generate([](std::stack<Context>&, _command_set&, Word& w, Parser* p) {return _command_set{}; }),
 		type(Context_Type::NORMAL), name("EMPTY_CONTEXT"){};
 
 	Context(
-		std::function<_command_set(std::stack<Context>&, _command_set&, Word& w)> _gen_func, Context_Type _type = Context_Type::NORMAL,
+		std::function<_command_set(std::stack<Context>&, _command_set&, Word& w, Parser* p)> _gen_func, Context_Type _type = Context_Type::NORMAL,
 		std::string _name = "Unkown"
 	)
 		:_generate(_gen_func),
@@ -165,12 +167,12 @@ public:
 	inline Context_Type getType() { return type; }
 	inline std::string getName() { return name; }
 	// 可以操作上下文栈
-	_command_set getCommandSet(std::stack<Context>& _context_stk, _command_set& _set, Word& w) {
-		return _generate(_context_stk, _set, w);
+	_command_set getCommandSet(std::stack<Context>& _context_stk, _command_set& _set, Word& w, Parser* p) {
+		return _generate(_context_stk, _set, w, p);
 	}
 };
 using ContextStk = std::stack<Context>;
-using ContextParaOperaFunc = std::function<_command_set(std::stack<Context>&, _command_set&, Word& w)>;
+using ContextParaOperaFunc = std::function<_command_set(std::stack<Context>&, _command_set&, Word& w, Parser* p)>;
 
 class _Context_helper {
 protected:
@@ -216,8 +218,8 @@ public:
 	// 建造上下文(从最后一个paras开始)
 	Context build_context(ContextParaOperaFunc func, std::initializer_list<Context> ctx_list) {
 		std::vector<Context> contexts(ctx_list.begin(), ctx_list.end());
-		return Context([=](ContextStk& cstk, _command_set _vec, Word& w) {
-			_command_set commands = func(cstk, _vec, w);
+		return Context([=](ContextStk& cstk, _command_set _vec, Word& w, Parser *p) {
+			_command_set commands = func(cstk, _vec, w, p);
 			auto rit = contexts.rbegin();
 			auto rend = contexts.rend();
 			for (rit; rit != rend; ++rit) {
@@ -231,15 +233,92 @@ public:
 //
 class Parser
 {
-public: // [protected]][
-	std::vector<Word> _word_vector;	// 保存解析完成的中间代码
 protected:
+	std::vector<Word> _word_vector;	// 保存解析完成的中间代码
 	std::string errors;				// 存放分析错误
 	Lexer* _lexer;					// 外部对象, 不需要删除析构
 	std::map<std::string, BNFGraphic> _graphic_map;	// 名称到图的map
 	int _judge_g(Position pos, std::string& errors);				// 根据图判断语法正确性
 
 	std::stack<Context> _context_stk;		// 上下文栈
+	// 变量类型
+	using word_type_map = std::map<std::string, WordType>;
+	std::vector<word_type_map> wt_map_list;
+
+	// 参数计数
+	std::vector<int> paras_count;
+
+	// 判断是否在定义语句的第一个参数中
+	int def_stk = 0;
+	// 临时存放word
+	std::vector<Word> word_stk;
+public:
+	void in_def() {
+		def_stk++;
+	}
+	void out_def() {
+		def_stk--;
+	}
+	bool is_in_def() {
+		return def_stk;
+	}
+	
+	// 参数计数
+	void paras_begin() {
+		paras_count.push_back(0);
+	}
+	void paras_end() {
+		assert(!paras_count.empty());
+		paras_count.pop_back();
+	}
+	int& paras() {
+		return paras_count.back();
+	}
+	// 翻转代码
+	void reserve(std::vector<Command>& commdVec, int size) {
+		std::reverse(commdVec.end() - size, commdVec.end());
+	}
+
+	// 获取word
+	void saveWord(Word w) {
+		word_stk.push_back(w);
+	}
+	Word popWord() {
+		Word w = word_stk.back();
+		word_stk.pop_back();
+		return w;
+	}
+
+	// 变量作用域
+	void localBegin() {
+		word_type_map type_map;
+		wt_map_list.push_back(type_map);
+	}
+	void localEnd() {
+		wt_map_list.pop_back();
+	}
+	void insert_local(Word& w, WordType type) {
+		wt_map_list.back().insert(
+			std::make_pair(w.serialize(), type)
+		);
+	}
+	bool isType(Word& w, WordType type) {
+		auto rend = wt_map_list.rend();
+		auto rbegin = wt_map_list.rbegin();
+		for (auto rit = rbegin; rit != rend; ++rit) {
+			auto res = rit->find(w.serialize());
+			if (res != rit->end()) {
+				if (res->second == type) {
+					return true;
+				}
+				else {
+					return false;	// 变量名存放对象的类型不匹配
+				}
+			}
+		}
+		return false;	// 没有这个变量名
+	}
+
 public:
 	Parser(Lexer* lex);
 	std::string getErrors() { return errors; }

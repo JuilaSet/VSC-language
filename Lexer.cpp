@@ -33,10 +33,6 @@ WordType WordTypeHelper::calc_word_type(std::string& str, IsToken b)
 	REGEX_MATCH(COMMET_CLOSED);
 	REGEX_MATCH(COMMET_LINE);
 	REGEX_MATCH(IDENTIFIER_ENABLED);
-	if (std::regex_search(str, result, pattern_IDENTIFIER)) {
-		type = WordType::IDENTIFIER;
-		str = str.substr(1);
-	}
 	return type;
 }
 

@@ -7,12 +7,7 @@
 #include <functional>
 
 #include "Lexer.h"
-#define CHECK_Eval true
-
-// 解引用宏
-#define DEREF(name, vm) \
-(name) = (vm)->get_data(name.toString());\
-//
+#define CHECK_Eval false
 
 // 
 // 如果要添加OPERATOR, 先在OPCODE中添加, 再在OPERATOR类中注册方法, 最后在getBasicCommandOfString中添加字符串转换
@@ -27,8 +22,10 @@ enum class OPCODE :int {
 	CAST_NUMBER,	// 转换为number型
 	CAST_STRING,	// 转换为字符串
 	CAST_BOOL,		// 转换为bool型
+	REVERSE_TOP,	// 将栈顶两个数据交换
 
 	// 比较栈中2个data然后丢弃
+	ISEND,		// 是否遇到了void, 返回原来的值, 将bool类型放入_f[3]
 	EQL,		// 等于比较
 	NEQL,		// 不等于比较
 	CMP,		// 比较
@@ -134,6 +131,18 @@ public:
 	int step();
 	void stop() { _stop = true; }
 
+	inline void reverse_top() {
+		assert(!stk.empty());
+		Data d1 = stk.back();
+		stk.pop_back();
+		assert(!stk.empty());
+		Data d2 = stk.back();
+		stk.pop_back();
+		
+		stk.push_back(d1);
+		stk.push_back(d2);
+	}
+
 	inline Data pop() {
 		assert(!stk.empty());
 		Data d = stk.back();
@@ -150,6 +159,7 @@ public:
 	inline void push(Data d) {
 		stk.push_back(d);
 	}
+	
 	virtual int run();
 };
 
@@ -185,6 +195,13 @@ public:
 		unsigned int addr = vm->ipc;
 		assert(vm->instruct.size() > addr);
 		vm->push(Data(DataType::OPERA_ADDR, addr));
+	}
+
+	static void REVERSE_TOP(vm_ptr vm) {
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::REVERSE_TOP " << std::endl;
+#endif
+		vm->reverse_top();
 	}
 
 	static void ADD(vm_ptr vm) {
@@ -378,7 +395,6 @@ public:
 		assert(!vm->stk.empty());
 		Data d = vm->pop();
 		vm->_f[2] = d.toBool();
-		vm->push(Data());	// 返回void
 #if CHECK_Eval 
 		std::cerr << __LINE__ << "\tOPCODE::TEXT _f[2] = " << vm->_f[2] << std::endl;
 #endif
@@ -520,6 +536,17 @@ public:
 		}
 #endif
 	}
+	
+	static void ISEND(vm_ptr vm) {
+		assert(!vm->stk.empty());
+		Data d = vm->top();
+		if (d.getType() == DataType::NON) {
+			vm->_f[2] = 1;
+		}
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::ISEND " << std::string(vm->_f[2] ? "true" : "false") << std::endl;
+#endif
+	}
 
 	static void EQL(vm_ptr vm)
 	{
@@ -555,7 +582,7 @@ public:
 	{
 		assert(!vm->stk.empty());
 		Data d = vm->pop();
-		DEREF(d, vm);
+		d = (vm)->get_data(d.toString());
 #if CHECK_Eval 
 		std::cerr << __LINE__ << "\tDRF " << d.toString() << std::endl;
 #endif
@@ -615,12 +642,12 @@ public:
 #endif
 	}
 
-	static void CLR_BLOCK(vm_ptr vm) 
+	static void SHRINK(vm_ptr vm) 
 	{
 		unsigned int size = vm->blk_stk.top();
 		vm->stk.resize(size);
 #if CHECK_Eval
-		std::cerr << __LINE__ << "\tLOCAL_END list_size= " << vm->_var_list.size() << std::endl;
+		std::cerr << __LINE__ << "\tCLR_BLOCK list_size= " << vm->_var_list.size() << std::endl;
 #endif
 	}
 };

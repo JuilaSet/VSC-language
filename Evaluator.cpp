@@ -56,7 +56,14 @@ void VirtualMachine::set_data(std::string id, Data d) {
 void VirtualMachine::regist_identity(std::string id, Data d) {
 	assert(!_var_list.empty());
 	data_list_t& data_list = _var_list.back();
-	data_list.emplace(id, d);
+	auto it = data_list.find(id);
+	if (it != data_list.end()) {
+		// 如果已经存在, 就覆盖之前的数据
+		it->second = d;
+	}
+	else {
+		data_list.emplace(id, d);
+	}
 }
 
 void VirtualMachine::clear_data_list() {
@@ -147,8 +154,8 @@ if (str == #name)	\
 Command CommandHelper::getBasicCommandOfString(std::string str) {
 	Command op = Command(OPERATOR::ERROR);
 	COMMAND_GET(ABORT)
-else
-COMMAND_GET(NOP)
+	else
+	COMMAND_GET(NOP)
 	else
 	COMMAND_GET(PUSH_POS)
 	else
@@ -209,6 +216,10 @@ COMMAND_GET(NOP)
 	COMMAND_GET(G)
 	else
 	COMMAND_GET(SUB)
+	else
+	COMMAND_GET(SHRINK)
+	else
+	COMMAND_GET(ISEND)
 	else {
 #if CHECK_Eval
 	std::cerr << "ERROR: " << str << std::endl;
