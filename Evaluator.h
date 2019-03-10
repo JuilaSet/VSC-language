@@ -1,0 +1,664 @@
+﻿#pragma once
+#include <vector>
+#include <set>
+#include <string>
+#include <memory>
+#include <sstream>
+#include <functional>
+
+#include "Lexer.h"
+#define CHECK_Eval true
+
+// 解引用宏
+#define DEREF(name, vm) \
+(name) = (vm)->get_data(name.toString());\
+//
+
+// 
+// 如果要添加OPERATOR, 先在OPCODE中添加, 再在OPERATOR类中注册方法, 最后在getBasicCommandOfString中添加字符串转换
+//
+class VirtualMachine;
+enum class OPCODE :int {
+	ABORT = -1,	// 停止
+	NOP,		// 什么都不做
+	PUSH_POS,	// 当前opcode地址入栈
+	POP,		// 栈顶弹出丢弃数据
+	// 转换
+	CAST_NUMBER,	// 转换为number型
+	CAST_STRING,	// 转换为字符串
+	CAST_BOOL,		// 转换为bool型
+
+	// 比较栈中2个data然后丢弃
+	EQL,		// 等于比较
+	NEQL,		// 不等于比较
+	CMP,		// 比较
+	TEST,		// 将bool保存到_f[3]
+	JE,			// 等于跳转
+	JNE,		// 不等于跳转
+	JG,			// 大于跳转
+	JL,			// 小于跳转
+	JEG,		// 大于等于跳转
+	JEL,		// 小于等于跳转
+	JMP,		// 跳转, 到n
+	JMP_TRUE,	// _f[2]为true跳转
+	JMP_FALSE,	// _f[2]为false跳转
+	REPT,		// 参数(addr), 返回n次 
+	COUNT,		// 参数(number), 设置ecx
+
+	//	CALL,
+	//	RET
+	LOCAL_BEGIN,	// 生成局部变量栈
+	LOCAL_END,		// POP局部变量栈
+
+	// 运算
+	DRF,		// 解除引用
+	DEF,		// 变量定义
+	ASSIGN,		// 变量赋值
+	ADD,		// 栈前两个元素相加
+	SUB,		// 栈前两个元素相减
+	STRCAT,		// 连接字符串
+
+	// 关系运算
+	NOT,		// 非
+	EQ,			// 等于
+	L,			// 小于
+	G,			// 大于
+
+	// 内存管理
+	CLR_BLOCK	// 恢复栈大小
+};
+
+// Command
+using pOperaFunc_t = std::function<void(VirtualMachine*)>;
+
+class Command {
+	friend class VirtualMachine;
+protected:
+	friend class CommandHelper;
+	pOperaFunc_t opera;
+public:
+	Command(pOperaFunc_t func) :opera(func) { }
+};
+
+// 堆栈虚拟机
+class Command;
+class CommandHelper;
+using vec_ins_t = std::vector<Command>;
+class VirtualMachine
+{
+	// 友元类
+	friend class CommandHelper;
+	friend class Command;
+	friend class OPERATOR;
+
+	bool _stop;
+
+	vec_ins_t instruct;			// 指令
+	std::stack<unsigned int> blk_stk;// 保存所在语句块数据栈大小恢复值
+
+	unsigned int ipc;
+	bool _f[3];	// [0]: 大于 [1]: 小于 [2]: 是否标记
+
+	std::vector<Data> stk;
+	using data_list_t = std::map<std::string, Data>;
+	std::vector<data_list_t> _var_list;	// 变量列表
+
+	int ecx;
+protected:
+	bool _flag_delete;
+	void delete_instruct();
+
+public:
+	VirtualMachine() {
+		_flag_delete = false;
+	};
+	VirtualMachine(vec_ins_t instruct) :instruct(instruct) {
+		_flag_delete = true;
+	}
+	~VirtualMachine();
+	void setInstruct(vec_ins_t ins);
+	void clear_data_list();
+	void init();
+
+	void regist_identity(std::string id, Data d);
+	Data get_data(std::string id);
+	void set_data(std::string id, Data d);
+
+	// 创建并压入局部变量表
+	void push_local_list();
+
+	// 弹出局部变量表(销毁局部变量)
+	void pop_local_list();
+
+	// 运行
+	int step();
+	void stop() { _stop = true; }
+
+	inline Data pop() {
+		assert(!stk.empty());
+		Data d = stk.back();
+		stk.pop_back();
+		return d;
+	}
+
+	inline Data top() {
+		assert(!stk.empty());
+		Data d = stk.back();
+		return d;
+	}
+
+	inline void push(Data d) {
+		stk.push_back(d);
+	}
+	virtual int run();
+};
+
+// 操作符对象
+using vm_ptr = VirtualMachine * ;
+class OPERATOR {
+public:
+	static void ERROR(vm_ptr vm) {
+		std::cerr << "ERROR" << std::endl;
+		vm->stop();
+	}
+
+	static void ABORT(vm_ptr vm)		// 停止
+	{
+		vm->stop();
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::ABORT" << std::endl;
+#endif
+	}
+
+	static void NOP(vm_ptr vm)		// 什么都不做
+	{
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::NOP" << std::endl;
+#endif
+	}
+
+	static void PUSH_POS(vm_ptr vm)
+	{
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::PUSH_POS " << vm->ipc << std::endl;
+#endif
+		unsigned int addr = vm->ipc;
+		assert(vm->instruct.size() > addr);
+		vm->push(Data(DataType::OPERA_ADDR, addr));
+	}
+
+	static void ADD(vm_ptr vm) {
+		assert(!vm->stk.empty());
+		Data n1 = vm->pop();
+		assert(n1.getType() == DataType::NUMBER);
+		int a1 = n1.toNumber();
+
+		assert(!vm->stk.empty());
+		Data n2 = vm->pop();
+		assert(n2.getType() == DataType::NUMBER);
+		int a2 = n2.toNumber();
+
+		Data d_temp = Data(DataType::NUMBER, a1 + a2);
+		vm->push(d_temp);
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::ADD " << a1 << " + " << a2 << " = " << d_temp.toNumber() << std::endl;
+#endif
+	};
+
+	static void SUB(vm_ptr vm) {
+		assert(!vm->stk.empty());
+		Data n1 = vm->pop();
+		assert(n1.getType() == DataType::NUMBER);
+		int a1 = n1.toNumber();
+
+		assert(!vm->stk.empty());
+		Data n2 = vm->pop();
+		assert(n2.getType() == DataType::NUMBER);
+		int a2 = n2.toNumber();
+
+		Data d_temp = Data(DataType::NUMBER, a2 - a1);
+		vm->push(d_temp);
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::SUB " << a2 << " - " << a1 << " = " << d_temp.toNumber() << std::endl;
+#endif
+	}
+
+	static void NOT(vm_ptr vm) {
+		assert(!vm->stk.empty());
+		Data n1 = vm->pop();
+		assert(n1.getType() == DataType::NUMBER);
+		int a1 = n1.toNumber();
+
+		Data d_temp = Data(DataType::NUMBER, a1 == 0);
+		vm->push(d_temp);
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::NOT " << a1 << " = " << d_temp.toNumber() << std::endl;
+#endif
+	}
+
+	static void EQ(vm_ptr vm) {
+		assert(!vm->stk.empty());
+		Data n1 = vm->pop();
+
+		assert(!vm->stk.empty());
+		Data n2 = vm->pop();
+
+		Data d_temp = Data(DataType::NUMBER, n2 == n1);
+		vm->push(d_temp);
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::EQ " << (n2 == n1) << std::endl;
+#endif
+	}
+
+	static void G(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data n1 = vm->pop();
+
+		assert(!vm->stk.empty());
+		Data n2 = vm->pop();
+
+		Data d_temp = Data(DataType::NUMBER, !(n2 < n1) && !(n2 == n1));
+		vm->push(d_temp);
+#if CHECK_Eval
+		std::cerr << __LINE__ << "\tOPCODE::G " << (!(n2 < n1) && !(n2 == n1)) << std::endl;
+#endif
+	}
+
+	static void L(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data n1 = vm->pop();
+
+		assert(!vm->stk.empty());
+		Data n2 = vm->pop();
+
+		Data d_temp = Data(DataType::NUMBER, n2 < n1);
+		vm->push(d_temp);
+#if CHECK_Eval
+		std::cerr << __LINE__ << "\tOPCODE::L " << (n2 < n1) << std::endl;
+#endif
+	}
+
+	static void STRCAT(vm_ptr vm) {
+		assert(!vm->stk.empty());
+		Data n1 = vm->pop();
+		assert(n1.getType() == DataType::STRING);
+		std::string a1 = n1.toString();
+
+		assert(!vm->stk.empty());
+		Data n2 = vm->pop();
+		assert(n2.getType() == DataType::STRING);
+		std::string a2 = n2.toString();
+
+		Data d_temp = Data(DataType::STRING, a2 + a1);
+		vm->push(d_temp);
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::STRCAT " << a2 << " + " << a1 << " = " << d_temp.toString() << std::endl;
+#endif
+	}
+
+	static void POP(vm_ptr vm)		// 栈顶弹出丢弃数据
+	{
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::POP ";
+#endif
+		assert(!vm->stk.empty());
+#if CHECK_Eval 
+		std::cerr << vm->stk.back().toString() << std::endl;
+#endif
+		vm->pop();
+	}
+
+	static void CAST_NUMBER(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data d = vm->pop();
+		assert(d.getType() != DataType::OPERA_ADDR);
+		int num = d.toNumber();
+		vm->push(Data(DataType::NUMBER, num));
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::CAST_NUMBER " << num << std::endl;
+#endif
+	}
+
+	static void CAST_STRING(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data d = vm->pop();
+		assert(d.getType() != DataType::OPERA_ADDR);
+		std::string str = d.toString();
+		vm->push(Data(DataType::STRING, str));
+#if CHECK_Eval
+		std::cerr << __LINE__ << "\tOPCODE::CAST_STRING " << str << std::endl;
+#endif
+	}
+
+	static void CAST_BOOL(vm_ptr vm) {
+		assert(!vm->stk.empty());
+		Data d = vm->pop();
+		assert(d.getType() != DataType::OPERA_ADDR);
+		int b = d.toBool();
+		vm->push(Data(DataType::NUMBER, b));
+#if CHECK_Eval
+		std::cerr << __LINE__ << "\tOPCODE::CAST_BOOL " << b << std::endl;
+#endif
+	}
+
+	static void CMP(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data d1 = vm->pop();
+		assert(!vm->stk.empty());
+		Data d2 = vm->pop();
+		vm->_f[0] = true;
+		vm->_f[1] = true;
+		if (d1 == d2) {
+			vm->_f[0] = false;
+			vm->_f[1] = false;
+		}
+		else {
+			if (d1 < d2) {
+				// vm->_f[1] = true;
+				vm->_f[0] = false;
+			}
+			else {
+				// vm->_f[0] = true;
+				vm->_f[1] = false;
+			}
+		}
+		vm->push(Data());	// 返回void
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::CMP _f= " << vm->_f[0] << vm->_f[1] << vm->_f[2] << std::endl;
+#endif
+	}
+
+	static void TEST(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data d = vm->pop();
+		vm->_f[2] = d.toBool();
+		vm->push(Data());	// 返回void
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::TEXT _f[2] = " << vm->_f[2] << std::endl;
+#endif
+	}
+
+	static void JE(vm_ptr vm) {
+		if (!(vm->_f[0] || vm->_f[1])) {
+			assert(!vm->stk.empty());
+			Data d = vm->pop();
+			assert(d.getType() == DataType::OPERA_ADDR);
+			vm->ipc = d.toAddr() - 1;
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::JE " << d.toAddr() << std::endl;
+#endif
+		}
+	}
+
+	static void JNE(vm_ptr vm) {
+		if (vm->_f[0] && vm->_f[1]) {
+			assert(!vm->stk.empty());
+			Data d = vm->pop();
+			assert(d.getType() == DataType::OPERA_ADDR);
+			vm->ipc = d.toAddr() - 1;
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::JNE " << d.toAddr() << std::endl;
+#endif
+		}
+	}
+
+	static void JG(vm_ptr vm) {
+		if (vm->_f[0] && !vm->_f[1]) {
+			assert(!vm->stk.empty());
+			Data d = vm->pop();
+			assert(d.getType() == DataType::OPERA_ADDR);
+			vm->ipc = d.toAddr() - 1;
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::JG " << d.toAddr() << std::endl;
+#endif
+		}
+	}
+
+	static void JL(vm_ptr vm) {
+		if (!vm->_f[0] && vm->_f[1]) {
+			assert(!vm->stk.empty());
+			Data d = vm->pop();
+			assert(d.getType() == DataType::OPERA_ADDR);
+			vm->ipc = d.toAddr() - 1;
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::JL " << d.toAddr() << std::endl;
+#endif
+		}
+	}
+
+	static void JEG(vm_ptr vm) {
+		if (!vm->_f[1]) {	// 不小于
+			assert(!vm->stk.empty());
+			Data d = vm->pop();
+			assert(d.getType() == DataType::OPERA_ADDR);
+			vm->ipc = d.toAddr() - 1;
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::JEG " << d.toAddr() << std::endl;
+#endif
+		}
+	}
+
+	static void JEL(vm_ptr vm) {
+		if (!vm->_f[0]) {	// 不大于
+			assert(!vm->stk.empty());
+			Data d = vm->pop();
+			assert(d.getType() == DataType::OPERA_ADDR);
+			vm->ipc = d.toAddr() - 1;
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::JEL " << d.toAddr() << std::endl;
+#endif
+		}
+	}
+
+	static void JMP(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data d = vm->pop();
+		assert(d.getType() == DataType::OPERA_ADDR);
+		vm->ipc = d.toAddr() - 1;
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::JMP " << d.toAddr() << std::endl;
+#endif
+	}
+
+	static void JMP_TRUE(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data d = vm->pop();
+		assert(d.getType() == DataType::OPERA_ADDR);
+		if (vm->_f[2]) {
+			vm->ipc = d.toAddr() - 1;
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::JMP_TRUE " << d.toAddr() << std::endl;
+#endif
+		}
+	}
+
+	static void JMP_FALSE(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data d = vm->pop();
+		assert(d.getType() == DataType::OPERA_ADDR);
+		if (!vm->_f[2]) {
+			vm->ipc = d.toAddr() - 1;
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::JMP_FALSE " << d.toAddr() << std::endl;
+#endif
+		}
+	}
+
+	static void COUNT(vm_ptr vm) {
+		assert(!vm->stk.empty());
+		Data n = vm->pop();
+		assert(n.getType() == DataType::NUMBER);
+		vm->ecx = n.toNumber();
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::COUNT " << n.toNumber() << std::endl;
+#endif
+	}
+
+	static void REPT(vm_ptr vm) {
+		assert(!vm->stk.empty());
+		Data addr = vm->pop();
+		assert(addr.getType() == DataType::OPERA_ADDR);
+		if (vm->ecx > 0) {
+			vm->ipc = addr.toAddr() - 1;
+			vm->ecx--;
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::REPT " << addr.toAddr() << std::endl;
+#endif
+		}
+#if CHECK_Eval 
+		else {
+			std::cerr << __LINE__ << "\tOPCODE::REPT END" << std::endl;
+		}
+#endif
+	}
+
+	static void EQL(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data d1 = vm->pop();
+		assert(!vm->stk.empty());
+		Data d2 = vm->pop();
+		if (d1 == d2) {
+			vm->_f[0] = false;
+			vm->_f[1] = false;
+		}
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::EQL " << std::string((d1 == d2) ? "true" : "false") << std::endl;
+#endif
+	}
+
+	static void NEQL(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data d1 = vm->pop();
+		assert(!vm->stk.empty());
+		Data d2 = vm->pop();
+		if (d1 == d2) {
+			vm->_f[0] = true;
+			vm->_f[1] = true;
+		}
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::NEQL " << std::string(!(d1 == d2) ? "true" : "false") << std::endl;
+#endif
+	}
+
+	static void DRF(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data d = vm->pop();
+		DEREF(d, vm);
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tDRF " << d.toString() << std::endl;
+#endif
+		vm->push(d);
+	}
+
+	static void DEF(vm_ptr vm)
+	{
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tDEF ";
+#endif
+		// push id push data def
+		assert(!vm->stk.empty());
+		Data d = vm->pop();
+		assert(!vm->stk.empty());
+		Data id = vm->pop();
+		assert(id.getType() == DataType::STRING);
+		vm->regist_identity(id.toString(), d);
+		// 返回定义的data
+		vm->push(d);
+#if CHECK_Eval 
+		std::cerr << id.toString() << ":= " << d.toString() << std::endl;
+#endif
+	}
+
+	static void ASSIGN(vm_ptr vm)
+	{
+		assert(!vm->stk.empty());
+		Data value = vm->pop();
+		assert(!vm->stk.empty());
+		Data id = vm->pop();
+		vm->set_data(id.toString(), value);
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tASSIGN " << id.toString() << ":= " << value.toString() << std::endl;
+#endif
+	}
+
+	static void LOCAL_BEGIN(vm_ptr vm)
+	{
+		vm->push_local_list();
+		vm->blk_stk.push(vm->stk.size());
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tLOCAL_BEGIN list_size= " << vm->_var_list.size() << std::endl;
+		std::cerr << __LINE__ << "\tBLK_STK size= " << vm->blk_stk.size() << std::endl;
+#endif
+	}
+
+	static void LOCAL_END(vm_ptr vm)
+	{
+		assert(!vm->_var_list.empty());
+		vm->pop_local_list();
+		assert(!vm->blk_stk.empty());
+		vm->blk_stk.pop();
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tLOCAL_END list_size= " << vm->_var_list.size() << std::endl;
+		std::cerr << __LINE__ << "\tBLK_STK size= " << vm->blk_stk.size() << std::endl;
+#endif
+	}
+
+	static void CLR_BLOCK(vm_ptr vm) 
+	{
+		unsigned int size = vm->blk_stk.top();
+		vm->stk.resize(size);
+#if CHECK_Eval
+		std::cerr << __LINE__ << "\tLOCAL_END list_size= " << vm->_var_list.size() << std::endl;
+#endif
+	}
+};
+
+// Command
+class CommandHelper {
+public:
+	static Command getBasicCommandOfString(std::string str);
+
+	static Command getBasicOpera(pOperaFunc_t func) {
+		return Command(func);
+	}
+
+	static Command getPushOpera(Data d) {
+		return Command([=](VirtualMachine *vm) {
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::PUSH " << d.toEchoString() << std::endl;
+#endif
+			vm->push(d);
+		});
+	};
+
+	static Command getEchoOpera(std::ostream* ostm, std::string end = "\n") {
+		return Command([=](VirtualMachine *vm) {
+			assert(!vm->stk.empty());
+			Data d = vm->top();
+			std::string str = d.toEchoString();
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::ECHO " << str << std::endl;
+#endif
+			*ostm << str << end << std::flush;
+		});
+	};
+};
+
+class Evaluator
+{
+public:
+	Evaluator();
+	~Evaluator();
+};

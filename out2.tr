@@ -1,0 +1,73 @@
+39: get char from line = * 123:12344, p = 0
+68: nextChar = *
+78: nextChar[0] = *
+90: 	maybe = *
+99: 	maxLen = 1
+106: tempStr = *
+107: For = 0 to 1
+113: 	tempStr = *
+119: 	matched = *
+143: Found Success !
+144: 	tokenFound = *
+28: push_back = *
+39: get char from line = * 123:12344, p = 1
+68: nextChar =  
+78: nextChar[0] =  
+90: 	maybe =  
+99: 	maxLen = 1
+106: tempStr =  
+107: For = 1 to 2
+113: 	tempStr =  
+119: 	matched =  
+143: Found Success !
+144: 	tokenFound =  
+28: push_back =  
+39: get char from line = * 123:12344, p = 2
+68: nextChar = 1
+78: nextChar[0] = 1
+39: get char from line = * 123:12344, p = 3
+68: nextChar = 2
+78: nextChar[0] = 2
+39: get char from line = * 123:12344, p = 4
+68: nextChar = 3
+78: nextChar[0] = 3
+39: get char from line = * 123:12344, p = 5
+68: nextChar = :
+78: nextChar[0] = :
+90: 	maybe = :
+99: 	maxLen = 1
+106: tempStr = :
+107: For = 5 to 6
+113: 	tempStr = :
+119: 	matched = :
+143: Found Success !
+144: 	tokenFound = :
+28: push_back = 123
+28: push_back = :
+39: get char from line = * 123:12344, p = 6
+68: nextChar = 1
+78: nextChar[0] = 1
+39: get char from line = * 123:12344, p = 7
+68: nextChar = 2
+78: nextChar[0] = 2
+39: get char from line = * 123:12344, p = 8
+68: nextChar = 3
+78: nextChar[0] = 3
+39: get char from line = * 123:12344, p = 9
+68: nextChar = 4
+78: nextChar[0] = 4
+39: get char from line = * 123:12344, p = 10
+68: nextChar = 4
+78: nextChar[0] = 4
+39: get char from line = * 123:12344, p = 11
+68: nextChar = 
+
+28: push_back = 12344
+28: push_back = 
+
+172: lexer Finish
+
+
+_words_list:
+[*], [ ], [123], [:], [12344], [
+], 

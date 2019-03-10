@@ -1,0 +1,56 @@
+101: get char from line = add 1 ad, p = 0
+123: nextChar = a
+134: nextChar[0] = a
+101: get char from line = add 1 ad, p = 1
+123: nextChar = d
+134: nextChar[0] = d
+101: get char from line = add 1 ad, p = 2
+123: nextChar = d
+134: nextChar[0] = d
+101: get char from line = add 1 ad, p = 3
+123: nextChar =  
+134: nextChar[0] =  
+147: 	maybe =  
+157: 	maxLen = 1
+166: tempStr =  
+167: For = 3 to 4
+174: 	tempStr =  
+181: 	matched =  
+208: Found Success !
+209: 	tokenFound =  
+90: push_back = add
+90: push_back =  
+101: get char from line = add 1 ad, p = 4
+123: nextChar = 1
+134: nextChar[0] = 1
+101: get char from line = add 1 ad, p = 5
+123: nextChar =  
+134: nextChar[0] =  
+147: 	maybe =  
+157: 	maxLen = 1
+166: tempStr =  
+167: For = 5 to 6
+174: 	tempStr =  
+181: 	matched =  
+208: Found Success !
+209: 	tokenFound =  
+90: push_back = 1
+90: push_back =  
+101: get char from line = add 1 ad, p = 6
+123: nextChar = a
+134: nextChar[0] = a
+101: get char from line = add 1 ad, p = 7
+123: nextChar = d
+134: nextChar[0] = d
+101: get char from line = add 1 ad, p = 8
+123: nextChar = 
+
+90: push_back = ad
+90: push_back = 
+
+245: lexer Finish
+271: push_back = EOS
+
+
+_words_list:
+[KEY_WORD- add], [NUMBER- 1], [IDENTIFIER_ENABLED- ad], [EOS- ], 
