@@ -543,6 +543,9 @@ public:
 		if (d.getType() == DataType::NON) {
 			vm->_f[2] = 1;
 		}
+		else {
+			vm->_f[2] = 0;
+		}
 #if CHECK_Eval 
 		std::cerr << __LINE__ << "\tOPCODE::ISEND " << std::string(vm->_f[2] ? "true" : "false") << std::endl;
 #endif

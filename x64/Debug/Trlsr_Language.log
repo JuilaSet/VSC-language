@@ -1,6 +1,6 @@
 ﻿  pch.cpp
 d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\input.h(45): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\evaluator.h(626): warning C4267: “参数”: 从“size_t”转换到“unsigned int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\evaluator.h(629): warning C4267: “参数”: 从“size_t”转换到“unsigned int”，可能丢失数据
   Evaluator.cpp
   Input.cpp
 d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\input.cpp(50): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
