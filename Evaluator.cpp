@@ -36,7 +36,7 @@ void VirtualMachine::pop_local_list() {
 }
 
 // assign
-void VirtualMachine::set_data(std::string id, Data d) {
+bool VirtualMachine::set_data(std::string id, Data d) {
 	assert(!_var_list.empty());
 	data_list_t& data_list = _var_list.back();
 	auto rbegin = _var_list.rbegin();
@@ -44,12 +44,13 @@ void VirtualMachine::set_data(std::string id, Data d) {
 	for (auto rit = rbegin; rit != rend; ++rit) {
 		if (rit->count(id) > 0) {
 			rit->operator[](id) = d;
-			return;
+			return true;
 		}
 	}
 #if CHECK_Eval
 	std::cerr << __LINE__ << "\tASSIGN FAILED" << std::endl;
 #endif
+	return false;
 }
 
 // def

@@ -7,7 +7,7 @@
 #include <functional>
 
 #include "Lexer.h"
-#define CHECK_Eval false
+#define CHECK_Eval true
 
 // 
 // 如果要添加OPERATOR, 先在OPCODE中添加, 再在OPERATOR类中注册方法, 最后在getBasicCommandOfString中添加字符串转换
@@ -119,7 +119,7 @@ public:
 
 	void regist_identity(std::string id, Data d);
 	Data get_data(std::string id);
-	void set_data(std::string id, Data d);
+	bool set_data(std::string id, Data d);
 
 	// 创建并压入局部变量表
 	void push_local_list();
@@ -607,7 +607,7 @@ public:
 		// 返回定义的data
 		vm->push(d);
 #if CHECK_Eval 
-		std::cerr << id.toString() << ":= " << d.toString() << std::endl;
+		std::cerr << id.toString() << ":= " << d.toEchoString() << std::endl;
 #endif
 	}
 
@@ -617,7 +617,10 @@ public:
 		Data value = vm->pop();
 		assert(!vm->stk.empty());
 		Data id = vm->pop();
-		vm->set_data(id.toString(), value);
+		assert(id.getType() == DataType::STRING);
+		!vm->set_data(id.toString(), value);
+		// 返回赋值的data
+		vm->push(value);
 #if CHECK_Eval 
 		std::cerr << __LINE__ << "\tASSIGN " << id.toString() << ":= " << value.toString() << std::endl;
 #endif
