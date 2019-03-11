@@ -14,6 +14,20 @@ using namespace std;
 void regist_keywords_contents() {
 
 	// CONTROLLER
+	Context_Helper::helper.regist_context(Word(WordType::CONTROLLER, "call").serialize(),
+		Context_Helper::helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
+			return _command_set{ };
+		},
+		{
+			EMPTY_CONTEXT,
+			Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
+				return _command_set{
+						Command(OPERATOR::CALL)
+				};
+			}, Context_Type::END)
+		})
+	);
+
 	Context_Helper::helper.regist_context(Word(WordType::CONTROLLER, "prcd").serialize(),
 		Context_Helper::helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
 		Context_Helper::helper.push_command_index(_vec.size());
@@ -27,9 +41,10 @@ void regist_keywords_contents() {
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
 				int last_index = Context_Helper::helper.pop_command_index();
 				int addr = _vec.size();
-				_vec[last_index] = CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr));
+				_vec[last_index] = CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr + 1));
 				return _command_set{
-						CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, last_index + 2))
+						Command(OPERATOR::RET),
+						CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, last_index + 2))	// push过程的首地址
 				};
 			}, Context_Type::END)
 		})
@@ -76,7 +91,6 @@ void regist_keywords_contents() {
 				}, Context_Type::END)
 			})
 	);
-
 
 	Context_Helper::helper.regist_context(Word(WordType::CONTROLLER, "assign").serialize(),
 		Context_Helper::helper.build_context(
@@ -218,11 +232,11 @@ void regist_keywords_contents() {
 						Command(OPERATOR::NOP)
 					};
 				}),
-				// EMPTY_CONTEXT, block不需要空上下文做占位符
+				// block
+				EMPTY_CONTEXT,
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
 					int addr = Context_Helper::helper.pop_command_index();
 					return _command_set{
-						Command(OPERATOR::POP),
 						CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr)),
 						Command(OPERATOR::REPT)};
 				}, Context_Type::END)
@@ -246,6 +260,18 @@ void regist_keywords_contents() {
 				return _command_set{ };
 			}, Context_Type::END)
 		})
+	);
+	
+	// IDENTIFIER_SPEC
+	
+	Context_Helper::helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$C").serialize(),
+		Context_Helper::helper.build_context(
+		[](ContextStk& cstk, _command_set&, Word& w, Parser* p) {	// op_0
+#if CHECK_Parser
+		cout << "COMMAND:::: $C" << endl;
+#endif
+			return _command_set{ Command(OPERATOR::ECX) };
+		},{ })	// 只能有一个上下文
 	);
 
 	// OPERATOR_WORD
@@ -462,6 +488,7 @@ void regist_token() {
 	REGIST_OPERATO_WORDS("g");
 	REGIST_OPERATO_WORDS("l");
 
+	REGIST_CONTROLLER_WORDS("call");
 	REGIST_CONTROLLER_WORDS("prcd");
 	REGIST_CONTROLLER_WORDS("tuple");
 	REGIST_CONTROLLER_WORDS("def");
@@ -686,6 +713,23 @@ void regist_bnf(Parser& p) {
 		gotoHead()->
 		nonterminal("string", "string")->
 		end()->
+		gotoHead()->
+		terminal("IDENTIFIER_SPEC", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[IDENTIFIER_SPEC] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_SPEC) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an IDENTIFIER_SPEC word \n";
+				return false;
+			}
+		})->
+		end()->
 		getGraphic(); 
 	p.addBNFRuleGraphic(g_atomic);
 
@@ -878,6 +922,40 @@ void regist_bnf(Parser& p) {
 		nonterminal("list", "list")->
 		nonterminal("list", "list")->
 		end()->
+		// call 语句
+		gotoHead()->
+		terminal("call", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[call] get word:" << w.serialize();
+#endif
+			if (w.getString() == "call") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'call' here\n";
+				return false;
+			}
+		})->
+		nonterminal("atomic", "atomic")->
+		terminal("context_closed_call", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[context_closed] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
 		// for语句
 		gotoHead()->
 		terminal("for", [&](Word w, std::string& err, int lex_point) {
@@ -911,7 +989,7 @@ void regist_bnf(Parser& p) {
 				return false;
 			}
 		})->
-		nonterminal("block", "block")->
+		nonterminal("block_for", "block")->
 		terminal("context_closed_for", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 			cerr << "[context_closed] get word:" << w.serialize();
@@ -945,7 +1023,7 @@ void regist_bnf(Parser& p) {
 			return false;}
 	})->
 		nonterminal("atomic", "atomic")->
-		nonterminal("block", "block")->
+		nonterminal("block_rept", "block")->
 		end()->
 		// if语句
 		gotoHead()->
@@ -953,18 +1031,18 @@ void regist_bnf(Parser& p) {
 #if CHECK_Parser
 		cerr << "[if] get word:" << w.serialize();
 #endif
-		if (w.getString() == "if") {
-#if CHECK_Parser
-			cerr << ", True" << endl;
-#endif
-			return true;
-		}
-		else{
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'if' here\n"; 
-			return false;}
-	})->
+			if (w.getString() == "if") {
+	#if CHECK_Parser
+				cerr << ", True" << endl;
+	#endif
+				return true;
+			}
+			else{
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'if' here\n"; 
+				return false;}
+		})->
 		nonterminal("atomic", "atomic")->
-		nonterminal("block", "block")->
+		nonterminal("block_if", "block")->
 		end()->
 		// ignore语句
 		gotoHead()->
@@ -982,7 +1060,7 @@ void regist_bnf(Parser& p) {
 			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'ignore' here\n"; 
 			return false;}
 	})->
-		nonterminal("block", "block")->
+		nonterminal("block_ignore", "block")->
 		end()->
 		// abort语句
 		gotoHead()->
@@ -1032,7 +1110,7 @@ void regist_bnf(Parser& p) {
 			return false;}
 	})->
 		nonterminal("atomic", "atomic")->
-		nonterminal("block", "block")->
+		nonterminal("block_while", "block")->
 		end()->
 		getGraphic();
 	p.addBNFRuleGraphic(g_controller);
@@ -1068,13 +1146,16 @@ int main(int argc, char* argv[]) {
 		if (!b) {
 			cout << "Parse ERROR =\n" << p.getErrors() << endl;
 		}
+		else {
 
-		// 生成目标代码
-		p.generate_code(comms, Context_Helper::helper);
+			// 生成目标代码
+			p.generate_code(comms, Context_Helper::helper);
+			cout << "Code Generated finished!" << endl;
 
-		// 执行代码
-		vm.setInstruct(comms);
-		vm.run();
+			// 执行代码
+			vm.setInstruct(comms);
+			vm.run();
+		}
 	}
 	return 0;
 };

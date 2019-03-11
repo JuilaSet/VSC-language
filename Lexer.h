@@ -19,7 +19,8 @@ const std::regex pattern_CONTEXT_CLOSED("^;$");		// 关闭上下文, 一句话�
 const std::regex pattern_COMMET_OPEN("^/\\*$");		// 定义注释_开始
 const std::regex pattern_COMMET_CLOSED("^\\*/$");	// 定义注释_结束
 const std::regex pattern_COMMET_LINE("^//$");		// 注释, 一行
-const std::regex pattern_IDENTIFIER_ENABLED("^[\\$_a-zA-Z]+[_a-zA-Z0-9]*$");	// 可作为标识符
+const std::regex pattern_IDENTIFIER_ENABLED("^[\\_a-zA-Z]+[_a-zA-Z0-9]*$");	// 可作为标识符
+const std::regex pattern_IDENTIFIER_SPEC("^\\$+[_a-zA-Z0-9]+$");			// 可作为特殊标识符
 
 enum class DataType :int {
 	// 空, enum默认构造为NON
@@ -234,6 +235,7 @@ enum class WordType : int {
 	COMMET_LINE,		// 注释(会忽略之后的文本)
 	IDENTIFIER_ENABLED,	// 可作为标识符(未注册的符号)
 	IDENTIFIER,			// 正式标识符(注册完成的符号)
+	IDENTIFIER_SPEC,	// 特殊标识符(代表一定数值的符号)
 	OPERATOR_WORD,		// 运算符
 	CONTROLLER			// 流程控制符
 };
@@ -288,6 +290,9 @@ static std::string getWordTypeName(WordType type) {
 		break;
 	case WordType::IDENTIFIER:
 		ret = "IDENTIFIER";
+		break;
+	case WordType::IDENTIFIER_SPEC:
+		ret = "IDENTIFIER_SPEC";
 		break;
 	case WordType::CONTEXT_CLOSED:
 		ret = "COMMET_CLOSED";

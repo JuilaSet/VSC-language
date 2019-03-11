@@ -1,1 +1,15 @@
-﻿  Trlsr_Language.vcxproj -> D:\D_box\learning\workspace\C++studio\Trlsr_Language\x64\Debug\Trlsr_Language.exe
+﻿  Trlsr_Language.cpp
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(33): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(43): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(61): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(62): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(84): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(151): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(161): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(175): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(185): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(197): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(202): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(213): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(229): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+  Trlsr_Language.vcxproj -> D:\D_box\learning\workspace\C++studio\Trlsr_Language\x64\Debug\Trlsr_Language.exe

@@ -184,6 +184,9 @@ public:
 
 	// 存放待确定的指令下标
 	void push_command_index(int index) {
+#if CHECK_Parser
+		std::cout << std::endl << "push_command_index = " << index << std::endl;
+#endif
 		_command_index.push(index);
 	}
 
@@ -191,6 +194,9 @@ public:
 	int pop_command_index() {
 		int a = _command_index.top();
 		_command_index.pop();
+#if CHECK_Parser
+		std::cout << std::endl << "pop_command_index = " << a << std::endl;
+#endif		
 		return a;
 	}
 

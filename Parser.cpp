@@ -274,7 +274,6 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 			std::cout << "pop++++<Temp Stk size> = " << tempStk.size() << std::endl;
 #endif		// blkStk出栈
 			blkStk.pop_back();
-			localEnd();
 			// 关闭局部变量栈
 			commdVec.push_back(Command(OPERATOR::LOCAL_END));
 			// 当做上下文结束符";"处理		
@@ -318,6 +317,13 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 					commdVec.push_back(commad);
 				}
 			}
+		
+			// 判断是否生成SHRINK指令
+			assert(!blkStk.empty());
+			if ((blkStk.back() -= 1) == 0) {
+				commdVec.push_back(Command(OPERATOR::SHRINK));
+			}
+			localEnd();
 		}
 		if (type == WordType::STRING_OPEN || type == WordType::STRING_CLOSED) {
 #if CHECK_Parser
@@ -365,7 +371,8 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 				}
 			}
 
-			// 判断是否生成POP指令
+			// 判断是否生成SHRINK指令
+			assert(!blkStk.empty());
 			if ((blkStk.back() -= 1) == 0) {
 				commdVec.push_back(Command(OPERATOR::SHRINK));
 			}
@@ -414,6 +421,23 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 				}
 			}
 		}
+		else if (type == WordType::IDENTIFIER_SPEC) {
+			if (ctx.type != Context_Type::END) {		// 忽略END上下文
+#if CHECK_Parser
+				std::cout << "wordType::IDENTIFIER_SPEC: " << std::endl;
+				std::cout << "Context stack size = " << _context_stk.size() << std::endl;
+#endif
+				// 直接生成代码
+				ctx = helper.get_context(context_name);
+				auto commands = ctx.getCommandSet(_context_stk, commdVec, word, this);	// 在这里push新的上下文
+#if CHECK_Parser
+				std::cout << "Get new Context stack size = " << _context_stk.size() << std::endl;
+#endif		
+				for (auto commad : commands) {
+					commdVec.push_back(commad);
+				}
+			}
+		}
 		else if (type == WordType::OPERATOR_WORD || type == WordType::CONTROLLER) {
 #if CHECK_Parser
 			std::cout << "wordType::KEY_WORD: " << std::endl;
@@ -432,7 +456,8 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 				}
 			}
 			
-			// 操作符+1
+			// 操作符栈顶+1
+			assert(!blkStk.empty());
 			blkStk.back() += 1;
 			
 			// 生成代码
@@ -447,5 +472,6 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 		}
 	}
 END:
+	commdVec.push_back(Command(OPERATOR::NOP));
 	return;
 }

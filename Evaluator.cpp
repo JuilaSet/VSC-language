@@ -192,6 +192,8 @@ Command CommandHelper::getBasicCommandOfString(std::string str) {
 	else
 	COMMAND_GET(COUNT)
 	else
+	COMMAND_GET(ECX)
+	else
 	COMMAND_GET(REPT)
 	else
 	COMMAND_GET(LOCAL_BEGIN)
@@ -221,6 +223,10 @@ Command CommandHelper::getBasicCommandOfString(std::string str) {
 	COMMAND_GET(SHRINK)
 	else
 	COMMAND_GET(ISEND)
+	else
+	COMMAND_GET(RET)
+	else
+	COMMAND_GET(CALL)
 	else {
 #if CHECK_Eval
 	std::cerr << "ERROR: " << str << std::endl;
