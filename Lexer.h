@@ -295,7 +295,7 @@ static std::string getWordTypeName(WordType type) {
 		ret = "IDENTIFIER_SPEC";
 		break;
 	case WordType::CONTEXT_CLOSED:
-		ret = "COMMET_CLOSED";
+		ret = "CONTEXT_CLOSED";
 		break;
 	case WordType::CONTROLLER:
 		ret = "CONTROLLER";

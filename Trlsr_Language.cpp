@@ -30,14 +30,16 @@ void regist_keywords_contents() {
 
 	Context_Helper::helper.regist_context(Word(WordType::CONTROLLER, "prcd").serialize(),
 		Context_Helper::helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
-		Context_Helper::helper.push_command_index(_vec.size());
-		return _command_set{
-				Command(OPERATOR::ERROR),	// 待确定
-				Command(OPERATOR::JMP)
-		};
-	},
+			Context_Helper::helper.push_command_index(_vec.size());
+			return _command_set{
+					Command(OPERATOR::ERROR),	// 待确定
+					Command(OPERATOR::JMP)
+			};
+		},
 		{
-			// EMPTY_CONTEXT, block不需要空上下文做占位符
+			Context([&](ContextStk& cstk, _command_set&, Word& w, Parser* p) {
+				return _command_set{ };
+			}, Context_Type::NORMAL, "prcd_op1"),
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
 				int last_index = Context_Helper::helper.pop_command_index();
 				int addr = _vec.size();
@@ -46,7 +48,22 @@ void regist_keywords_contents() {
 						Command(OPERATOR::RET),
 						CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, last_index + 2))	// push过程的首地址
 				};
-			}, Context_Type::END)
+			}, Context_Type::END, "prcd_end")
+		})
+	);
+
+	Context_Helper::helper.regist_context(Word(WordType::CONTROLLER, "tuple").serialize(),
+		Context_Helper::helper.build_context(
+		[](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {	// op_0
+			return _command_set{ CommandHelper::getPushOpera(Data()) };	// 存入void
+		},
+		{
+			Context([](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {	// op_always
+				return _command_set{ };
+			}, Context_Type::ALWAYS, "tuple_op1"),
+			Context([](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {	// op_end
+				return _command_set{ };
+			}, Context_Type::END, "tuple_end")
 		})
 	);
 
@@ -56,7 +73,7 @@ void regist_keywords_contents() {
 				return _command_set{};
 			},
 			{
-				// tuple
+				// tuple位置
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
 					Context_Helper::helper.push_command_index(_vec.size());
 					Context_Helper::helper.push_command_index(_vec.size() + 1);
@@ -66,7 +83,7 @@ void regist_keywords_contents() {
 						Command(OPERATOR::ERROR),		// 待确定
 						Command(OPERATOR::JMP_TRUE)
 					};
-				}),
+				}, Context_Type::NORMAL, "for_tuple"),
 				// 标识符
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
 					p->out_def();
@@ -76,7 +93,7 @@ void regist_keywords_contents() {
 						Command(OPERATOR::DEF),
 						Command(OPERATOR::POP)
 					};
-				}),
+				}, Context_Type::NORMAL, "for_op2"),
 				// 结束
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
 					int last_index = Context_Helper::helper.pop_command_index();
@@ -88,7 +105,7 @@ void regist_keywords_contents() {
 						Command(OPERATOR::JMP),
 						Command(OPERATOR::POP)	// pop void值
 					};
-				}, Context_Type::END)
+				}, Context_Type::END, "for_end")
 			})
 	);
 
@@ -155,7 +172,7 @@ void regist_keywords_contents() {
 			};
 		},
 		{
-			// EMPTY_CONTEXT, block不需要空上下文做占位符
+			EMPTY_CONTEXT,
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
 				int last_index = Context_Helper::helper.pop_command_index();
 				int addr = _vec.size();
@@ -179,7 +196,7 @@ void regist_keywords_contents() {
 						Command(OPERATOR::JMP_FALSE)
 					};
 				}, Context_Type::NORMAL, "if_p1"),
-				// EMPTY_CONTEXT, block不需要空上下文做占位符
+				EMPTY_CONTEXT,
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
 					int last_index = Context_Helper::helper.pop_command_index();
 					int addr = _vec.size();
@@ -206,7 +223,7 @@ void regist_keywords_contents() {
 						Command(OPERATOR::JMP_FALSE)
 					};
 				}),
-				// EMPTY_CONTEXT, block不需要空上下文做占位符
+				EMPTY_CONTEXT,
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
 					int last_index = Context_Helper::helper.pop_command_index();
 					int head_index = Context_Helper::helper.pop_command_index();
@@ -241,25 +258,6 @@ void regist_keywords_contents() {
 						Command(OPERATOR::REPT)};
 				}, Context_Type::END)
 			})
-	);
-
-	Context_Helper::helper.regist_context(Word(WordType::CONTROLLER, "tuple").serialize(),
-		Context_Helper::helper.build_context(
-		[](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {	// op_0
-		//	p->paras_begin();
-			return _command_set{ CommandHelper::getPushOpera(Data()) };	// 存入void
-		},
-		{
-			Context([](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {	// op_always
-		//		++(p->paras());
-				return _command_set{ };
-			}, Context_Type::ALWAYS),
-			Context([](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {	// op_end
-		//		p->reserve(_vec, p->paras());
-		//		p->paras_end();
-				return _command_set{ };
-			}, Context_Type::END)
-		})
 	);
 	
 	// IDENTIFIER_SPEC
@@ -327,7 +325,7 @@ void regist_keywords_contents() {
 					else {
 						return _command_set{ };
 					}
-				}),
+				}, Context_Type::NORMAL, "add_op1"),
 				Context([](ContextStk& cstk, _command_set&, Word& w, Parser* p) {	// op_2
 					if (w.getType() != WordType::NUMBER) {
 						return _command_set{
@@ -337,7 +335,7 @@ void regist_keywords_contents() {
 					else {
 						return _command_set{ };
 					}
-				}),
+				}, Context_Type::NORMAL, "add_op2"),
 				Context([](ContextStk& cstk, _command_set&, Word& w, Parser* p) {	// op_end
 					return _command_set{
 						Command(OPERATOR::ADD)
@@ -453,12 +451,14 @@ void regist_keywords_contents() {
 		Context_Helper::helper.build_context(
 			[&](ContextStk& cstk, _command_set&, Word& w, Parser* p) { return _command_set{}; },
 			{
-				EMPTY_CONTEXT,
+				Context([&](ContextStk& cstk, _command_set&, Word& w, Parser* p) {
+					return _command_set{ };
+				}, Context_Type::NORMAL, "echo_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w, Parser* p) {
 					return _command_set{
 						CommandHelper::getEchoOpera(&cerr)
 					};
-				}, Context_Type::END)
+				}, Context_Type::END, "echo_end")
 			})
 	);
 }
@@ -754,27 +754,6 @@ void regist_bnf(Parser& p) {
 	})->
 		nonterminal("atomic", "atomic")->
 		nonterminal("atomic", "atomic")->
-		nonterminal("tuple", "tuple")->
-		terminal("context_closed_tuple", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-		cerr << "[context_closed] get word:" << w.serialize();
-#endif
-		if (w.getType() == WordType::CONTEXT_CLOSED) {
-#if CHECK_Parser
-			cerr << ", True" << endl;
-#endif
-			return true;
-		}
-		else {
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
-			return false;
-		}
-	})->
-		end()->
-		gotoHead()->
-		nonterminal("tuple", "tuple")->
-		nonterminal("tuple", "tuple")->
-		nonterminal("atomic", "atomic")->
 		terminal("context_closed_tuple", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 		cerr << "[context_closed] get word:" << w.serialize();
@@ -990,21 +969,6 @@ void regist_bnf(Parser& p) {
 			}
 		})->
 		nonterminal("block_for", "block")->
-		terminal("context_closed_for", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-			cerr << "[context_closed] get word:" << w.serialize();
-#endif
-			if (w.getType() == WordType::CONTEXT_CLOSED) {
-#if CHECK_Parser
-				cerr << ", True" << endl;
-#endif
-				return true;
-			}
-			else {
-				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
-				return false;
-			}
-		})->
 		end()->
 		// rept语句
 		gotoHead()->
@@ -1119,14 +1083,14 @@ void regist_bnf(Parser& p) {
 int main(int argc, char* argv[]) {
 	regist_keywords_contents();
 	regist_token();
-	Lexer lex(new CLIInput("luo ->"));
-	//	Lexer lex(new FileInput("in.tr"));
+	// Lexer lex(new CLIInput("luo ->"));
+	Lexer lex(new FileInput("in.tr"));
 	Parser p(&lex);
 	regist_bnf(p);
 
 	VirtualMachine vm;
 	vector<Command> comms;
-	while (1) {
+	//while (1) {
 		comms.clear();
 		p.init();
 
@@ -1156,7 +1120,7 @@ int main(int argc, char* argv[]) {
 			vm.setInstruct(comms);
 			vm.run();
 		}
-	}
+	//}
 	return 0;
 };
 

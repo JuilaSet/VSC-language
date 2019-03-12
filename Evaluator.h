@@ -557,6 +557,11 @@ public:
 			std::cerr << d.toAddr() << std::endl;
 #endif
 		}
+		else {
+#if CHECK_Eval 
+			std::cerr << "NO JMP" << std::endl;
+#endif
+		}
 	}
 
 	static void JMP_FALSE(vm_ptr vm)
@@ -785,7 +790,10 @@ public:
 		std::cerr << __LINE__ << "\tCLR_BLOCK ";
 #endif
 		unsigned int size = vm->blk_stk.top();
-		vm->stk.resize(size);
+		// 现在的大小到之前的大小之差
+		int dirf = vm->stk.size() - size;
+		auto end = vm->stk.end();
+		vm->stk.erase(end - dirf, end);
 #if CHECK_Eval
 		std::cerr << "list_size= " << vm->_var_list.size() << std::endl;
 #endif

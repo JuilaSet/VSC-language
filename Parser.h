@@ -142,22 +142,23 @@ enum class Context_Type :int {
 	ALWAYS	// 一直存在于栈中的上下文
 };
 
-// 上下文类
 class Parser;
 using _command_set = std::vector<Command>;
+
+// 上下文类
 class Context {
 	friend class Parser;
-	std::function<_command_set(std::stack<Context>&, _command_set&, Word& w, Parser* p)> _generate;
+	std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, Parser* p)> _generate;
 	std::string name;
 	Context_Type type;
 public:
 	// 空对象
 	Context() :
-		_generate([](std::stack<Context>&, _command_set&, Word& w, Parser* p) {return _command_set{}; }),
+		_generate([](std::vector<Context>&, _command_set&, Word& w, Parser* p) {return _command_set{}; }),
 		type(Context_Type::NORMAL), name("EMPTY_CONTEXT"){};
 
 	Context(
-		std::function<_command_set(std::stack<Context>&, _command_set&, Word& w, Parser* p)> _gen_func, Context_Type _type = Context_Type::NORMAL,
+		std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, Parser* p)> _gen_func, Context_Type _type = Context_Type::NORMAL,
 		std::string _name = "Unkown"
 	)
 		:_generate(_gen_func),
@@ -167,12 +168,12 @@ public:
 	inline Context_Type getType() { return type; }
 	inline std::string getName() { return name; }
 	// 可以操作上下文栈
-	_command_set getCommandSet(std::stack<Context>& _context_stk, _command_set& _set, Word& w, Parser* p) {
+	_command_set getCommandSet(std::vector<Context>& _context_stk, _command_set& _set, Word& w, Parser* p) {
 		return _generate(_context_stk, _set, w, p);
 	}
 };
-using ContextStk = std::stack<Context>;
-using ContextParaOperaFunc = std::function<_command_set(std::stack<Context>&, _command_set&, Word& w, Parser* p)>;
+using ContextStk = std::vector<Context>;
+using ContextParaOperaFunc = std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, Parser* p)>;
 
 class _Context_helper {
 protected:
@@ -229,7 +230,7 @@ public:
 			auto rit = contexts.rbegin();
 			auto rend = contexts.rend();
 			for (rit; rit != rend; ++rit) {
-				cstk.push(*rit);
+				cstk.push_back(*rit);
 			}
 			return commands;
 		});
@@ -246,7 +247,7 @@ protected:
 	std::map<std::string, BNFGraphic> _graphic_map;	// 名称到图的map
 	int _judge_g(Position pos, std::string& errors);				// 根据图判断语法正确性
 
-	std::stack<Context> _context_stk;		// 上下文栈
+	std::vector<Context> _context_stk;		// 上下文栈
 	// 变量类型
 	using word_type_map = std::map<std::string, WordType>;
 	std::vector<word_type_map> wt_map_list;
@@ -330,7 +331,7 @@ public:
 	std::string getErrors() { return errors; }
 	void init() {
 		_word_vector.clear();
-		while(!_context_stk.empty())_context_stk.pop();
+		while(!_context_stk.empty())_context_stk.pop_back();
 	}
 	void addBNFRuleGraphic(BNFGraphic g);
 	bool parse(std::string firstGraphicId);

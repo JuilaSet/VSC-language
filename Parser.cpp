@@ -237,13 +237,21 @@ bool Parser::parse(std::string graphicId) {
 	return offset > 0;
 }
 
+void show_cstk(const std::string& tag, std::vector<Context>& stk) {
+	std::cout << "+++" << tag << "> ";
+	std::for_each(stk.begin(), stk.end(), [&](auto ctx) {
+		std::cout << "[" << ctx.getName() << "]" << std::ends;
+	});
+	std::cout << std::endl;
+}
+
 // 生成list_block的代码
 void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& helper) {
 #if CHECK_Parser
 	std::cout << "\n\nGenerate Code Begin:" << std::endl;
 #endif
 	// 临时栈, tempSTK用于在一个子句结束生成后弹出一个上下文并生成代码
-	std::stack<Context> tempStk;
+	std::vector<Context> tempStk;
 	// 用于判断何时在一个block中清除无用数据的栈
 	std::vector<int> blkStk;
 	// 根据词_word_vector和上下文栈_context_stk来生成command
@@ -258,24 +266,27 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 		WordType type = word.getType();
 		std::string context_name = word.serialize();
 		Context ctx;
-		if (type == WordType::LOCAL_OPEN) {
-#if CHECK_Parser
-			std::cout << "WordType:LOCAL_OPEN: " << std::endl;
-			std::cout << "push++++<Temp Stk size> = " << tempStk.size() << std::endl;
-#endif		// blkStk入栈0
+		if (type == WordType::LOCAL_OPEN) {// blkStk入栈0
 			blkStk.push_back(0);
 			localBegin();
 			// 开启局部变量栈
 			commdVec.push_back(Command(OPERATOR::LOCAL_BEGIN));
+#if CHECK_Parser
+			std::cout << "Word = " << word.serialize() << std::endl;
+			show_cstk("Context stk", _context_stk);
+			show_cstk("temp stk", tempStk);
+#endif		
 		}
 		else if (type == WordType::LOCAL_CLOSED) {
 #if CHECK_Parser
-			std::cout << "WordType:LOCAL_CLOSED: " << std::endl;
-			std::cout << "pop++++<Temp Stk size> = " << tempStk.size() << std::endl;
+			std::cout << "Word = " << word.serialize() << std::endl;
+			show_cstk("Context stk", _context_stk);
+			show_cstk("temp stk", tempStk);
 #endif		// blkStk出栈
 			blkStk.pop_back();
 			// 关闭局部变量栈
 			commdVec.push_back(Command(OPERATOR::LOCAL_END));
+
 			// 当做上下文结束符";"处理		
 #if CHECK_Parser
 			std::cout << "CONTEXT_CLOSED" << std::endl;
@@ -284,12 +295,13 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 			while (ctx.type != Context_Type::END) {
 				// 如果为空就结束
 				if (!_context_stk.empty()) {
-					ctx = _context_stk.top();
+					ctx = _context_stk.back();
+					_context_stk.pop_back();
 #if CHECK_Parser
-					std::cout << "Context stack size = " << _context_stk.size() << std::endl;
 					std::cout << "Context stack POP = " << ctx.getName() << std::endl;
+					show_cstk("Context stk", _context_stk);
+					show_cstk("temp stk", tempStk);
 #endif
-					_context_stk.pop();
 				}
 				else {
 					// 如果为空, 结束
@@ -303,14 +315,15 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 				commdVec.push_back(commad);
 			}
 
-			// 如果之前保存了外部op, 就生成外部op的COMMAND
+			// 如果之前保存了外层上下文, 就生成外部的COMMAND
 			if (!tempStk.empty()) {
-				ctx = tempStk.top();
+				ctx = tempStk.back();
+				tempStk.pop_back();
 #if CHECK_Parser
-				std::cout << "Temp stack Size = " << tempStk.size() << std::endl;
-				std::cout << "Temp stack POP = " << ctx.getName() << std::endl;
+				std::cout << "TEMP stack POP = " << ctx.getName() << std::endl;
+				show_cstk("Context stk", _context_stk);
+				show_cstk("temp stk", tempStk);
 #endif
-				tempStk.pop();
 				// 生成代码
 				auto commands = ctx.getCommandSet(_context_stk, commdVec, word, this);
 				for (auto commad : commands) {
@@ -325,29 +338,30 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 			}
 			localEnd();
 		}
-		if (type == WordType::STRING_OPEN || type == WordType::STRING_CLOSED) {
+		else if (type == WordType::STRING_OPEN || type == WordType::STRING_CLOSED) {
 #if CHECK_Parser
-			std::cout << "WordType:LOCAL_OPEN: " << std::endl;
+			std::cout << "Word = " << word.serialize() << std::endl;
+			show_cstk("Context stk", _context_stk);
+			show_cstk("temp stk", tempStk);
 #endif
 			// 什么都不做
 		}
 		else if (type == WordType::CONTEXT_CLOSED) {
-			// 遇到上下文结束符";"		
+			// 遇到上下文结束符";"
 #if CHECK_Parser
-			std::cout << "CONTEXT_CLOSED" << std::endl;
-			std::cout << "WordType:CONTEXT_CLOSED: " << std::endl;
-			std::cout << "++++Temp Stk size = " << tempStk.size() << std::endl;
+			std::cout << "Word = " << word.serialize() << std::endl;
 #endif	
 			// pop到END处为止, 忽略之后所有的参数
 			while (ctx.type != Context_Type::END) {
 				// pop
 				assert(!_context_stk.empty());
-				ctx = _context_stk.top();
+				ctx = _context_stk.back();
+				_context_stk.pop_back();
 #if CHECK_Parser
-				std::cout << "Context stack size = " << _context_stk.size() << std::endl;
 				std::cout << "Context stack POP = " << ctx.getName() << std::endl;
+				show_cstk("Context stk", _context_stk);
+				show_cstk("temp stk", tempStk);
 #endif
-				_context_stk.pop();
 			}
 
 			// 生成代码
@@ -358,12 +372,13 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 
 			// 如果之前保存了外部op, 就生成外部op的COMMAND
 			if (!tempStk.empty()) {
-				ctx = tempStk.top();
+				ctx = tempStk.back();
+				tempStk.pop_back();
 #if CHECK_Parser
-				std::cout << "Temp stack Size = " << tempStk.size() << std::endl;
-				std::cout << "Temp stack POP = " << ctx.getName() << std::endl;
+				std::cerr << "TEMP STK POP = " << ctx.getName() << std::endl;
+				show_cstk("Context stk", _context_stk);
+				show_cstk("temp stk", tempStk);
 #endif		
-				tempStk.pop();
 				// 生成代码
 				auto commands = ctx.getCommandSet(_context_stk, commdVec, word, this);
 				for (auto commad : commands) {
@@ -379,30 +394,32 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 		}
 		else if (type == WordType::NUMBER || type == WordType::STRING || type == WordType::IDENTIFIER_ENABLED) {	// 新增, 对基本类型的操作
 #if CHECK_Parser
-			std::cout << "WordType:: NUMBER : STRING : IDENTIFIER_ENABLED: " << std::endl;
+			std::cout << "Word = " << word.serialize() << std::endl;
 #endif		
-			ctx = _context_stk.top();
+			ctx = _context_stk.back();
 			if (ctx.type != Context_Type::END) {		// 忽略END上下文
 			// pop
 #if CHECK_Parser
-				std::cout << "Context stack size = " << _context_stk.size() << std::endl;
 				std::cout << "Context stack POP = " << ctx.getName() << std::endl;
 				std::cout << "COMMAND: PUSH " << context_name << std::endl;
+				show_cstk("Context stk", _context_stk);
+				show_cstk("temp stk", tempStk);
 #endif
 				if (type == WordType::IDENTIFIER_ENABLED && isType(word, WordType::IDENTIFIER) && !is_in_def()) {
 					// 如果已经定义了, 并且不在def语句的第一个参数内, 生成解引用代码
-					ctx = _context_stk.top();
+					ctx = _context_stk.back();
 #if CHECK_Parser
-					std::cout << "wordType::IDENTIFIER: " << std::endl;
-					std::cout << "Context stack size = " << _context_stk.size() << std::endl;
+					std::cout << "如果已经定义了, 并且不在def语句的第一个参数内, 生成解引用代码" << std::endl;
 					std::cout << "Context stack POP " << ctx.getName() << std::endl;
+					show_cstk("Context stk", _context_stk);
+					show_cstk("temp stk", tempStk);
 #endif
 					// pop
 					// 生成解引用代码
 					commdVec.push_back(CommandHelper::getPushOpera(word.getData()));
 					commdVec.push_back(Command(OPERATOR::DRF));
 					assert(!_context_stk.empty());
-					if (ctx.type != Context_Type::ALWAYS)_context_stk.pop();
+					if (ctx.type != Context_Type::ALWAYS)_context_stk.pop_back();
 					// 生成代码
 					auto commands = ctx.getCommandSet(_context_stk, commdVec, word, this);
 					for (auto commad : commands) {
@@ -412,7 +429,7 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 				else {
 					commdVec.push_back(CommandHelper::getPushOpera(word.getData()));	// push 立即数
 					assert(!_context_stk.empty());
-					if(ctx.type != Context_Type::ALWAYS) _context_stk.pop();
+					if(ctx.type != Context_Type::ALWAYS) _context_stk.pop_back();
 					// 生成代码
 					auto commands = ctx.getCommandSet(_context_stk, commdVec, word, this);
 					for (auto commad : commands) {
@@ -424,14 +441,15 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 		else if (type == WordType::IDENTIFIER_SPEC) {
 			if (ctx.type != Context_Type::END) {		// 忽略END上下文
 #if CHECK_Parser
-				std::cout << "wordType::IDENTIFIER_SPEC: " << std::endl;
-				std::cout << "Context stack size = " << _context_stk.size() << std::endl;
+				std::cout << "Word = " << word.serialize() << std::endl;
 #endif
 				// 直接生成代码
 				ctx = helper.get_context(context_name);
 				auto commands = ctx.getCommandSet(_context_stk, commdVec, word, this);	// 在这里push新的上下文
 #if CHECK_Parser
-				std::cout << "Get new Context stack size = " << _context_stk.size() << std::endl;
+				std::cout << "Get new Context stack" << std::endl;
+				show_cstk("Context stk", _context_stk);
+				show_cstk("temp stk", tempStk);
 #endif		
 				for (auto commad : commands) {
 					commdVec.push_back(commad);
@@ -440,18 +458,18 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 		}
 		else if (type == WordType::OPERATOR_WORD || type == WordType::CONTROLLER) {
 #if CHECK_Parser
-			std::cout << "wordType::KEY_WORD: " << std::endl;
-			std::cout << "Context stack size = " << _context_stk.size() << std::endl;
+			std::cout << "Word = " << word.serialize() << std::endl;
 #endif
 			// pop to tempstk
 			if (!_context_stk.empty()) {	// void -> atomic
-				ctx = _context_stk.top();
+				ctx = _context_stk.back();
 				if (ctx.type != Context_Type::END) {		// 忽略END类型
-					tempStk.push(ctx);
-					if (ctx.type != Context_Type::ALWAYS) _context_stk.pop();
+					tempStk.push_back(ctx);
+					if (ctx.type != Context_Type::ALWAYS) _context_stk.pop_back();
 #if CHECK_Parser
 					std::cout << "Context = " << ctx.getName() << " stack POP into Temp" << std::endl;
-					std::cout << "Temp stack Size = " << tempStk.size() << std::endl;
+					show_cstk("Context stk", _context_stk);
+					show_cstk("temp stk", tempStk);
 #endif
 				}
 			}
@@ -464,7 +482,9 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 			ctx = helper.get_context(context_name);
 			auto commands = ctx.getCommandSet(_context_stk, commdVec, word, this);	// 在这里push新的上下文
 #if CHECK_Parser
-			std::cout << "Get new Context stack size = " << _context_stk.size() << std::endl;
+			std::cout << "Get new Context stack size" << std::endl;
+			show_cstk("Context stk", _context_stk);
+			show_cstk("temp stk", tempStk);
 #endif		
 			for (auto commad : commands) {
 				commdVec.push_back(commad);

@@ -1,11 +1,5 @@
 [
- def a 0;
  def sum 0;
- while not eq $a 10;;
- [
-  assign a add $a 1;;
-  assign sum add $sum $a;;
- ]
- echo $a;
- echo $sum;
+ rept 10000 [ assign sum add $C sum;; ]
+ echo sum;
 ]
