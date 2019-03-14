@@ -1,15 +1,4 @@
-﻿  Trlsr_Language.cpp
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(33): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(45): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(78): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(79): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(101): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(168): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(178): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(192): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(202): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(214): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(219): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(230): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(246): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+﻿  Parser.cpp
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\parser.cpp(56): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\parser.cpp(76): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
   Trlsr_Language.vcxproj -> D:\D_box\learning\workspace\C++studio\Trlsr_Language\x64\Debug\Trlsr_Language.exe

@@ -405,8 +405,8 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 				show_cstk("Context stk", _context_stk);
 				show_cstk("temp stk", tempStk);
 #endif
-				if (type == WordType::IDENTIFIER_ENABLED && isType(word, WordType::IDENTIFIER) && !is_in_def()) {
-					// 如果已经定义了, 并且不在def语句的第一个参数内, 生成解引用代码
+				if (type == WordType::IDENTIFIER_ENABLED && !is_in_def()) {
+					// 如果不在def或assign语句的第一个参数内, 生成解引用代码(即使是事先没有定义)
 					ctx = _context_stk.back();
 #if CHECK_Parser
 					std::cout << "如果已经定义了, 并且不在def语句的第一个参数内, 生成解引用代码" << std::endl;

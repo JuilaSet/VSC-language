@@ -1,5 +1,24 @@
 [
+ def do_sum prcd [ 
+  // n -> sum
+  echo n;
+  def i 0;
+  while not eq i n;; [
+   assign i 
+ 	add i 1;
+   ;
+    assign sum 
+ 	add i sum;
+   ;
+  ]
+ ];
+ 
+ def n 100;
  def sum 0;
- rept 10000 [ assign sum add $C sum;; ]
+ call do_sum;
  echo sum;
 ]
+
+/*
+ && isType(word, WordType::IDENTIFIER)
+*/
