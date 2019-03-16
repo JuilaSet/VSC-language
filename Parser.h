@@ -175,6 +175,23 @@ public:
 using ContextStk = std::vector<Context>;
 using ContextParaOperaFunc = std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, Parser* p)>;
 
+class Context_error {
+public:
+	Context_error() = default;
+	virtual std::string what() = 0;
+};
+
+class Context_found_error : public Context_error {
+	friend class _Context_helper;
+protected:
+	std::string error_str;
+	Context_found_error(const std::string& str) :error_str(str) {}
+public:
+	virtual std::string what() {
+		return error_str;
+	}
+};
+
 class _Context_helper {
 protected:
 	// 名称对应的上下文
@@ -210,12 +227,15 @@ public:
 	}
 
 	// 获取上下文
-	Context get_context(const std::string name) {
+	Context get_context(const std::string name) throw (Context_error) {
 		auto it = _context_map.find(name);
 #if CHECK_Parser
 		std::cerr << "try to find: " << name << std::endl;
 #endif
-		assert(it != _context_map.end());
+		// 如果没有找到对应于name的上下文, 抛出异常
+		if (it == _context_map.end()) {
+			throw Context_found_error("Context of " + name + " unfound");
+		}
 #if CHECK_Parser
 		std::cerr << "Success!" << std::endl;
 #endif

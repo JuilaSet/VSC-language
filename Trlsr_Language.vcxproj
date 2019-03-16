@@ -159,6 +159,7 @@
     <ClInclude Include="Node.h" />
     <ClInclude Include="Text.h" />
     <ClInclude Include="Token.h" />
+    <ClInclude Include="Data.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Evaluator.cpp" />
@@ -175,6 +176,7 @@
     <ClCompile Include="Text.cpp" />
     <ClCompile Include="Token.cpp" />
     <ClCompile Include="Trlsr_Language.cpp" />
+    <ClCompile Include="Data.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

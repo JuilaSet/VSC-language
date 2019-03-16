@@ -10,7 +10,8 @@ void VirtualMachine::setInstruct(vec_ins_t ins) {
 	init();
 }
 
-Data VirtualMachine::get_data(std::string id) {
+// 返回的data对象不能再放入shared_ptr
+data_ptr VirtualMachine::get_data(std::string id) {
 	auto rbegin = _var_list.rbegin();
 	auto rend = _var_list.rend();
 	for (auto rit = rbegin; rit != rend; ++rit) {
@@ -21,7 +22,7 @@ Data VirtualMachine::get_data(std::string id) {
 #if CHECK_Eval
 	std::cerr << __LINE__ << "\tDRF FAILED" << std::endl;
 #endif
-	return Data();
+	return null_data;
 }
 
 // 创建并压入局部变量表
@@ -36,14 +37,14 @@ void VirtualMachine::pop_local_list() {
 }
 
 // assign
-bool VirtualMachine::set_data(std::string id, Data d) {
+bool VirtualMachine::set_data(std::string id, data_ptr d) {
 	assert(!_var_list.empty());
 	data_list_t& data_list = _var_list.back();
 	auto rbegin = _var_list.rbegin();
 	auto rend = _var_list.rend();
 	for (auto rit = rbegin; rit != rend; ++rit) {
 		if (rit->count(id) > 0) {
-			rit->operator[](id) = d;
+			rit->operator[](id) = data_ptr(d);
 			return true;
 		}
 	}
@@ -54,7 +55,7 @@ bool VirtualMachine::set_data(std::string id, Data d) {
 }
 
 // def
-void VirtualMachine::regist_identity(std::string id, Data d) {
+void VirtualMachine::regist_identity(std::string id, data_ptr d) {
 	assert(!_var_list.empty());
 	data_list_t& data_list = _var_list.back();
 	auto it = data_list.find(id);
@@ -89,12 +90,12 @@ int VirtualMachine::step() {
 #if CHECK_Eval
 		std::cerr << "data >" << std::ends;
 		for (auto d : stk) {
-			std::cerr << "[" << d.toTypeName() << ": " << d.toEchoString() << "]," << std::ends;
+			std::cerr << "[" << d->toTypeName() << ": " << d->toEchoString() << "]," << std::ends;
 		}
 		std::cerr << std::endl << "identifier >" << std::ends;
 		for (auto& set : _var_list) {
 			for (auto& pair : set) {
-				std::cerr << "[" << pair.first << "= " << pair.second.toEchoString() << "]," << std::ends;
+				std::cerr << "[" << pair.first << "= " << pair.second->toEchoString() << "]," << std::ends;
 			}
 		}
 		std::cerr << std::endl << std::endl;
@@ -115,12 +116,12 @@ int VirtualMachine::run() {
 #if CHECK_Eval
 		std::cerr << "data >" << std::ends;
 		for (auto d : stk) {
-			std::cerr << "[" << d.toTypeName() << ": " << d.toEchoString() << "]," << std::ends;
+			std::cerr << "[" << d->toTypeName() << ": " << d->toEchoString() << "]," << std::ends;
 		}
 		std::cerr << std::endl << "identifier >";
 		for (auto& set : _var_list) {
 			for (auto& pair : set) {
-				std::cerr << "[" << pair.first << "= " << pair.second.toEchoString() << "]," << std::ends;
+				std::cerr << "[" << pair.first << "= " << pair.second->toEchoString() << "]," << std::ends;
 			}
 		}
 		std::cerr << std::endl << std::endl;
@@ -191,6 +192,8 @@ Command CommandHelper::getBasicCommandOfString(std::string str) {
 	COMMAND_GET(JMP_FALSE)
 	else
 	COMMAND_GET(COUNT)
+	else
+	COMMAND_GET(NUL)
 	else
 	COMMAND_GET(ECX)
 	else

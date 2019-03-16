@@ -8,6 +8,7 @@
 #include <chrono>
 
 #include "Lexer.h"
+
 #define CHECK_Eval false
 
 // 
@@ -51,6 +52,7 @@ enum class OPCODE :int {
 	TIME_BEGIN,		// 当前时间
 	TIME_END,		// 计时结束
 	ECX,			// 获取计数器大小
+	NUL,			// 空对象
 
 	LOCAL_BEGIN,	// 生成局部变量栈
 	LOCAL_END,		// POP局部变量栈
@@ -90,6 +92,7 @@ class Command;
 class CommandHelper;
 using vec_ins_t = std::vector<Command>;
 using data_ptr = std::shared_ptr<Data>;
+using data_list_t = std::map<std::string, data_ptr>;
 class VirtualMachine
 {
 	// 友元类
@@ -98,6 +101,7 @@ class VirtualMachine
 	friend class OPERATOR;
 
 	bool _stop;
+	const data_ptr null_data = data_ptr(new Data());
 
 	vec_ins_t instruct;			// 指令
 	std::stack<unsigned int> blk_stk;// 保存所在语句块数据栈大小恢复值
@@ -105,8 +109,7 @@ class VirtualMachine
 	unsigned int ipc;
 	bool _f[3];	// [0]: 大于 [1]: 小于 [2]: 是否标记
 
-	std::vector<Data> stk;
-	using data_list_t = std::map<std::string, Data>;
+	std::vector<data_ptr> stk;
 	std::vector<data_list_t> _var_list;	// 变量列表
 
 	int ecx;
@@ -129,9 +132,9 @@ public:
 	void clear_data_list();
 	void init();
 
-	void regist_identity(std::string id, Data d);
-	Data get_data(std::string id);
-	bool set_data(std::string id, Data d);
+	void regist_identity(std::string id, data_ptr d);
+	data_ptr get_data(std::string id);
+	bool set_data(std::string id, data_ptr d);
 
 	// 创建并压入局部变量表
 	void push_local_list();
@@ -145,30 +148,31 @@ public:
 
 	inline void reverse_top() {
 		assert(!stk.empty());
-		Data d1 = stk.back();
+		data_ptr d1 = stk.back();
 		stk.pop_back();
 		assert(!stk.empty());
-		Data d2 = stk.back();
+		data_ptr d2 = stk.back();
 		stk.pop_back();
 		
-		stk.push_back(d1);
-		stk.push_back(d2);
+		stk.emplace_back(d1);
+		stk.emplace_back(d2);
 	}
 
-	inline Data pop() {
+	inline data_ptr pop() {
 		assert(!stk.empty());
-		Data d = stk.back();
+		auto d = stk.back();
 		stk.pop_back();
 		return d;
 	}
 
-	inline Data top() {
+	inline data_ptr top() {
 		assert(!stk.empty());
-		Data d = stk.back();
+		data_ptr d = stk.back();
 		return d;
 	}
 
-	inline void push(Data d) {
+	// 放入newed对象
+	inline void push(data_ptr d) {
 		stk.push_back(d);
 	}
 	
@@ -206,7 +210,7 @@ public:
 #endif
 		unsigned int addr = vm->ipc;
 		assert(vm->instruct.size() > addr);
-		vm->push(Data(DataType::OPERA_ADDR, addr));
+		vm->push(data_ptr(new Data(DataType::OPERA_ADDR, addr)));
 	}
 
 	static void REVERSE_TOP(vm_ptr vm) {
@@ -221,19 +225,20 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::ADD ";
 #endif
 		assert(!vm->stk.empty());
-		Data n1 = vm->pop();
-		assert(n1.getType() == DataType::NUMBER);
-		int a1 = n1.toNumber();
+		data_ptr n1 = vm->pop();
+		assert(n1->getType() == DataType::NUMBER);
+		int a1 = n1->toNumber();
 
 		assert(!vm->stk.empty());
-		Data n2 = vm->pop();
-		assert(n2.getType() == DataType::NUMBER);
-		int a2 = n2.toNumber();
+		data_ptr n2 = vm->pop();
+		assert(n2->getType() == DataType::NUMBER);
+		int a2 = n2->toNumber();
 
-		Data d_temp = Data(DataType::NUMBER, a1 + a2);
+		// newed
+		data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, a1 + a2));
 		vm->push(d_temp);
 #if CHECK_Eval 
-		std::cerr << a1 << " + " << a2 << " = " << d_temp.toNumber() << std::endl;
+		std::cerr << a1 << " + " << a2 << " = " << d_temp->toNumber() << std::endl;
 #endif
 	};
 
@@ -242,19 +247,19 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::SUB ";
 #endif
 		assert(!vm->stk.empty());
-		Data n1 = vm->pop();
-		assert(n1.getType() == DataType::NUMBER);
-		int a1 = n1.toNumber();
+		data_ptr n1 = vm->pop();
+		assert(n1->getType() == DataType::NUMBER);
+		int a1 = n1->toNumber();
 
 		assert(!vm->stk.empty());
-		Data n2 = vm->pop();
-		assert(n2.getType() == DataType::NUMBER);
-		int a2 = n2.toNumber();
-
-		Data d_temp = Data(DataType::NUMBER, a2 - a1);
+		data_ptr n2 = vm->pop();
+		assert(n2->getType() == DataType::NUMBER);
+		int a2 = n2->toNumber();
+		// newed
+		data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, a2 - a1));
 		vm->push(d_temp);
 #if CHECK_Eval 
-		std::cerr << a2 << " - " << a1 << " = " << d_temp.toNumber() << std::endl;
+		std::cerr << a2 << " - " << a1 << " = " << d_temp->toNumber() << std::endl;
 #endif
 	}
 
@@ -263,14 +268,14 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::NOT ";
 #endif
 		assert(!vm->stk.empty());
-		Data n1 = vm->pop();
-		assert(n1.getType() == DataType::NUMBER);
-		int a1 = n1.toNumber();
+		data_ptr n1 = vm->pop();
+		assert(n1->getType() == DataType::NUMBER);
+		int a1 = n1->toNumber();
 
-		Data d_temp = Data(DataType::NUMBER, a1 == 0);
+		data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, a1 == 0));
 		vm->push(d_temp);
 #if CHECK_Eval 
-		std::cerr << a1 << " = " << d_temp.toNumber() << std::endl;
+		std::cerr << a1 << " = " << d_temp->toNumber() << std::endl;
 #endif
 	}
 
@@ -279,12 +284,13 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::EQ ";
 #endif
 		assert(!vm->stk.empty());
-		Data n1 = vm->pop();
+		data_ptr n1 = vm->pop();
 
 		assert(!vm->stk.empty());
-		Data n2 = vm->pop();
+		data_ptr n2 = vm->pop();
 
-		Data d_temp = Data(DataType::NUMBER, n2 == n1);
+		// newed
+		data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, n2 == n1));
 		vm->push(d_temp);
 #if CHECK_Eval 
 		std::cerr << (n2 == n1) << std::endl;
@@ -297,12 +303,12 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::G ";
 #endif
 		assert(!vm->stk.empty());
-		Data n1 = vm->pop();
+		data_ptr n1 = vm->pop();
 
 		assert(!vm->stk.empty());
-		Data n2 = vm->pop();
-
-		Data d_temp = Data(DataType::NUMBER, !(n2 < n1) && !(n2 == n1));
+		data_ptr n2 = vm->pop();
+		// newed
+		data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, !(n2 < n1) && !(n2 == n1)));
 		vm->push(d_temp);
 #if CHECK_Eval
 		std::cerr << (!(n2 < n1) && !(n2 == n1)) << std::endl;
@@ -315,12 +321,12 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::L ";
 #endif
 		assert(!vm->stk.empty());
-		Data n1 = vm->pop();
+		data_ptr n1 = vm->pop();
 
 		assert(!vm->stk.empty());
-		Data n2 = vm->pop();
-
-		Data d_temp = Data(DataType::NUMBER, n2 < n1);
+		data_ptr n2 = vm->pop();
+		// newed
+		data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, n2 < n1));
 		vm->push(d_temp);
 #if CHECK_Eval
 		std::cerr << (n2 < n1) << std::endl;
@@ -332,19 +338,19 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::STRCAT ";
 #endif
 		assert(!vm->stk.empty());
-		Data n1 = vm->pop();
-		assert(n1.getType() == DataType::STRING);
-		std::string a1 = n1.toString();
+		data_ptr n1 = vm->pop();
+		assert(n1->getType() == DataType::STRING);
+		std::string a1 = n1->toString();
 
 		assert(!vm->stk.empty());
-		Data n2 = vm->pop();
-		assert(n2.getType() == DataType::STRING);
-		std::string a2 = n2.toString();
+		data_ptr n2 = vm->pop();
+		assert(n2->getType() == DataType::STRING);
+		std::string a2 = n2->toString();
 
-		Data d_temp = Data(DataType::STRING, a2 + a1);
+		data_ptr d_temp = data_ptr(new Data(DataType::STRING, a2 + a1));
 		vm->push(d_temp);
 #if CHECK_Eval 
-		std::cerr << a2 << " + " << a1 << " = " << d_temp.toEchoString() << std::endl;
+		std::cerr << a2 << " + " << a1 << " = " << d_temp->toEchoString() << std::endl;
 #endif
 	}
 
@@ -355,7 +361,7 @@ public:
 #endif
 		assert(!vm->stk.empty());
 #if CHECK_Eval 
-		std::cerr << vm->stk.back().toEchoString() << std::endl;
+		std::cerr << vm->stk.back()->toEchoString() << std::endl;
 #endif
 		vm->pop();
 	}
@@ -366,10 +372,11 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::CAST_NUMBER ";
 #endif
 		assert(!vm->stk.empty());
-		Data d = vm->pop();
-		assert(d.getType() != DataType::OPERA_ADDR);
-		int num = d.toNumber();
-		vm->push(Data(DataType::NUMBER, num));
+		data_ptr d = vm->pop();
+		assert(d->getType() != DataType::OPERA_ADDR);
+		int num = d->toNumber();
+		// newed
+		vm->push(data_ptr(new Data(DataType::NUMBER, num)));
 #if CHECK_Eval 
 		std::cerr << num << std::endl;
 #endif
@@ -381,10 +388,10 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::CAST_STRING ";
 #endif
 		assert(!vm->stk.empty());
-		Data d = vm->pop();
-		assert(d.getType() != DataType::OPERA_ADDR);
-		std::string str = d.toString();
-		vm->push(Data(DataType::STRING, str));
+		data_ptr d = vm->pop();
+		assert(d->getType() != DataType::OPERA_ADDR);
+		std::string str = d->toString();
+		vm->push(data_ptr(new Data(DataType::STRING, str)));
 #if CHECK_Eval
 		std::cerr << str << std::endl;
 #endif
@@ -395,10 +402,10 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::CAST_BOOL ";
 #endif
 		assert(!vm->stk.empty());
-		Data d = vm->pop();
-		assert(d.getType() != DataType::OPERA_ADDR);
-		int b = d.toBool();
-		vm->push(Data(DataType::NUMBER, b));
+		data_ptr d = vm->pop();
+		assert(d->getType() != DataType::OPERA_ADDR);
+		int b = d->toBool();
+		vm->push(data_ptr(new Data(DataType::NUMBER, b)));
 #if CHECK_Eval
 		std::cerr << b << std::endl;
 #endif
@@ -410,17 +417,17 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::CMP _f= ";
 #endif
 		assert(!vm->stk.empty());
-		Data d1 = vm->pop();
+		data_ptr d1 = vm->pop();
 		assert(!vm->stk.empty());
-		Data d2 = vm->pop();
+		data_ptr d2 = vm->pop();
 		vm->_f[0] = true;
 		vm->_f[1] = true;
-		if (d1 == d2) {
+		if (*d1 == *d2) {
 			vm->_f[0] = false;
 			vm->_f[1] = false;
 		}
 		else {
-			if (d1 < d2) {
+			if (*d1 < *d2) {
 				// vm->_f[1] = true;
 				vm->_f[0] = false;
 			}
@@ -429,7 +436,7 @@ public:
 				vm->_f[1] = false;
 			}
 		}
-		vm->push(Data());	// 返回void
+		vm->push(vm->null_data);	// 返回void
 #if CHECK_Eval 
 		std::cerr << vm->_f[0] << vm->_f[1] << vm->_f[2] << std::endl;
 #endif
@@ -441,8 +448,8 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::TEXT _f[2] = ";
 #endif
 		assert(!vm->stk.empty());
-		Data d = vm->pop();
-		vm->_f[2] = d.toBool();
+		data_ptr d = vm->pop();
+		vm->_f[2] = d->toBool();
 #if CHECK_Eval 
 		std::cerr << vm->_f[2] << std::endl;
 #endif
@@ -454,11 +461,11 @@ public:
 #endif
 		if (!(vm->_f[0] || vm->_f[1])) {
 			assert(!vm->stk.empty());
-			Data d = vm->pop();
-			assert(d.getType() == DataType::OPERA_ADDR);
-			vm->ipc = d.toAddr() - 1;
+			data_ptr d = vm->pop();
+			assert(d->getType() == DataType::OPERA_ADDR);
+			vm->ipc = d->toAddr() - 1;
 #if CHECK_Eval 
-			std::cerr << d.toAddr() << std::endl;
+			std::cerr << d->toAddr() << std::endl;
 #endif
 		}
 	}
@@ -469,11 +476,11 @@ public:
 #endif
 		if (vm->_f[0] && vm->_f[1]) {
 			assert(!vm->stk.empty());
-			Data d = vm->pop();
-			assert(d.getType() == DataType::OPERA_ADDR);
-			vm->ipc = d.toAddr() - 1;
+			data_ptr d = vm->pop();
+			assert(d->getType() == DataType::OPERA_ADDR);
+			vm->ipc = d->toAddr() - 1;
 #if CHECK_Eval 
-			std::cerr << d.toAddr() << std::endl;
+			std::cerr << d->toAddr() << std::endl;
 #endif
 		}
 	}
@@ -484,11 +491,11 @@ public:
 #endif
 		if (vm->_f[0] && !vm->_f[1]) {
 			assert(!vm->stk.empty());
-			Data d = vm->pop();
-			assert(d.getType() == DataType::OPERA_ADDR);
-			vm->ipc = d.toAddr() - 1;
+			data_ptr d = vm->pop();
+			assert(d->getType() == DataType::OPERA_ADDR);
+			vm->ipc = d->toAddr() - 1;
 #if CHECK_Eval 
-			std::cerr << d.toAddr() << std::endl;
+			std::cerr << d->toAddr() << std::endl;
 #endif
 		}
 	}
@@ -499,11 +506,11 @@ public:
 #endif
 		if (!vm->_f[0] && vm->_f[1]) {
 			assert(!vm->stk.empty());
-			Data d = vm->pop();
-			assert(d.getType() == DataType::OPERA_ADDR);
-			vm->ipc = d.toAddr() - 1;
+			data_ptr d = vm->pop();
+			assert(d->getType() == DataType::OPERA_ADDR);
+			vm->ipc = d->toAddr() - 1;
 #if CHECK_Eval 
-			std::cerr << d.toAddr() << std::endl;
+			std::cerr << d->toAddr() << std::endl;
 #endif
 		}
 	}
@@ -514,11 +521,11 @@ public:
 #endif
 		if (!vm->_f[1]) {	// 不小于
 			assert(!vm->stk.empty());
-			Data d = vm->pop();
-			assert(d.getType() == DataType::OPERA_ADDR);
-			vm->ipc = d.toAddr() - 1;
+			data_ptr d = vm->pop();
+			assert(d->getType() == DataType::OPERA_ADDR);
+			vm->ipc = d->toAddr() - 1;
 #if CHECK_Eval 
-			std::cerr << d.toAddr() << std::endl;
+			std::cerr << d->toAddr() << std::endl;
 #endif
 		}
 	}
@@ -529,11 +536,11 @@ public:
 #endif
 		if (!vm->_f[0]) {	// 不大于
 			assert(!vm->stk.empty());
-			Data d = vm->pop();
-			assert(d.getType() == DataType::OPERA_ADDR);
-			vm->ipc = d.toAddr() - 1;
+			data_ptr d = vm->pop();
+			assert(d->getType() == DataType::OPERA_ADDR);
+			vm->ipc = d->toAddr() - 1;
 #if CHECK_Eval 
-			std::cerr << d.toAddr() << std::endl;
+			std::cerr << d->toAddr() << std::endl;
 #endif
 		}
 	}
@@ -544,11 +551,11 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::JMP ";
 #endif
 		assert(!vm->stk.empty());
-		Data d = vm->pop();
-		assert(d.getType() == DataType::OPERA_ADDR);
-		vm->ipc = d.toAddr() - 1;
+		data_ptr d = vm->pop();
+		assert(d->getType() == DataType::OPERA_ADDR);
+		vm->ipc = d->toAddr() - 1;
 #if CHECK_Eval 
-		std::cerr << d.toAddr() << std::endl;
+		std::cerr << d->toAddr() << std::endl;
 #endif
 	}
 
@@ -558,12 +565,12 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::JMP_TRUE ";
 #endif
 		assert(!vm->stk.empty());
-		Data d = vm->pop();
-		assert(d.getType() == DataType::OPERA_ADDR);
+		data_ptr d = vm->pop();
+		assert(d->getType() == DataType::OPERA_ADDR);
 		if (vm->_f[2]) {
-			vm->ipc = d.toAddr() - 1;
+			vm->ipc = d->toAddr() - 1;
 #if CHECK_Eval 
-			std::cerr << d.toAddr() << std::endl;
+			std::cerr << d->toAddr() << std::endl;
 #endif
 		}
 		else {
@@ -579,12 +586,12 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::JMP_FALSE ";
 #endif
 		assert(!vm->stk.empty());
-		Data d = vm->pop();
-		assert(d.getType() == DataType::OPERA_ADDR);
+		data_ptr d = vm->pop();
+		assert(d->getType() == DataType::OPERA_ADDR);
 		if (!vm->_f[2]) {
-			vm->ipc = d.toAddr() - 1;
+			vm->ipc = d->toAddr() - 1;
 #if CHECK_Eval 
-			std::cerr << d.toAddr() << std::endl;
+			std::cerr << d->toAddr() << std::endl;
 #endif
 		}
 	}
@@ -594,11 +601,11 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::COUNT ";
 #endif
 		assert(!vm->stk.empty());
-		Data n = vm->pop();
-		assert(n.getType() == DataType::NUMBER);
-		vm->ecx = n.toNumber();
+		data_ptr n = vm->pop();
+		assert(n->getType() == DataType::NUMBER);
+		vm->ecx = n->toNumber();
 #if CHECK_Eval 
-		std::cerr << n.toNumber() << std::endl;
+		std::cerr << n->toNumber() << std::endl;
 #endif
 	}
 
@@ -621,18 +628,24 @@ public:
 		std::string str;
 		s >> str;
 
-		vm->push(Data(DataType::STRING, str));
+		vm->push(data_ptr(new Data(DataType::STRING, str)));
 #if CHECK_Eval 
 		std::cerr << str << std::endl;
 #endif
-
 	}
 
 	static void ECX(vm_ptr vm) {
 #if CHECK_Eval 
-		std::cerr << __LINE__ << "\tOPCODE::ECX ";
+		std::cerr << __LINE__ << "\tOPCODE::ECX " << std::endl;
 #endif
-		vm->push(Data(DataType::NUMBER, vm->ecx));	// 计数器大小
+		vm->push(data_ptr(new Data(DataType::NUMBER, vm->ecx)));	// 计数器大小
+	}
+
+	static void NUL(vm_ptr vm) {
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::NUL " << std::endl;
+#endif
+		vm->push(vm->null_data);	// 计数器大小
 	}
 
 	static void REPT(vm_ptr vm) {
@@ -640,13 +653,13 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::REPT ";
 #endif
 		assert(!vm->stk.empty());
-		Data addr = vm->pop();
-		assert(addr.getType() == DataType::OPERA_ADDR);
+		data_ptr addr = vm->pop();
+		assert(addr->getType() == DataType::OPERA_ADDR);
 		if (vm->ecx > 0) {
-			vm->ipc = addr.toAddr() - 1;
+			vm->ipc = addr->toAddr() - 1;
 			vm->ecx--;
 #if CHECK_Eval 
-			std::cerr << addr.toAddr() << std::endl;
+			std::cerr << addr->toAddr() << std::endl;
 #endif
 		}
 #if CHECK_Eval 
@@ -661,8 +674,8 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::ISEND ";
 #endif
 		assert(!vm->stk.empty());
-		Data d = vm->top();
-		if (d.getType() == DataType::NON) {
+		data_ptr d = vm->top();
+		if (d->getType() == DataType::NON) {
 			vm->_f[2] = 1;
 		}
 		else {
@@ -679,9 +692,9 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::EQL ";
 #endif
 		assert(!vm->stk.empty());
-		Data d1 = vm->pop();
+		data_ptr d1 = vm->pop();
 		assert(!vm->stk.empty());
-		Data d2 = vm->pop();
+		data_ptr d2 = vm->pop();
 		if (d1 == d2) {
 			vm->_f[0] = false;
 			vm->_f[1] = false;
@@ -697,9 +710,9 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::NEQL ";
 #endif
 		assert(!vm->stk.empty());
-		Data d1 = vm->pop();
+		data_ptr d1 = vm->pop();
 		assert(!vm->stk.empty());
-		Data d2 = vm->pop();
+		data_ptr d2 = vm->pop();
 		if (d1 == d2) {
 			vm->_f[0] = true;
 			vm->_f[1] = true;
@@ -715,11 +728,12 @@ public:
 		std::cerr << __LINE__ << "\tDRF ";
 #endif
 		assert(!vm->stk.empty());
-		Data d = vm->pop();
-		d = (vm)->get_data(d.toString());
+		data_ptr d = vm->pop();
+		d = (vm)->get_data(d->toString());
 #if CHECK_Eval 
-		std::cerr << d.toEchoString() << std::endl;
+		std::cerr << d->toEchoString() << std::endl;
 #endif
+		// 返回解引用的指针
 		vm->push(d);
 	}
 
@@ -730,15 +744,15 @@ public:
 #endif
 		// push id push data def
 		assert(!vm->stk.empty());
-		Data d = vm->pop();
+		data_ptr d = vm->pop();
 		assert(!vm->stk.empty());
-		Data id = vm->pop();
-		assert(id.getType() == DataType::STRING);
-		vm->regist_identity(id.toString(), d);
+		data_ptr id = vm->pop();
+		assert(id->getType() == DataType::STRING);
+		vm->regist_identity(id->toString(), d);
 		// 返回定义的data
 		vm->push(d);
 #if CHECK_Eval 
-		std::cerr << id.toEchoString() << ":= " << d.toEchoString() << std::endl;
+		std::cerr << id->toEchoString() << ":= " << d->toEchoString() << std::endl;
 #endif
 	}
 
@@ -748,15 +762,15 @@ public:
 		std::cerr << __LINE__ << "\tASSIGN ";
 #endif
 		assert(!vm->stk.empty());
-		Data value = vm->pop();
+		data_ptr value = vm->pop();
 		assert(!vm->stk.empty());
-		Data id = vm->pop();
-		assert(id.getType() == DataType::STRING);
-		!vm->set_data(id.toString(), value);
+		data_ptr id = vm->pop();
+		assert(id->getType() == DataType::STRING);
+		!vm->set_data(id->toString(), value);
 		// 返回赋值的data
 		vm->push(value);
 #if CHECK_Eval 
-		std::cerr << id.toEchoString() << ":= " << value.toEchoString() << std::endl;
+		std::cerr << id->toEchoString() << ":= " << value->toEchoString() << std::endl;
 #endif
 	}
 
@@ -765,16 +779,17 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::CALL ";
 #endif
 		assert(!vm->stk.empty());
-		Data temp_addr = vm->pop();
-		assert(temp_addr.getType() == DataType::OPERA_ADDR);
+		data_ptr temp_addr = vm->pop();
+		assert(temp_addr->getType() == DataType::OPERA_ADDR);
 #if CHECK_Eval 
-		std::cerr << temp_addr.toEchoString() << std::endl;
+		std::cerr << temp_addr->toEchoString() << std::endl;
 #endif
 		unsigned int addr = vm->ipc;
+		// 当前地址入栈
 		assert(vm->instruct.size() > addr);
-		vm->push(Data(DataType::OPERA_ADDR, addr));
+		vm->push(data_ptr(new Data(DataType::OPERA_ADDR, addr)));
 		// jmp
-		vm->ipc = temp_addr.toAddr() - 1;
+		vm->ipc = temp_addr->toAddr() - 1;
 	}
 
 	static void RET(vm_ptr vm) {
@@ -782,12 +797,12 @@ public:
 		std::cerr << __LINE__ << "\tOPCODE::RET ";
 #endif
 		assert(!vm->stk.empty());
-		Data addr = vm->pop();
-		assert(vm->instruct.size() > addr.toAddr());
+		data_ptr addr = vm->pop();
+		assert(vm->instruct.size() > addr->toAddr());
 		// jmp
-		vm->ipc = addr.toAddr();
+		vm->ipc = addr->toAddr();
 #if CHECK_Eval 
-		std::cerr << addr.toEchoString() << std::endl;
+		std::cerr << addr->toEchoString() << std::endl;
 #endif
 	}
 
@@ -849,7 +864,7 @@ public:
 #if CHECK_Eval 
 			std::cerr << __LINE__ << "\tOPCODE::PUSH " << d.toEchoString() << std::endl;
 #endif
-			vm->push(d);
+			vm->push(data_ptr(new Data(d)));
 		});
 	};
 
@@ -860,9 +875,9 @@ public:
 			std::cerr << __LINE__ << "\tOPCODE::DEF ";
 #endif
 			assert(!vm->stk.empty());
-			Data d = vm->pop();
+			data_ptr d = vm->pop();
 #if CHECK_Eval 
-			std::cerr << id << ":= " << d.toEchoString() << std::endl;
+			std::cerr << id << ":= " << d->toEchoString() << std::endl;
 #endif
 			vm->regist_identity(id, d);
 		});
@@ -871,8 +886,8 @@ public:
 	static Command getEchoOpera(std::ostream* ostm, std::string end = "\n") {
 		return Command([=](VirtualMachine *vm) {
 			assert(!vm->stk.empty());
-			Data d = vm->top();
-			std::string str = d.toEchoString();
+			data_ptr d = vm->top();
+			std::string str = d->toEchoString();
 #if CHECK_Eval 
 			std::cerr << __LINE__ << "\tOPCODE::ECHO " << str << std::endl;
 #endif

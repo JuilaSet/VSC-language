@@ -300,6 +300,16 @@ void regist_keywords_contents() {
 		},{ })	// 只能有一个上下文
 	);
 
+	Context_Helper::helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$null").serialize(),
+		Context_Helper::helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, Parser* p) {	// op_0
+#if CHECK_Parser
+		cout << "COMMAND:::: $null" << endl;
+#endif
+		return _command_set{ Command(OPERATOR::NUL) };
+	}, { })	// 只能有一个上下文
+	);
+
 	// OPERATOR_WORD
 
 	Context_Helper::helper.regist_context(Word(WordType::OPERATOR_WORD, "strcat").serialize(),
@@ -464,7 +474,7 @@ void regist_keywords_contents() {
 			[](ContextStk& cstk, _command_set&, Word& w, Parser* p) {
 				return _command_set{ };
 			},
-				{
+			{
 					EMPTY_CONTEXT,
 					EMPTY_CONTEXT,
 					Context([](ContextStk& cstk, _command_set&, Word& w, Parser* p) {
@@ -480,6 +490,9 @@ void regist_keywords_contents() {
 			[&](ContextStk& cstk, _command_set&, Word& w, Parser* p) { return _command_set{}; },
 			{
 				Context([&](ContextStk& cstk, _command_set&, Word& w, Parser* p) {
+#if CHECK_Parser
+					cout << "COMMAND ECHO" << endl;
+#endif
 					return _command_set{
 						CommandHelper::getEchoOpera(&cout)
 					};
@@ -1154,20 +1167,25 @@ int main(int argc, char* argv[]) {
 #endif
 
 		// 语法分析
-		int b = p.parse("top");
-		cerr << "Parse " << (b ? "success!" : "failed!") << endl;
-		if (!b) {
-			cout << "Parse ERROR =\n" << p.getErrors() << endl;
+		try {
+			int b = p.parse("top");
+			cerr << "Parse " << (b ? "success!" : "failed!") << endl;
+			if (!b) {
+				cout << "Parse ERROR =\n" << p.getErrors() << endl;
+			}
+			else {
+
+				// 生成目标代码
+				p.generate_code(comms, Context_Helper::helper);	// 抛出异常
+				cout << "Code Generated finished!" << endl << endl;
+
+				// 执行代码
+				vm.setInstruct(comms);
+				vm.run();
+			}
 		}
-		else {
-
-			// 生成目标代码
-			p.generate_code(comms, Context_Helper::helper);
-			cout << "Code Generated finished!" << endl;
-
-			// 执行代码
-			vm.setInstruct(comms);
-			vm.run();
+		catch (Context_found_error e) {
+			cerr << e.what() << endl;
 		}
 	}
 	return 0;

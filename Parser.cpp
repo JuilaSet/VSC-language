@@ -246,7 +246,7 @@ void show_cstk(const std::string& tag, std::vector<Context>& stk) {
 }
 
 // 生成list_block的代码
-void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& helper) {
+void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& helper) throw (Context_error) {
 #if CHECK_Parser
 	std::cout << "\n\nGenerate Code Begin:" << std::endl;
 #endif
@@ -430,7 +430,10 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 				else {
 					commdVec.push_back(CommandHelper::getPushOpera(word.getData()));	// push 立即数
 					assert(!_context_stk.empty());
-					if(ctx.type != Context_Type::ALWAYS) _context_stk.pop_back();
+					// 如果不是always类型就丢弃这个
+					if (ctx.type != Context_Type::ALWAYS) {
+						_context_stk.pop_back();
+					}
 					// 生成代码
 					auto commands = ctx.getCommandSet(_context_stk, commdVec, word, this);
 					for (auto commad : commands) {
@@ -446,13 +449,21 @@ void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& help
 #endif
 				// 直接生成代码
 				ctx = helper.get_context(context_name);
+				assert(!_context_stk.empty());
 				auto commands = ctx.getCommandSet(_context_stk, commdVec, word, this);	// 在这里push新的上下文
 #if CHECK_Parser
-				std::cout << "Get new Context stack" << std::endl;
 				show_cstk("Context stk", _context_stk);
 				show_cstk("temp stk", tempStk);
 #endif		
 				for (auto commad : commands) {
+					commdVec.push_back(commad);
+				}
+
+				// 生成前一个上下文的代码
+				ctx = _context_stk.back();
+				if (ctx.type != Context_Type::ALWAYS) _context_stk.pop_back();
+				auto commands_last = ctx.getCommandSet(_context_stk, commdVec, word, this);
+				for (auto commad : commands_last) {
 					commdVec.push_back(commad);
 				}
 			}
