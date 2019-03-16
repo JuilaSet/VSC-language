@@ -12,19 +12,47 @@ using namespace std;
 
 // 注册关键字到上下文的关联
 void regist_keywords_contents() {
+	const std::string PARA_WORD = "paras_";
 
 	// CONTROLLER
 	Context_Helper::helper.regist_context(Word(WordType::CONTROLLER, "call").serialize(),
 		Context_Helper::helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
+			p->paras_begin();
 			return _command_set{ };
 		},
 		{
 			EMPTY_CONTEXT,
+			Context([=](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
+				std::string n = std::to_string(p->paras()++);
+				return _command_set{
+						CommandHelper::getDefOpera(PARA_WORD + n)
+				};
+			}, Context_Type::ALWAYS), 
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
+				p->paras_end();
 				return _command_set{
 						Command(OPERATOR::CALL)
 				};
 			}, Context_Type::END)
+		})
+	);
+
+	Context_Helper::helper.regist_context(Word(WordType::CONTROLLER, "time").serialize(),
+		Context_Helper::helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
+		Context_Helper::helper.push_command_index(_vec.size());
+			return _command_set{
+					Command(OPERATOR::TIME_BEGIN)
+			};
+		},
+		{
+			Context([&](ContextStk& cstk, _command_set&, Word& w, Parser* p) {
+				return _command_set{ };
+			}, Context_Type::NORMAL, "time_block"),
+			Context([&](ContextStk& cstk, _command_set& _vec, Word& w, Parser* p) {
+				return _command_set{
+						Command(OPERATOR::TIME_END)
+				};
+			}, Context_Type::END, "time_end")
 		})
 	);
 
@@ -452,12 +480,12 @@ void regist_keywords_contents() {
 			[&](ContextStk& cstk, _command_set&, Word& w, Parser* p) { return _command_set{}; },
 			{
 				Context([&](ContextStk& cstk, _command_set&, Word& w, Parser* p) {
-					return _command_set{ };
-				}, Context_Type::NORMAL, "echo_op1"),
-				Context([&](ContextStk& cstk, _command_set&, Word& w, Parser* p) {
 					return _command_set{
-						CommandHelper::getEchoOpera(&cerr)
+						CommandHelper::getEchoOpera(&cout)
 					};
+				}, Context_Type::ALWAYS, "echo_op*"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w, Parser* p) {
+					return _command_set{ };
 				}, Context_Type::END, "echo_end")
 			})
 	);
@@ -488,6 +516,7 @@ void regist_token() {
 	REGIST_OPERATO_WORDS("g");
 	REGIST_OPERATO_WORDS("l");
 
+	REGIST_CONTROLLER_WORDS("time");
 	REGIST_CONTROLLER_WORDS("call");
 	REGIST_CONTROLLER_WORDS("prcd");
 	REGIST_CONTROLLER_WORDS("tuple");
@@ -891,6 +920,25 @@ void regist_bnf(Parser& p) {
 		})->
 		nonterminal("block", "block")->
 		end()->
+		// time语句
+		gotoHead()->
+		terminal("time", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[time] get word:" << w.serialize();
+#endif
+			if (w.getString() == "time") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'time' here\n";
+				return false;
+			}
+		})->
+		nonterminal("block", "block")->
+		end()->
 		getGraphic();
 	p.addBNFRuleGraphic(g_def_ass);
 
@@ -918,6 +966,7 @@ void regist_bnf(Parser& p) {
 				return false;
 			}
 		})->
+		nonterminal("atomic", "atomic")->
 		nonterminal("atomic", "atomic")->
 		terminal("context_closed_call", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
@@ -1083,14 +1132,14 @@ void regist_bnf(Parser& p) {
 int main(int argc, char* argv[]) {
 	regist_keywords_contents();
 	regist_token();
-	// Lexer lex(new CLIInput("luo ->"));
-	Lexer lex(new FileInput("in.tr"));
+	Lexer lex(new CLIInput("luo ->"));
+	//Lexer lex(new FileInput("in.tr"));
 	Parser p(&lex);
 	regist_bnf(p);
 
 	VirtualMachine vm;
 	vector<Command> comms;
-	//while (1) {
+	while (1) {
 		comms.clear();
 		p.init();
 
@@ -1120,7 +1169,7 @@ int main(int argc, char* argv[]) {
 			vm.setInstruct(comms);
 			vm.run();
 		}
-	//}
+	}
 	return 0;
 };
 

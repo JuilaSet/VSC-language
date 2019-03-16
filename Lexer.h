@@ -33,7 +33,7 @@ enum class DataType :int {
 	OPERA_ADDR
 };
 
-// Data只能是堆对象
+// []][ 将Data设置为堆对象, 存入shared_ptr
 struct data_t
 {
 	std::string value_str;

@@ -1,4 +1,38 @@
-﻿  Parser.cpp
+﻿  pch.cpp
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\input.h(45): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\evaluator.h(754): warning C4552: ”!“: 未使用表达式结果
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\evaluator.h(799): warning C4267: “参数”: 从“size_t”转换到“unsigned int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\evaluator.h(828): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  Evaluator.cpp
+  Input.cpp
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\input.cpp(50): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
+  Lexer.cpp
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(24): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(153): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(223): warning C4267: “=”: 从“size_t”转换到“unsigned int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(291): warning C4267: “初始化”: 从“size_t”转换到“unsigned int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(303): warning C4267: “初始化”: 从“size_t”转换到“unsigned int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(315): warning C4267: “初始化”: 从“size_t”转换到“unsigned int”，可能丢失数据
+  Node.cpp
+  Parser.cpp
 d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\parser.cpp(56): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
 d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\parser.cpp(76): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+  Text.cpp
+  Token.cpp
+  Trlsr_Language.cpp
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(42): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(61): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(73): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(106): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(107): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(129): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(196): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(206): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(220): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(230): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(242): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(247): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(258): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(274): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+  正在生成代码...
   Trlsr_Language.vcxproj -> D:\D_box\learning\workspace\C++studio\Trlsr_Language\x64\Debug\Trlsr_Language.exe

@@ -113,8 +113,8 @@ public:
 };
 
 struct Position {
-	unsigned int _node_index;					// 所在结点下标
-	std::string _graphic_str;				// 所在图字符串
+	unsigned int _node_index;	// 所在结点下标
+	std::string _graphic_str;	// 所在图字符串
 	unsigned int _lexer_point;
 	
 	Position() = default;
@@ -260,6 +260,7 @@ protected:
 	// 临时存放word
 	std::vector<Word> word_stk;
 public:
+	// 判断是否解引用
 	void in_def() {
 		def_stk++;
 	}
@@ -281,6 +282,7 @@ public:
 	int& paras() {
 		return paras_count.back();
 	}
+
 	// 翻转代码
 	void reserve(std::vector<Command>& commdVec, int size) {
 		std::reverse(commdVec.end() - size, commdVec.end());
@@ -342,5 +344,4 @@ public:
 namespace Context_Helper {
 	// 全局变量
 	static _Context_helper helper;
-
 }

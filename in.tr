@@ -1,24 +1,6 @@
 [
- def do_sum prcd [ 
-  // n -> sum
-  echo n;
-  def i 0;
-  while not eq i n;; [
-   assign i 
- 	add i 1;
-   ;
-    assign sum 
- 	add i sum;
-   ;
-  ]
- ];
- 
- def n 100;
- def sum 0;
- call do_sum;
- echo sum;
+for tuple 1 2 3;
+a [
+	echo a;
 ]
-
-/*
- && isType(word, WordType::IDENTIFIER)
-*/
+]

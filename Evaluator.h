@@ -5,6 +5,7 @@
 #include <memory>
 #include <sstream>
 #include <functional>
+#include <chrono>
 
 #include "Lexer.h"
 #define CHECK_Eval false
@@ -45,7 +46,11 @@ enum class OPCODE :int {
 
 	CALL,		// 将栈顶地址位置保存到temp_addr, 将当前地址位置入栈, ipc跳转到temp_addr
 	RET,		// 跳转到栈顶地址位置, 不自动-1
-	ECX,		// 获取计数器大小
+
+	// 特殊立即数
+	TIME_BEGIN,		// 当前时间
+	TIME_END,		// 计时结束
+	ECX,			// 获取计数器大小
 
 	LOCAL_BEGIN,	// 生成局部变量栈
 	LOCAL_END,		// POP局部变量栈
@@ -84,6 +89,7 @@ public:
 class Command;
 class CommandHelper;
 using vec_ins_t = std::vector<Command>;
+using data_ptr = std::shared_ptr<Data>;
 class VirtualMachine
 {
 	// 友元类
@@ -104,6 +110,9 @@ class VirtualMachine
 	std::vector<data_list_t> _var_list;	// 变量列表
 
 	int ecx;
+
+	// 计时器
+	std::chrono::system_clock::time_point time_point;
 protected:
 	bool _flag_delete;
 	void delete_instruct();
@@ -167,7 +176,7 @@ public:
 };
 
 // 操作符对象
-using vm_ptr = VirtualMachine * ;
+using vm_ptr = VirtualMachine *;
 class OPERATOR {
 public:
 	static void ERROR(vm_ptr vm) {
@@ -593,6 +602,32 @@ public:
 #endif
 	}
 
+	static void TIME_BEGIN(vm_ptr vm) {
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tOPCODE::TIME_BEGIN" << std::endl;
+#endif
+		vm->time_point = std::chrono::system_clock::now();
+	}
+
+	static void TIME_END(vm_ptr vm) {
+#if CHECK_Eval
+		std::cerr << __LINE__ << "\tOPCODE::TIME_END = ";
+#endif
+		std::chrono::system_clock::time_point t1 = vm->time_point;
+		std::chrono::system_clock::time_point t2 = std::chrono::system_clock::now();
+		std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+		std::stringstream s;
+		s << time_span.count();
+		std::string str;
+		s >> str;
+
+		vm->push(Data(DataType::STRING, str));
+#if CHECK_Eval 
+		std::cerr << str << std::endl;
+#endif
+
+	}
+
 	static void ECX(vm_ptr vm) {
 #if CHECK_Eval 
 		std::cerr << __LINE__ << "\tOPCODE::ECX ";
@@ -815,6 +850,21 @@ public:
 			std::cerr << __LINE__ << "\tOPCODE::PUSH " << d.toEchoString() << std::endl;
 #endif
 			vm->push(d);
+		});
+	};
+
+	// 直接定义
+	static Command getDefOpera(const std::string& id) {
+		return Command([=](VirtualMachine *vm) {
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::DEF ";
+#endif
+			assert(!vm->stk.empty());
+			Data d = vm->pop();
+#if CHECK_Eval 
+			std::cerr << id << ":= " << d.toEchoString() << std::endl;
+#endif
+			vm->regist_identity(id, d);
 		});
 	};
 
