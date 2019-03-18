@@ -246,6 +246,7 @@ void show_cstk(const std::string& tag, std::vector<Context>& stk) {
 }
 
 // 生成list_block的代码
+/*
 void Parser::generate_code(std::vector<Command>& commdVec, _Context_helper& helper) throw (Context_error) {
 #if CHECK_Parser
 	std::cout << "\n\nGenerate Code Begin:" << std::endl;
@@ -507,3 +508,4 @@ END:
 	commdVec.push_back(Command(OPERATOR::NOP));
 	return;
 }
+*/

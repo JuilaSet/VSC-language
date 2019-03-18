@@ -44,6 +44,7 @@ enum class OPCODE :int {
 	JMP_FALSE,	// _f[2]为false跳转
 	REPT,		// 参数(addr), 返回n次 
 	COUNT,		// 参数(number), 设置ecx
+	ISNON,		// 栈顶是否为NON对象
 
 	CALL,		// 将栈顶地址位置保存到temp_addr, 将当前地址位置入栈, ipc跳转到temp_addr
 	RET,		// 跳转到栈顶地址位置, 不自动-1
@@ -72,7 +73,7 @@ enum class OPCODE :int {
 	G,			// 大于
 
 	// 内存管理
-	CLR_BLOCK	// 恢复栈大小
+	SHRINK	// 恢复栈大小
 };
 
 // Command
@@ -669,7 +670,7 @@ public:
 #endif
 	}
 	
-	static void ISEND(vm_ptr vm) {
+	static void ISNON(vm_ptr vm) {
 #if CHECK_Eval 
 		std::cerr << __LINE__ << "\tOPCODE::ISEND ";
 #endif

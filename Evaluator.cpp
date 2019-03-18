@@ -225,7 +225,7 @@ Command CommandHelper::getBasicCommandOfString(std::string str) {
 	else
 	COMMAND_GET(SHRINK)
 	else
-	COMMAND_GET(ISEND)
+	COMMAND_GET(ISNON)
 	else
 	COMMAND_GET(RET)
 	else

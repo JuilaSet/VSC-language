@@ -23,5 +23,6 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "Evaluator.h"
+#include "Compiler.h"
 
 #endif //PCH_H

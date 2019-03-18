@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Compiler.h" />
     <ClInclude Include="Evaluator.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="Lexer.h" />
@@ -162,6 +163,7 @@
     <ClInclude Include="Data.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Compiler.cpp" />
     <ClCompile Include="Evaluator.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="Lexer.cpp" />
