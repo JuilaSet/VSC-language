@@ -148,13 +148,15 @@ void regist_keywords_contents() {
 					p->out_def();
 					p->insert_local(w, WordType::IDENTIFIER);	// 告知parser声明过了第一个参数
 					return _command_set{};
-				}),
-				EMPTY_CONTEXT,
+				}, Context_Type::NORMAL, "assign_op1"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  Compiler*  p) {
+					return _command_set{};
+				}, Context_Type::NORMAL, "assign_op2"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  Compiler*  p) {
 					return _command_set{
 						Command(OPERATOR::ASSIGN)
 					};
-				}, Context_Type::END)
+				}, Context_Type::END, "assign_end")
 			})
 	);
 
@@ -167,15 +169,17 @@ void regist_keywords_contents() {
 			{
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  Compiler*  p) {
 					p->out_def();
-					p->insert_local(w, WordType::IDENTIFIER);	// 告知parser声明过了第一个参数
+					p->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
 					return _command_set{};
-				}),
-				EMPTY_CONTEXT,
+				}, Context_Type::NORMAL, "def_op1"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  Compiler*  p) {
+					return _command_set{};
+				}, Context_Type::NORMAL, "def_op2"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  Compiler*  p) {
 					return _command_set{
 						Command(OPERATOR::DEF)
 					};
-				}, Context_Type::END)
+				}, Context_Type::END, "def_end")
 			})
 	);
 
@@ -276,15 +280,17 @@ void regist_keywords_contents() {
 						Command(OPERATOR::COUNT),
 						Command(OPERATOR::NOP)
 					};
-				}),
+				}, Context_Type::NORMAL, "rept_op1"),
 				// block
-				EMPTY_CONTEXT,
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  Compiler*  p) {
+					return _command_set{ };
+				}, Context_Type::NORMAL, "rept_block"),
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  Compiler*  p) {
 					int addr = Context_Helper::helper.pop_command_index();
 					return _command_set{
 						CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr)),
 						Command(OPERATOR::REPT)};
-				}, Context_Type::END)
+				}, Context_Type::END, "rept_end")
 			})
 	);
 	
@@ -293,7 +299,7 @@ void regist_keywords_contents() {
 	Context_Helper::helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$C").serialize(),
 		Context_Helper::helper.build_context(
 		[](ContextStk& cstk, _command_set&, Word& w,  Compiler*  p) {	// op_0
-#if CHECK_Parser
+#if CHECK_Compiler
 		cout << "COMMAND:::: $C" << endl;
 #endif
 			return _command_set{ Command(OPERATOR::ECX) };
@@ -303,7 +309,7 @@ void regist_keywords_contents() {
 	Context_Helper::helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$null").serialize(),
 		Context_Helper::helper.build_context(
 			[](ContextStk& cstk, _command_set&, Word& w,  Compiler*  p) {	// op_0
-#if CHECK_Parser
+#if CHECK_Compiler
 		cout << "COMMAND:::: $null" << endl;
 #endif
 		return _command_set{ Command(OPERATOR::NUL) };
@@ -490,7 +496,7 @@ void regist_keywords_contents() {
 			[&](ContextStk& cstk, _command_set&, Word& w,  Compiler*  p) { return _command_set{}; },
 			{
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  Compiler*  p) {
-#if CHECK_Parser
+#if CHECK_Compiler
 					cout << "COMMAND ECHO" << endl;
 #endif
 					return _command_set{
@@ -1058,9 +1064,9 @@ void regist_bnf(Parser& p) {
 		cerr << "[if] get word:" << w.serialize();
 #endif
 			if (w.getString() == "if") {
-	#if CHECK_Parser
+#if CHECK_Parser
 				cerr << ", True" << endl;
-	#endif
+#endif
 				return true;
 			}
 			else{

@@ -838,7 +838,7 @@ public:
 	static void SHRINK(vm_ptr vm) 
 	{
 #if CHECK_Eval
-		std::cerr << __LINE__ << "\tCLR_BLOCK ";
+		std::cerr << __LINE__ << "\tSHRINK ";
 #endif
 		unsigned int size = vm->blk_stk.top();
 		// 现在的大小到之前的大小之差
@@ -886,11 +886,14 @@ public:
 
 	static Command getEchoOpera(std::ostream* ostm, std::string end = "\n") {
 		return Command([=](VirtualMachine *vm) {
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::ECHO ";
+#endif
 			assert(!vm->stk.empty());
 			data_ptr d = vm->top();
 			std::string str = d->toEchoString();
 #if CHECK_Eval 
-			std::cerr << __LINE__ << "\tOPCODE::ECHO " << str << std::endl;
+			std::cerr << str << std::endl;
 #endif
 			*ostm << str << end << std::flush;
 		});

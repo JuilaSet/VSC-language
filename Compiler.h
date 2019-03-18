@@ -9,6 +9,8 @@
 #include <initializer_list>
 #include "Evaluator.h"
 
+#define CHECK_Compiler false
+
 // 空上下文
 #define EMPTY_CONTEXT \
 Context([](ContextStk& cstk, _command_set& _vec, Word& w, Compiler* p) {\
@@ -83,7 +85,7 @@ public:
 
 	// 存放待确定的指令下标
 	void push_command_index(int index) {
-#if CHECK_Parser
+#if CHECK_Compiler
 		std::cout << std::endl << "push_command_index = " << index << std::endl;
 #endif
 		_command_index.push(index);
@@ -93,7 +95,7 @@ public:
 	int pop_command_index() {
 		int a = _command_index.top();
 		_command_index.pop();
-#if CHECK_Parser
+#if CHECK_Compiler
 		std::cout << std::endl << "pop_command_index = " << a << std::endl;
 #endif		
 		return a;
@@ -101,7 +103,7 @@ public:
 
 	// 注册上下文
 	void regist_context(const std::string name, Context gen) {
-#if CHECK_Parser
+#if CHECK_Compiler
 		std::cerr << "Insert: " << name << std::endl;
 #endif
 		_context_map.insert(std::make_pair(name, gen));
@@ -110,14 +112,14 @@ public:
 	// 获取上下文
 	Context get_context(const std::string name) throw (Context_error) {
 		auto it = _context_map.find(name);
-#if CHECK_Parser
+#if CHECK_Compiler
 		std::cerr << "try to find: " << name << std::endl;
 #endif
 		// 如果没有找到对应于name的上下文, 抛出异常
 		if (it == _context_map.end()) {
 			throw Context_found_error("Context of " + name + " unfound");
 		}
-#if CHECK_Parser
+#if CHECK_Compiler
 		std::cerr << "Success!" << std::endl;
 #endif
 		return it->second;
@@ -149,23 +151,28 @@ public:
 	// 生成list_block的代码
 	virtual void generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, _Context_helper& helper)
 		throw (Context_error) = 0;
+
+	virtual ~Basic_Compiler() = default;
 };
 
 using word_type_map = std::map<std::string, WordType>;
 
-// s-表达式 编译器
-class Compiler: public Basic_Compiler
-{
+// 编译器的工具
+class _compiler_tool {
+	friend class Compiler;
 protected:
-	std::vector<Context> _context_stk;		// 上下文栈
+	int blk_op_count;				// 用于判断何时在一个block中清除无用数据
+	
+	std::vector<Context> tempStk;	// 临时栈, tempSTK用于在一个子句结束生成后弹出一个上下文并生成代码
 
-	std::vector<word_type_map> wt_map_list;	// 存放变量类型
+	std::vector<Context> _context_stk;		// 上下文栈
 
 	std::vector<int> paras_count;	// 参数计数栈: 查看操作符参数与上下文结束符是否相符
 
-	int def_stk = 0;				// 判断是否在定义语句的第一个参数中
+	int def_stk = 0;				// 判断是否在"定义或赋值语句"的第一个参数中
 
 	std::vector<Word> word_stk;		// 临时存放word
+
 public:
 
 	// 判断是否解引用
@@ -206,19 +213,82 @@ public:
 		return w;
 	}
 
+	void init() {
+		_context_stk.clear();
+		paras_count.clear();
+		def_stk = 0;
+		word_stk.clear();
+	}
+};
+
+// s-表达式 编译器
+class Compiler: public Basic_Compiler
+{
+protected:
+	std::vector<word_type_map> wt_map_list;	// 存放变量类型
+
+	std::vector<_compiler_tool> ctool_stk;	// 编译工具栈， 进入时block入栈, 只对尾部元素操作, 退出block时出栈
+
+public:
+	// 生成list_block的代码
+	virtual void generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, _Context_helper& helper)
+		throw (Context_error);
+
+	inline _compiler_tool& ctool() {
+		return ctool_stk.back();
+	}
+	
+	// 判断是否解引用
+	void in_def() {
+		ctool().in_def();
+	}
+	void out_def() {
+		ctool().out_def();
+	}
+	bool is_in_def() {
+		return ctool().is_in_def();
+	}
+
+	// 参数计数
+	void paras_begin() {
+		ctool().paras_begin();
+	}
+	void paras_end() {
+		ctool().paras_end();
+	}
+	int& paras() {
+		return ctool().paras();
+	}
+
+	// 翻转代码
+	void reserve(std::vector<Command>& commdVec, int size) {
+		ctool().reserve(commdVec, size);
+	}
+
+	// 获取word
+	void saveWord(Word w) {
+		ctool().saveWord(w);
+	}
+	Word popWord() {
+		return ctool().popWord();
+	}
+
+
 	// 变量作用域相关
 	void localBegin() {
-		word_type_map type_map;
-		wt_map_list.push_back(type_map);
+		wt_map_list.push_back(word_type_map());
 	}
+
 	void localEnd() {
 		wt_map_list.pop_back();
 	}
+
 	void insert_local(Word& w, WordType type) {
 		wt_map_list.back().insert(
 			std::make_pair(w.serialize(), type)
 		);
 	}
+
 	bool isType(Word& w, WordType type) {
 		auto rend = wt_map_list.rend();
 		auto rbegin = wt_map_list.rbegin();
@@ -236,13 +306,9 @@ public:
 		return false;	// 没有这个变量名
 	}
 
-public:
-	// 生成list_block的代码
-	virtual void generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, _Context_helper& helper)
-		throw (Context_error);
-
 	void init() {
-		_context_stk.clear();
+		ctool().init();
+		wt_map_list.clear();
 	}
 
 	// 
