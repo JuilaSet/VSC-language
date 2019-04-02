@@ -139,29 +139,6 @@ void regist_keywords_contents(Context_helper& helper) {
 			})
 	);
 
-	helper.regist_context(Word(WordType::CONTROLLER, "assign").serialize(),
-		helper.build_context(
-			[&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-				compiler->in_def();
-				return _command_set{};
-			},
-			{
-				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-					compiler->out_def();
-					compiler->insert_local(w, WordType::IDENTIFIER);	// 告知parser声明过了第一个参数
-					return _command_set{};
-				}, Context_Type::NORMAL, "assign_op1"),
-				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-					return _command_set{};
-				}, Context_Type::NORMAL, "assign_op2"),
-				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-					return _command_set{
-						Command(OPERATOR::ASSIGN)
-					};
-				}, Context_Type::END, "assign_end")
-			})
-	);
-
 	helper.regist_context(Word(WordType::CONTROLLER, "def").serialize(),
 		helper.build_context(
 			[&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
@@ -169,9 +146,12 @@ void regist_keywords_contents(Context_helper& helper) {
 				return _command_set{};
 			},
 			{
-				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+				Context([&](ContextStk& cstk, _command_set& commandVec, Word& w,  auto* compiler) {
 					compiler->out_def();
-					compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
+					// 获取分配的下标
+					int index = compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
+					commandVec.pop_back();
+					commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::NUMBER, index)));
 					return _command_set{};
 				}, Context_Type::NORMAL, "def_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
@@ -179,9 +159,33 @@ void regist_keywords_contents(Context_helper& helper) {
 				}, Context_Type::NORMAL, "def_op2"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
 					return _command_set{
-						Command(OPERATOR::DEF)
+						// Command(OPERATOR::DEF)
+						Command(OPERATOR::NEW_DEF)
 					};
 				}, Context_Type::END, "def_end")
+			})
+	);
+
+	helper.regist_context(Word(WordType::CONTROLLER, "assign").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+				compiler->in_def();
+				return _command_set{};
+			},
+			{
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->out_def();
+					return _command_set{};
+				}, Context_Type::NORMAL, "assign_op1"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					return _command_set{};
+				}, Context_Type::NORMAL, "assign_op2"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					return _command_set{
+						// Command(OPERATOR::ASSIGN)
+						Command(OPERATOR::NEW_ASSIGN)
+					};
+				}, Context_Type::END, "assign_end")
 			})
 	);
 

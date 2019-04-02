@@ -9,14 +9,6 @@ S_Expr_Compiler::~S_Expr_Compiler()
 {
 }
 
-void show_cstk(const std::string& tag, std::vector<Context>& stk) {
-	std::cout << "+++" << tag << "> ";
-	std::for_each(stk.begin(), stk.end(), [&](auto ctx) {
-		std::cout << "[" << ctx.getName() << "]" << std::ends;
-	});
-	std::cout << std::endl;
-}
-
 void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, Context_helper& helper) 
 	throw (Context_error) {
 #if CHECK_Compiler
@@ -187,6 +179,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, std::
 					// 如果不在def或assign语句的第一个参数内, 生成解引用代码(即使是事先没有定义)
 					// && isType(word, WordType::IDENTIFIER)
 					ctx = ctool()._context_stk.back();
+
 #if CHECK_Compiler
 					std::cout << "如果已经定义了, 并且不在def语句的第一个参数内, 生成解引用代码" << std::endl;
 					std::cout << "Context stack POP " << ctx.getName() << std::endl;
@@ -194,9 +187,16 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, std::
 					show_cstk("temp stk", ctool().tempStk);
 #endif
 					// pop
+
 					// 生成解引用代码
-					commdVec.push_back(CommandHelper::getPushOpera(word.getData()));
-					commdVec.push_back(Command(OPERATOR::DRF));
+					int index = get_alloced_index(word);
+					assert(index != -1);
+					commdVec.push_back(CommandHelper::getPushOpera(Data(DataType::NUMBER,index)));
+					commdVec.push_back(Command(OPERATOR::NEW_DRF));
+					
+					// commdVec.push_back(CommandHelper::getPushOpera(word.getData()));
+					// commdVec.push_back(Command(OPERATOR::DRF));
+
 					assert(!ctool()._context_stk.empty());
 					if (ctx.type != Context_Type::ALWAYS)ctool()._context_stk.pop_back();
 					// 生成代码
@@ -209,9 +209,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, std::
 					commdVec.push_back(CommandHelper::getPushOpera(word.getData()));	// push 立即数
 					assert(!ctool()._context_stk.empty());
 					// 如果不是always类型就丢弃这个
-					if (ctx.type != Context_Type::ALWAYS) {
-						ctool()._context_stk.pop_back();
-					}
+					if (ctx.type != Context_Type::ALWAYS) ctool()._context_stk.pop_back();
 					// 生成代码
 					auto commands = ctx.getCommandSet(ctool()._context_stk, commdVec, word, this);
 					for (auto commad : commands) {

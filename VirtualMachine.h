@@ -96,6 +96,7 @@ class CommandHelper;
 using vec_command_t = std::vector<Command>;
 using data_ptr = std::shared_ptr<Data>;
 using data_list_t = std::map<std::string, data_ptr>;
+using new_data_list_t = std::vector<data_ptr>;
 
 // 堆栈虚拟机
 class VirtualMachine
@@ -107,7 +108,9 @@ class VirtualMachine
 	vec_command_t instruct;				// 指令数组
 
 	std::vector<data_ptr> stk;
-	std::vector<data_list_t> _var_list;	// 变量列表
+	std::vector<data_list_t> _var_list;					// 变量列表
+	std::vector<new_data_list_t> _new_var_list;			// 新式变量列表, 根据int做随机访问, 每次有新的标识符就向上增加
+
 	const data_ptr null_data = data_ptr(new Data());	// null对象
 
 	// 是否停止执行
@@ -153,11 +156,20 @@ public:
 	// def
 	void regist_identity(std::string id, data_ptr d);
 
+	// new def
+	void new_regist_identity(int index, data_ptr d);
+
 	// assign
 	bool set_data(std::string id, data_ptr d);
+
+	// new assign
+	bool new_set_data(int index, data_ptr d);
 	
 	// drf
 	data_ptr get_data(std::string id);
+
+	// new drf
+	data_ptr new_get_data(int index);
 
 	// 创建并压入局部变量表
 	void push_local_list();
@@ -758,21 +770,6 @@ public:
 #endif
 	}
 
-	static void DRF(vm_ptr vm)
-	{
-#if CHECK_Eval 
-		std::cerr << __LINE__ << "\tDRF ";
-#endif
-		assert(!vm->stk.empty());
-		data_ptr d = vm->pop();
-		d = (vm)->get_data(d->toString());
-#if CHECK_Eval 
-		std::cerr << d->toEchoString() << std::endl;
-#endif
-		// 返回解引用的指针
-		vm->push(d);
-	}
-
 	static void DEF(vm_ptr vm)
 	{
 #if CHECK_Eval 
@@ -785,6 +782,25 @@ public:
 		data_ptr id = vm->pop();
 		assert(id->getType() == DataType::STRING);
 		vm->regist_identity(id->toString(), d);
+		// 返回定义的data
+		vm->push(d);
+#if CHECK_Eval 
+		std::cerr << id->toEchoString() << ":= " << d->toEchoString() << std::endl;
+#endif
+	}
+
+	static void NEW_DEF(vm_ptr vm)
+	{
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tDEF ";
+#endif
+		// push id push data def
+		assert(!vm->stk.empty());
+		data_ptr d = vm->pop();
+		assert(!vm->stk.empty());
+		data_ptr id = vm->pop();
+		assert(id->getType() == DataType::NUMBER);
+		vm->new_regist_identity(id->toNumber(), d);
 		// 返回定义的data
 		vm->push(d);
 #if CHECK_Eval 
@@ -808,6 +824,54 @@ public:
 #if CHECK_Eval 
 		std::cerr << id->toEchoString() << ":= " << value->toEchoString() << std::endl;
 #endif
+	}
+
+	static void NEW_ASSIGN(vm_ptr vm)
+	{
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tASSIGN ";
+#endif
+		assert(!vm->stk.empty());
+		data_ptr value = vm->pop();
+		assert(!vm->stk.empty());
+		data_ptr id = vm->pop();
+		assert(id->getType() == DataType::NUMBER);
+		vm->new_set_data(id->toNumber(), value);
+		// 返回赋值的data
+		vm->push(value);
+#if CHECK_Eval 
+		std::cerr << id->toEchoString() << ":= " << value->toEchoString() << std::endl;
+#endif
+	}
+
+	static void DRF(vm_ptr vm)
+	{
+#if CHECK_Eval 
+		std::cerr << __LINE__ << "\tDRF ";
+#endif
+		assert(!vm->stk.empty());
+		data_ptr d = vm->pop();
+		d = (vm)->get_data(d->toString());
+#if CHECK_Eval 
+		std::cerr << d->toEchoString() << std::endl;
+#endif
+		// 返回解引用的指针
+		vm->push(d);
+	}
+
+	static void NEW_DRF(vm_ptr vm)
+	{
+#if CHECK_Eval
+		std::cerr << __LINE__ << "\tDRF ";
+#endif
+		assert(!vm->stk.empty());
+		data_ptr d = vm->pop();
+		d = (vm)->new_get_data(d->toNumber());
+#if CHECK_Eval 
+		std::cerr << d->toEchoString() << std::endl;
+#endif
+		// 返回解引用的指针
+		vm->push(d);
 	}
 
 	static void CALL(vm_ptr vm) {

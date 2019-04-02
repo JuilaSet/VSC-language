@@ -10,6 +10,7 @@
 #include "VirtualMachine.h"
 
 #define CHECK_Compiler false
+#define CHECK_Compiler_alloc true
 
 // 空上下文
 #define EMPTY_CONTEXT \
@@ -17,7 +18,6 @@ Context([](ContextStk& cstk, _command_set& _vec, Word& w, auto* compiler) {\
 	return _command_set{ };\
 })\
 //
-
 
 // 上下文类的类型
 enum class Context_Type :int {
@@ -141,13 +141,16 @@ public:
 	}
 };
 
-/* []][
-namespace Context_Helper {
-	// 全局变量
-	static _Context_helper helper;
-}*/
+void show_cstk(const std::string& tag, std::vector<Context>& stk) {
+	std::cout << "+++" << tag << "> ";
+	std::for_each(stk.begin(), stk.end(), [&](auto ctx) {
+		std::cout << "[" << ctx.getName() << "]" << std::ends;
+	});
+	std::cout << std::endl;
+}
 
 using word_type_map = std::map<std::string, WordType>;
+using local_index_map = std::map<std::string, int>;
 
 // 编译器的工具
 class _compiler_tool {
@@ -223,13 +226,33 @@ public:
 	virtual ~Basic_Compiler() = default;
 };
 
+
 // s-表达式 编译器
 class S_Expr_Compiler: public Basic_Compiler
 {
 protected:
-	std::vector<word_type_map> wt_map_list;	// 存放变量类型
+	std::vector<word_type_map> wt_map_list;		// 存放变量类型
+	std::vector<local_index_map> li_map_list;	// 存放标识符到局部变量表的索引映射
 
 	std::vector<_compiler_tool> ctool_stk;	// 编译工具栈， 进入时block入栈, 只对尾部元素操作, 退出block时出栈
+
+	// 自动分配变量表的下标(表示符的名称 -> 下标)
+	int _auto_alloc_local_index(Word& w) {
+		auto& map = li_map_list.back();
+		auto index = map.size();
+		auto serialized_str = w.serialize();
+
+		// 查看是否已经分配过
+		auto it = map.find(serialized_str);
+		if (it == map.end()) {
+			auto pair = std::make_pair(serialized_str, index); // 从0开始
+			map.insert(pair); // 不覆盖原有的map
+#if CHECK_Compiler_alloc
+			std::cout << "alloc " << serialized_str << " -> " << index << std::endl;
+#endif
+		}
+		return index;
+	}
 
 public:
 	// 生成list_block的代码
@@ -275,20 +298,40 @@ public:
 		return ctool().popWord();
 	}
 
-
 	// 变量作用域相关
 	void localBegin() {
 		wt_map_list.push_back(word_type_map());
+		li_map_list.push_back(local_index_map());
 	}
 
 	void localEnd() {
 		wt_map_list.pop_back();
+		li_map_list.pop_back();
 	}
 
-	void insert_local(Word& w, WordType type) {
+	// 插入局部变量记录
+	int insert_local(Word& w, WordType type) {
 		wt_map_list.back().insert(
 			std::make_pair(w.serialize(), type)
 		);
+		// 分配局部变量表的下标
+		return _auto_alloc_local_index(w);
+	}
+
+	// 查看当前的IDENTIFIER_ENABLED是否被分配过局部变量下标, 否返回-1, 是返回下标大小
+	int get_alloced_index(Word& w) {
+		auto rbegin = li_map_list.rbegin();
+		auto rend = li_map_list.rend();
+		auto serialized_str = w.serialize();
+		for (auto it = rbegin;it != rend; ++it) {
+			auto fit = it->find(serialized_str);
+			if (fit != it->end()) {
+				// 存在这个下标
+				int index = fit->second;
+				return index;
+			}
+		}
+		return -1;
 	}
 
 	bool isType(Word& w, WordType type) {
@@ -311,6 +354,7 @@ public:
 	void init() {
 		ctool().init();
 		wt_map_list.clear();
+		li_map_list.clear();
 	}
 
 	// 

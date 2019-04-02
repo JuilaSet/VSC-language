@@ -12,31 +12,19 @@ void VirtualMachine::setInstruct(vec_command_t ins) {
 
 // 创建并压入局部变量表
 void VirtualMachine::push_local_list() {
-	data_list_t data_list; // 变量列表
+	// 变量列表
+	data_list_t data_list;
 	_var_list.emplace_back(data_list);
+
+	// 新局部变量表
+	new_data_list_t new_data_list;
+	_new_var_list.emplace_back(new_data_list);
 }
 
 // 弹出局部变量表(销毁局部变量)
 void VirtualMachine::pop_local_list() {
 	_var_list.pop_back();
-}
-
-// assign
-bool VirtualMachine::set_data(std::string id, data_ptr d) {
-	assert(!_var_list.empty());
-	data_list_t& data_list = _var_list.back();
-	auto rbegin = _var_list.rbegin();
-	auto rend = _var_list.rend();
-	for (auto rit = rbegin; rit != rend; ++rit) {
-		if (rit->count(id) > 0) {
-			rit->operator[](id) = data_ptr(d);
-			return true;
-		}
-	}
-#if CHECK_Eval
-	std::cerr << __LINE__ << "\tASSIGN FAILED" << std::endl;
-#endif
-	return false;
+	_new_var_list.pop_back();
 }
 
 // def
@@ -53,7 +41,61 @@ void VirtualMachine::regist_identity(std::string id, data_ptr d) {
 	}
 }
 
-// 返回的data对象不能再放入shared_ptr
+// new def
+void VirtualMachine::new_regist_identity(int index, data_ptr d) {
+	assert(!_new_var_list.empty());
+	assert(index != -1);
+	auto& data_list = _new_var_list.back();
+	// 检查是否存在这个index
+	bool has = data_list.size() > index;
+	if(has){
+		data_list[index] = data_ptr(d);
+	}
+	else {
+		assert(data_list.size() == index);
+		data_list.emplace_back(d);
+	}
+}
+
+// assign
+bool VirtualMachine::set_data(std::string id, data_ptr d) {
+	assert(!_var_list.empty());
+	auto rbegin = _var_list.rbegin();
+	auto rend = _var_list.rend();
+	for (auto rit = rbegin; rit != rend; ++rit) {
+		if (rit->count(id) > 0) {
+			rit->operator[](id) = data_ptr(d);
+			return true;
+		}
+	}
+#if CHECK_Eval
+	std::cerr << __LINE__ << "\tASSIGN FAILED" << std::endl;
+#endif
+	return false;
+}
+
+// new assign
+bool VirtualMachine::new_set_data(int index, data_ptr d) {
+	assert(!_new_var_list.empty());
+	assert(index != -1);
+	auto rbegin = _new_var_list.rbegin();
+	auto rend = _new_var_list.rend();
+	for (auto rit = rbegin; rit != rend; ++rit) {
+		auto& data_list = *rit;
+		// 存在就赋值并退出
+		bool has = data_list.size() > index;
+		if (has) {
+			data_list[index] = data_ptr(d);
+			return true;
+		}
+	}
+#if CHECK_Eval
+	std::cerr << __LINE__ << "\tNEW STYLE ASSIGN FAILED" << std::endl;
+#endif
+	return false;
+}
+
+// drf
 data_ptr VirtualMachine::get_data(std::string id) {
 	auto rbegin = _var_list.rbegin();
 	auto rend = _var_list.rend();
@@ -65,6 +107,27 @@ data_ptr VirtualMachine::get_data(std::string id) {
 #if CHECK_Eval
 	std::cerr << __LINE__ << "\tDRF FAILED" << std::endl;
 #endif
+	return null_data;
+}
+
+// new drf
+data_ptr VirtualMachine::new_get_data(int index) {
+	assert(!_new_var_list.empty());
+	assert(index != -1);
+	auto rbegin = _new_var_list.rbegin();
+	auto rend = _new_var_list.rend();
+	for (auto rit = rbegin; rit != rend; ++rit) {
+		auto& data_list = *rit;
+		// 存在就返回这个data
+		bool has = data_list.size() > index;
+		if (has) {
+			return data_list[index];
+		}
+	}
+#if CHECK_Eval
+	std::cerr << __LINE__ << "\tNEW STYLE DRF FAILED" << std::endl;
+#endif
+	// 不存在就返回null
 	return null_data;
 }
 
