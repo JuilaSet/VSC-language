@@ -148,27 +148,22 @@ public:
 class WordTypeHelper {
 	friend class WORD_TYPE_HELPER;
 protected:
-	WordTypeHelper() = default;
 	std::set<std::string> _operators_set;
 	std::set<std::string> _controller_set;
 public:
+	WordTypeHelper() = default;
 	void regist_operator(const std::string str);	// 注册关键字
 	void regist_controller(const std::string str);	// 注册流程控制符
-	WordType calc_word_type(std::string& str, IsToken b);
-}; 
-
-class WORD_TYPE_HELPER {
-public:
-	static WordTypeHelper word_type_helper;	// 单例对象
+	WordType calc_word_type(const std::string& str, IsToken b) const;
 };
 
-#define REGIST_OPERATO_WORDS(str) \
-WORD_TYPE_HELPER::word_type_helper.regist_operator(str); \
+#define REGIST_OPERATO_WORDS(word_type_helper, str) \
+word_type_helper.regist_operator(str); \
 
 //
 
-#define REGIST_CONTROLLER_WORDS(str) \
-WORD_TYPE_HELPER::word_type_helper.regist_controller(str); \
+#define REGIST_CONTROLLER_WORDS(word_type_helper, str) \
+word_type_helper.regist_controller(str); \
 
 //
 
@@ -189,15 +184,15 @@ class Lexer
 #endif
 
 protected:
-	bool _lexLine();	// 分割n行单词, 返回文件是否读完
-	bool _push_into_list(std::string str, IsToken b);
+	bool _lexLine(Token_helper& helper, WordTypeHelper& word_type_helper);	// 分割n行单词, 返回文件是否读完
+	bool _push_into_list(std::string str, IsToken b, const WordTypeHelper& word_type_helper) ;
 	inline std::string getChar(std::string&, unsigned int& str_p);
 public:
 
 	Lexer();
 	Lexer(Input* input);
 
-	bool fillList(bool fillAll=true, unsigned int size=0);	// 填充列表size行单词 返回文件是否读完, 填入NO_RANGE表示读取全部文件内容
+	bool fillList(Token_helper& tokenHelper, WordTypeHelper& word_type_helper, bool fillAll=true, unsigned int size=0);	// 填充列表size行单词 返回文件是否读完, 填入NO_RANGE表示读取全部文件内容
 
 	bool next();	// 返回是否还有东西可读
 	Word read();

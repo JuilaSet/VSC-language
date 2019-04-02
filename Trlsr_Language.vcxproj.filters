@@ -36,13 +36,16 @@
     <ClInclude Include="Lexer.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Evaluator.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Data.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Compiler.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="VirtualMachine.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Evaluator.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -71,13 +74,16 @@
     <ClCompile Include="Lexer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Evaluator.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="Data.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Compiler.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="VirtualMachine.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Evaluator.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

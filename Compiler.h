@@ -7,16 +7,17 @@
 #include <string>
 #include <functional>
 #include <initializer_list>
-#include "Evaluator.h"
+#include "VirtualMachine.h"
 
 #define CHECK_Compiler false
 
 // 空上下文
 #define EMPTY_CONTEXT \
-Context([](ContextStk& cstk, _command_set& _vec, Word& w, Compiler* p) {\
+Context([](ContextStk& cstk, _command_set& _vec, Word& w, auto* compiler) {\
 	return _command_set{ };\
 })\
 //
+
 
 // 上下文类的类型
 enum class Context_Type :int {
@@ -25,23 +26,23 @@ enum class Context_Type :int {
 	ALWAYS	// 在遇到上下文结束符前一直存在于栈中的上下文
 };
 
-class Compiler;
+class S_Expr_Compiler;
 using _command_set = std::vector<Command>;
 
 // 上下文类
 class Context {
-	friend class Compiler;
-	std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, Compiler* p)> _generate;
+	friend class S_Expr_Compiler;
+	std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, S_Expr_Compiler* p)> _generate;
 	std::string name;
 	Context_Type type;
 public:
 	// 空对象
 	Context() :
-		_generate([](std::vector<Context>&, _command_set&, Word& w, Compiler* p) {return _command_set{}; }),
+		_generate([](std::vector<Context>&, _command_set&, Word& w, S_Expr_Compiler* p) {return _command_set{}; }),
 		type(Context_Type::NORMAL), name("EMPTY_CONTEXT") {};
 
 	Context(
-		std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, Compiler* p)> _gen_func, Context_Type _type = Context_Type::NORMAL,
+		std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, S_Expr_Compiler* p)> _gen_func, Context_Type _type = Context_Type::NORMAL,
 		std::string _name = "Unkown"
 	)
 		:_generate(_gen_func),
@@ -51,12 +52,12 @@ public:
 	inline Context_Type getType() { return type; }
 	inline std::string getName() { return name; }
 	// 可以操作上下文栈
-	_command_set getCommandSet(std::vector<Context>& _context_stk, _command_set& _set, Word& w, Compiler* p) {
+	_command_set getCommandSet(std::vector<Context>& _context_stk, _command_set& _set, Word& w, S_Expr_Compiler* p) {
 		return _generate(_context_stk, _set, w, p);
 	}
 };
 using ContextStk = std::vector<Context>;
-using ContextParaOperaFunc = std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, Compiler* p)>;
+using ContextParaOperaFunc = std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, S_Expr_Compiler* p)>;
 
 class Context_error {
 public:
@@ -65,7 +66,7 @@ public:
 };
 
 class Context_found_error : public Context_error {
-	friend class _Context_helper;
+	friend class Context_helper;
 protected:
 	std::string error_str;
 	Context_found_error(const std::string& str) :error_str(str) {}
@@ -75,13 +76,13 @@ public:
 	}
 };
 
-class _Context_helper {
+class Context_helper {
 protected:
 	// 名称对应的上下文
 	std::map<std::string, Context> _context_map;
 	std::stack<int> _command_index;
 public:
-	_Context_helper() = default;
+	Context_helper() = default;
 
 	// 存放待确定的指令下标
 	void push_command_index(int index) {
@@ -128,7 +129,7 @@ public:
 	// 建造上下文(从最后一个paras开始)
 	Context build_context(ContextParaOperaFunc func, std::initializer_list<Context> ctx_list) {
 		std::vector<Context> contexts(ctx_list.begin(), ctx_list.end());
-		return Context([=](ContextStk& cstk, _command_set _vec, Word& w,  Compiler* p) {
+		return Context([=](ContextStk& cstk, _command_set _vec, Word& w,  S_Expr_Compiler* p) {
 			_command_set commands = func(cstk, _vec, w, p);
 			auto rit = contexts.rbegin();
 			auto rend = contexts.rend();
@@ -140,26 +141,17 @@ public:
 	}
 };
 
+/* []][
 namespace Context_Helper {
 	// 全局变量
 	static _Context_helper helper;
-}
-
-// 基本编译器
-class Basic_Compiler {
-public:
-	// 生成list_block的代码
-	virtual void generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, _Context_helper& helper)
-		throw (Context_error) = 0;
-
-	virtual ~Basic_Compiler() = default;
-};
+}*/
 
 using word_type_map = std::map<std::string, WordType>;
 
 // 编译器的工具
 class _compiler_tool {
-	friend class Compiler;
+	friend class S_Expr_Compiler;
 protected:
 	int blk_op_count;				// 用于判断何时在一个block中清除无用数据
 	
@@ -221,8 +213,18 @@ public:
 	}
 };
 
+// 编译器基类
+class Basic_Compiler {
+public:
+	// 生成list_block的代码
+	virtual void generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, Context_helper& helper)
+		throw (Context_error) = 0;
+
+	virtual ~Basic_Compiler() = default;
+};
+
 // s-表达式 编译器
-class Compiler: public Basic_Compiler
+class S_Expr_Compiler: public Basic_Compiler
 {
 protected:
 	std::vector<word_type_map> wt_map_list;	// 存放变量类型
@@ -231,7 +233,7 @@ protected:
 
 public:
 	// 生成list_block的代码
-	virtual void generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, _Context_helper& helper)
+	virtual void generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, Context_helper& helper)
 		throw (Context_error);
 
 	inline _compiler_tool& ctool() {
@@ -312,6 +314,6 @@ public:
 	}
 
 	// 
-	Compiler();
-	virtual ~Compiler();
+	S_Expr_Compiler();
+	virtual ~S_Expr_Compiler();
 };

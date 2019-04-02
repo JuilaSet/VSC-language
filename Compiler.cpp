@@ -1,11 +1,11 @@
 ﻿#include "pch.h"
 #include "Compiler.h"
 
-Compiler::Compiler()
+S_Expr_Compiler::S_Expr_Compiler()
 {
 }
 
-Compiler::~Compiler()
+S_Expr_Compiler::~S_Expr_Compiler()
 {
 }
 
@@ -17,7 +17,7 @@ void show_cstk(const std::string& tag, std::vector<Context>& stk) {
 	std::cout << std::endl;
 }
 
-void Compiler::generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, _Context_helper& helper) 
+void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, Context_helper& helper) 
 	throw (Context_error) {
 #if CHECK_Compiler
 	std::cout << "\n\nGenerate Code Begin:" << std::endl;

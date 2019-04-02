@@ -10,7 +10,7 @@
 #include "Compiler.h"
 
 #define CHECK_Parser false
-
+#define CHECK_Parser_g true
 
 enum class IsTerminal : bool {
 	False = false, True
@@ -107,6 +107,7 @@ public:
 	Graphic_builder* end();
 };
 
+// Position
 struct Position {
 	unsigned int _node_index;	// 所在结点下标
 	std::string _graphic_str;	// 所在图字符串
@@ -137,11 +138,12 @@ class Parser
 {
 protected:
 	std::vector<Word> _word_vector;	// 保存解析完成的代码
+	std::vector<Word> _judge_vector;	// 保存解析完成的代码
 
 	std::string errors;				// 存放分析错误
 	Lexer* _lexer;					// 外部对象, 不需要删除析构
 	std::map<std::string, BNFGraphic> _graphic_map;		// 名称到图的map
-	int _judge_g(Position pos, std::string& errors);	// 根据图判断语法正确性
+	int _judge_g(Position pos, std::string& errors, std::vector<Word>& _judge_vector);	// 根据图判断语法正确性
 
 public:
 	Parser(Lexer* lex);

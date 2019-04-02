@@ -8,7 +8,7 @@ if (std::regex_search(str, result, pattern_##PATTERN)) {	\
 }\
 //
 
-WordType WordTypeHelper::calc_word_type(std::string& str, IsToken b)
+WordType WordTypeHelper::calc_word_type(const std::string& str, IsToken b) const
 {
 	// key_words
 	if (_operators_set.find(str) != _operators_set.end())
@@ -45,7 +45,7 @@ void WordTypeHelper::regist_controller(const std::string str) {
 	_controller_set.insert(str);
 }
 
-WordTypeHelper WORD_TYPE_HELPER::word_type_helper = WordTypeHelper();
+// WordTypeHelper WORD_TYPE_HELPER::word_type_helper = WordTypeHelper();
 
 // Lexer
 
@@ -60,20 +60,14 @@ Lexer::Lexer(Input* input) : Lexer()
 }
 
 Lexer::Lexer() : _fd(0), has_read(false)
-{
-	REGIST_TOKEN("/*", commet_open);
-	REGIST_TOKEN("*/", commet_close);
-	REGIST_TOKEN("|<", cstring_open);
-	REGIST_TOKEN(">|", cstring_closed);
-	REGIST_TOKEN("//", commetLine);
-}
+{}
 
 // 只分析一行用
-bool Lexer::_push_into_list(std::string str, IsToken b)
+bool Lexer::_push_into_list(std::string str, IsToken b, const WordTypeHelper& word_type_helper)
 {
 	if (str != "")
 	{
-		WordType type = WORD_TYPE_HELPER::word_type_helper.calc_word_type(str, b);
+		WordType type = word_type_helper.calc_word_type(str, b);
 		// commet
 		if (!_flag_string_begin&& !_flag_ignore && type == WordType::COMMET_LINE)_flag_ignore_line = true;
 		if (!_flag_ignore_line) {
@@ -115,9 +109,8 @@ std::string Lexer::getChar(std::string& line, unsigned int& str_p)
 	return s;
 }
 
-bool Lexer::_lexLine()
+bool Lexer::_lexLine(Token_helper& tokenHelper, WordTypeHelper& word_type_helper)
 {
-	auto& tokenHelper = TOKEN_HELPER::token_helper;
 	auto tokens_set = tokenHelper.get_all_tokens();
 	std::string line = _input->getLine();
 
@@ -134,7 +127,7 @@ bool Lexer::_lexLine()
 
 		if (nextChar == EOL)
 		{
-			_push_into_list(word, IsToken::FALSE);
+			_push_into_list(word, IsToken::FALSE, word_type_helper);
 			goto finish;
 		}
 
@@ -197,8 +190,8 @@ bool Lexer::_lexLine()
 				{
 					if (tokenFound != "")	// 找到
 					{
-						_push_into_list(word, IsToken::FALSE);
-						_push_into_list(tokenFound, IsToken::TRUE);
+						_push_into_list(word, IsToken::FALSE, word_type_helper);
+						_push_into_list(tokenFound, IsToken::TRUE, word_type_helper);
 					}
 					goto finish;	// 行读取完毕
 				}
@@ -217,9 +210,9 @@ bool Lexer::_lexLine()
 				ofs << __LINE__ << ": Found Success !" << std::endl;
 				ofs << __LINE__ << ": \ttokenFound = " << tokenFound << std::endl;
 #endif
-				_push_into_list(word, IsToken::FALSE);
+				_push_into_list(word, IsToken::FALSE, word_type_helper);
 				word = "";
-				_push_into_list(tokenFound, IsToken::TRUE);
+				_push_into_list(tokenFound, IsToken::TRUE, word_type_helper);
 				str_p = curp + tokenFound.size();
 			}
 			else
@@ -247,7 +240,7 @@ finish:
 	// 保证之后的string都被放入列表
 	if(_flag_string_begin)
 		_words_list.emplace_back(WordType::STRING, _string_);
-	_push_into_list(EOL, IsToken::TRUE);	// 一行结束换行
+	_push_into_list(EOL, IsToken::TRUE, word_type_helper);	// 一行结束换行
 
 #if CHECK_lexer
 	std::cerr << __LINE__ << ": lexer Finish" << std::endl;
@@ -265,13 +258,13 @@ void Lexer::init() {
 	_words_list.clear();
 }
 
-bool Lexer::fillList(bool fillAll, unsigned int size)
+bool Lexer::fillList(Token_helper& tokenHelper, WordTypeHelper& word_type_helper, bool fillAll, unsigned int size)
 {
 	_string_ = "";
 	bool flag = false;
 	for (unsigned int i = 0; (fillAll || i < size); ++i)
 	{
-		flag = _lexLine();
+		flag = _lexLine(tokenHelper, word_type_helper);
 		if (_input->isEnd()) {
 			// 结束符放入列表
 			_words_list.push_back(Word(WordType::EOS, EOS));

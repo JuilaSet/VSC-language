@@ -95,5 +95,3 @@ std::string Token::get_token() const
 Token::~Token()
 {
 }
-
-Token_helper TOKEN_HELPER::token_helper = Token_helper();

@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClInclude Include="Compiler.h" />
     <ClInclude Include="Evaluator.h" />
+    <ClInclude Include="VirtualMachine.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="Lexer.h" />
     <ClInclude Include="Parser.h" />
@@ -165,6 +166,7 @@
   <ItemGroup>
     <ClCompile Include="Compiler.cpp" />
     <ClCompile Include="Evaluator.cpp" />
+    <ClCompile Include="VirtualMachine.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="Lexer.cpp" />
     <ClCompile Include="Parser.cpp" />

@@ -111,9 +111,10 @@ void Parser::addBNFRuleGraphic(BNFGraphic g) {
 }
 
 // 分析图是否匹配
-int Parser::_judge_g(Position pos, std::string& errors) {
+int Parser::_judge_g(Position pos, std::string& errors, std::vector<Word>& _judge_vector) {
 	std::string failed_info;
 	OperatorParas_vec opera_paras;	// operator 以及相应参数
+	// std::vector<Word> _temp_judge_vector; // 当前图的vector, 如果失败就丢弃, 成功就加入_judge_vector
 
 	Position _cur_position = pos;
 	_cur_position._node_index = 0;
@@ -126,8 +127,10 @@ int Parser::_judge_g(Position pos, std::string& errors) {
 		assert(_cur_position._graphic_str != "");
 		assert(_graphic_map.find(_cur_position._graphic_str) != _graphic_map.end());
 		BNFGraphic g = _graphic_map.find(_cur_position._graphic_str)->second;
+
 		// 从lexer中取出word
 		Word word = _lexer->getWord(_cur_position._lexer_point);
+
 #if CHECK_Parser
 		std::cout << __LINE__  << "\t"  << "Get Word from lexer: " << word.serialize() << std::endl;
 #endif
@@ -162,6 +165,8 @@ int Parser::_judge_g(Position pos, std::string& errors) {
 						found = true;
 						_offset = 1;
 						_cur_position._node_index = i;
+						// 正确的时候加入搜索路径
+						_judge_vector.push_back(word);
 						break;
 					}
 				}
@@ -169,9 +174,9 @@ int Parser::_judge_g(Position pos, std::string& errors) {
 #if CHECK_Parser
 					std::cout << __LINE__  << "\t"  << "NON - Terminal node: jump to" << std::endl;
 #endif
-					// 非终结符 跳转图
+					// 非终结符 跳转图进行判断
 					assert(child.getGName() != "");
-					if (_offset = _judge_g(Position(0, child.getGName(), _cur_position._lexer_point), errors)) {
+					if (_offset = _judge_g(Position(0, child.getGName(), _cur_position._lexer_point), errors, _judge_vector)) {
 #if CHECK_Parser
 						std::cout << __LINE__  << "\t"  << "NON - Terminal node Judge Success!" << std::endl;
 #endif
@@ -209,27 +214,46 @@ Failed:
 #if CHECK_Parser
 	std::cout << __LINE__  << "\t"  << "Failed and return!" << std::endl;
 #endif
+	// 擦除错误路径
+	_judge_vector.erase(_judge_vector.begin() + offset_start, _judge_vector.end());
 	return 0;
+
 Success:
-	errors = "";// 正确时忽略之前的错误
-	int offset_ret = _cur_position._lexer_point - offset_start;
+	// 正确时忽略之前的错误, 并将搜索到的word放入表中
+	errors = "";
+	int offset_ret_SUCESS = _cur_position._lexer_point - offset_start;
 #if CHECK_Parser
 	std::cout << __LINE__  << "\t"  << "Success and return! offset = " << offset_ret << std::endl;
 #endif
 	// 语法成功
-	return offset_ret; // 返回偏移量
+	return offset_ret_SUCESS; // 返回偏移量
 }
 
-// 语法分析
+// 语法分析(true or false)
 bool Parser::parse(std::string graphicId) {
 	std::string err = "";
-	// 递归下降判断
-	int offset = _judge_g(Position(0, graphicId, 0), err);
+	std::vector<Word> _judge_vector;
 
+	// 递归下降判断
+	int offset = _judge_g(Position(0, graphicId, 0), err, _judge_vector);
+
+#if CHECK_Parser_g
+	// 显示结果
+	std::cout << "parser的结果: " << std::endl;
+	std::for_each(_judge_vector.begin(), _judge_vector.end(), [](auto& ele) {
+		std::cout << ele.getString() << " ";
+	});
+	std::cout << std::endl;
+#endif
+
+	// 调整修改后的code加入 _word_vector
 	for (int i = 0; i < offset; ++i) {
-		// 放入修改后的code
-		_word_vector.push_back(_lexer->getWord(i));
+		_word_vector.push_back(_judge_vector[i]);
 	}
+
+	// 清空分析结果
+	_judge_vector.clear();
+
 #if CHECK_Parser
 	std::cerr << (offset > 0 ? "Parse Sucess!" : "Parse Failed!") << std::endl;
 #endif

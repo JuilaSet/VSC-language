@@ -1,3 +1,2 @@
-﻿  Compiler.cpp
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.cpp(21): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
+﻿  VirtualMachine.cpp
   Trlsr_Language.vcxproj -> D:\D_box\learning\workspace\C++studio\Trlsr_Language\x64\Debug\Trlsr_Language.exe
