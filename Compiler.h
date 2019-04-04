@@ -7,10 +7,11 @@
 #include <string>
 #include <functional>
 #include <initializer_list>
-#include "VirtualMachine.h"
+
+#include "vsEvaluator.h"
 
 #define CHECK_Compiler false
-#define CHECK_Compiler_alloc true
+#define CHECK_Compiler_alloc false
 
 // 空上下文
 #define EMPTY_CONTEXT \
@@ -27,7 +28,6 @@ enum class Context_Type :int {
 };
 
 class S_Expr_Compiler;
-using _command_set = std::vector<Command>;
 
 // 上下文类
 class Context {
@@ -141,13 +141,13 @@ public:
 	}
 };
 
-void show_cstk(const std::string& tag, std::vector<Context>& stk) {
-	std::cout << "+++" << tag << "> ";
-	std::for_each(stk.begin(), stk.end(), [&](auto ctx) {
-		std::cout << "[" << ctx.getName() << "]" << std::ends;
-	});
-	std::cout << std::endl;
-}
+#if CHECK_Compiler
+void show_cstk(const std::string& tag, std::vector<Context>& stk);
+#endif
+
+#if CHECK_Eval_command
+void show_comms(const std::vector<Command>& commdVec);
+#endif
 
 using word_type_map = std::map<std::string, WordType>;
 using local_index_map = std::map<std::string, int>;
@@ -216,47 +216,88 @@ public:
 	}
 };
 
+// 存放编译结果
+class Compile_result {
+protected:
+	std::map<size_t, vsblock> _sb_map;
+	std::vector<Command> _commdVec;
+public:
+	Compile_result() {}
+	~Compile_result() {}
+
+	// 初始化
+	void init() {
+		_sb_map.clear();
+		_commdVec.clear();
+	}
+
+	std::vector<Command> getCommandVector() {
+		return _commdVec;
+	}
+
+	std::vector<Command>& refCommandVector() {
+		return _commdVec;
+	}
+
+	std::map<size_t, vsblock> getBlockMap() {
+		return _sb_map;
+	}
+
+	std::map<size_t, vsblock>& refBlockMap() {
+		return _sb_map;
+	}
+};
+
 // 编译器基类
 class Basic_Compiler {
 public:
 	// 生成list_block的代码
-	virtual void generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, Context_helper& helper)
+	virtual void generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper)
 		throw (Context_error) = 0;
 
 	virtual ~Basic_Compiler() = default;
 };
 
-
 // s-表达式 编译器
 class S_Expr_Compiler: public Basic_Compiler
 {
+public:
+	enum { 
+		// 分配给标识符的索引最大量
+		max_slot_size = 256 
+	};
 protected:
 	std::vector<word_type_map> wt_map_list;		// 存放变量类型
 	std::vector<local_index_map> li_map_list;	// 存放标识符到局部变量表的索引映射
-
-	std::vector<_compiler_tool> ctool_stk;	// 编译工具栈， 进入时block入栈, 只对尾部元素操作, 退出block时出栈
+	std::vector<_compiler_tool> ctool_stk;		// 编译工具栈， 进入时block入栈, 只对尾部元素操作, 退出block时出栈
+	std::vector<vsblock> _vsblock_vec;			// block栈
 
 	// 自动分配变量表的下标(表示符的名称 -> 下标)
 	int _auto_alloc_local_index(Word& w) {
 		auto& map = li_map_list.back();
-		auto index = map.size();
 		auto serialized_str = w.serialize();
 
 		// 查看是否已经分配过
 		auto it = map.find(serialized_str);
 		if (it == map.end()) {
+			auto index = map.size();
 			auto pair = std::make_pair(serialized_str, index); // 从0开始
 			map.insert(pair); // 不覆盖原有的map
 #if CHECK_Compiler_alloc
 			std::cout << "alloc " << serialized_str << " -> " << index << std::endl;
 #endif
+			assert(max_slot_size >= index);
+			return index;
 		}
-		return index;
+		else {
+			// 如果有, 就返回它原来的值
+			return it->second;
+		}
 	}
 
 public:
 	// 生成list_block的代码
-	virtual void generate_code(const std::vector<Word>& _word_vector, std::vector<Command>& commdVec, Context_helper& helper)
+	virtual void generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper)
 		throw (Context_error);
 
 	inline _compiler_tool& ctool() {

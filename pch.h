@@ -22,8 +22,8 @@
 #include "Token.h"
 #include "Lexer.h"
 #include "Parser.h"
-#include "VirtualMachine.h"
+#include "vsEvaluator.h"
 #include "Compiler.h"
-#include "Evaluator.h"
+#include "vsVirtualMachine.h"
 
 #endif //PCH_H

@@ -11,7 +11,9 @@ enum class DataType :int {
 	// 整型(只读转换为string)
 	NUMBER,
 	// opcode地址型, 不允许转换为任何类型
-	OPERA_ADDR
+	OPERA_ADDR,
+	// 索引类型, 只允许用于索引
+	ID_INDEX
 };
 
 struct data_t
@@ -21,6 +23,7 @@ struct data_t
 };
 
 class Data {
+
 protected:
 	DataType type;
 	data_t _data;
@@ -108,7 +111,7 @@ public:
 	}
 
 	// 回显用函数
-	std::string toEchoString() const {
+	virtual std::string toEchoString() const {
 		if (type == DataType::STRING) {
 			return "<" + _data.value_str + ">";
 		}
@@ -126,6 +129,7 @@ public:
 		}
 		else {
 			assert(type != DataType::OPERA_ADDR);
+			assert(type != DataType::ID_INDEX);
 			std::stringstream ss;
 			ss << _data.value_int;
 			return ss.str();
@@ -133,7 +137,7 @@ public:
 	}
 
 	// 返回转换的bool型(支持数字, 字符串转换bool)
-	bool toBool() const {
+	virtual bool toBool() const {
 		bool ret;
 		switch (type)
 		{
@@ -149,6 +153,9 @@ public:
 		case DataType::OPERA_ADDR:
 			assert(false);
 			break;
+		case DataType::ID_INDEX:
+			assert(false);
+			break;
 		default:
 			ret = false;
 			break;
@@ -157,7 +164,7 @@ public:
 	}
 
 	// 返回转换的数字(支持字符串转换为数字)
-	int toNumber() const {
+	virtual int toNumber() const {
 		// 字符串转换为数字
 		if (type == DataType::STRING) {
 			std::stringstream s;
@@ -168,21 +175,30 @@ public:
 		}
 		else {
 			assert(type != DataType::OPERA_ADDR);	// 不允许用户自定义跳转位置
+			assert(type != DataType::ID_INDEX);
 			return _data.value_int;
 		}
 	}
 
 	// 返回地址(只能是地址类型)
-	unsigned int toAddr() const {
+	virtual unsigned int toAddr() const {
 		assert(type == DataType::OPERA_ADDR);
 		return _data.value_int;
 	}
 
-	DataType getType() const {
+	// 返回索引(只能是索引类型)
+	virtual size_t toIndex() const {
+		assert(type == DataType::ID_INDEX);
+		return _data.value_int;
+	}
+
+	// 返回类型
+	virtual DataType getType() const {
 		return this->type;
 	}
 
-	std::string toTypeName() const {
+	// 返回类型名称
+	virtual std::string toTypeName() const {
 		switch (type) {
 		case DataType::NON:
 			return "NON";
@@ -192,6 +208,8 @@ public:
 			return "NUMBER";
 		case DataType::OPERA_ADDR:
 			return "OPERA_ADDR";
+		case DataType::ID_INDEX:
+			return "ID_INDEX";
 		default:
 			assert(false);
 			return "ERROR";

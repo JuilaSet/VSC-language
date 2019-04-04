@@ -148,7 +148,7 @@ protected:
 public:
 	Parser(Lexer* lex);
 	std::string getErrors() { return errors; }
-	void init() {
+	void clear_word_vec() {
 		_word_vector.clear();
 	}
 	void addBNFRuleGraphic(BNFGraphic g);

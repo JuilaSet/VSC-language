@@ -42,10 +42,13 @@
     <ClInclude Include="Compiler.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="VirtualMachine.h">
+    <ClInclude Include="vsfunction.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Evaluator.h">
+    <ClInclude Include="vsEvaluator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="vsVirtualMachine.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -80,10 +83,13 @@
     <ClCompile Include="Compiler.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="VirtualMachine.cpp">
+    <ClCompile Include="vsfunction.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Evaluator.cpp">
+    <ClCompile Include="vsEvaluator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="vsVirtualMachine.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

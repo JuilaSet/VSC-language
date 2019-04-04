@@ -6,7 +6,9 @@
 #include <set>
 #include <sstream>
 #include <regex>
+
 #include "Data.h"
+#include "vsfunction.h"
 
 #define CHECK_Lexer false // 是否显示调试信息
 

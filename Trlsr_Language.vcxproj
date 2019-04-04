@@ -152,8 +152,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Compiler.h" />
-    <ClInclude Include="Evaluator.h" />
-    <ClInclude Include="VirtualMachine.h" />
+    <ClInclude Include="vsVirtualMachine.h" />
+    <ClInclude Include="vsEvaluator.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="Lexer.h" />
     <ClInclude Include="Parser.h" />
@@ -162,11 +162,12 @@
     <ClInclude Include="Text.h" />
     <ClInclude Include="Token.h" />
     <ClInclude Include="Data.h" />
+    <ClInclude Include="vsfunction.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Compiler.cpp" />
-    <ClCompile Include="Evaluator.cpp" />
-    <ClCompile Include="VirtualMachine.cpp" />
+    <ClCompile Include="vsVirtualMachine.cpp" />
+    <ClCompile Include="vsEvaluator.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="Lexer.cpp" />
     <ClCompile Include="Parser.cpp" />
@@ -181,6 +182,7 @@
     <ClCompile Include="Token.cpp" />
     <ClCompile Include="Trlsr_Language.cpp" />
     <ClCompile Include="Data.cpp" />
+    <ClCompile Include="vsfunction.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
