@@ -47,14 +47,12 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 		Context ctx;
 		if (type == WordType::LOCAL_OPEN) {	// ctool().blk_op_count入栈0
 			localBegin();
-			ctool_stk.push_back(_compiler_tool());
 
 			assert(!ctool_stk.empty());
 			ctool().blk_op_count = 0;
 
 			// 当前地址 = 是否生成过代码, 没有就是1
 			size_t comm_pos = _cur_comm_pos(result);
-
 
 			// 为新的block分配下标
 			size_t block_id = _alloc_block_index();
@@ -65,7 +63,6 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 				auto cur_block_id = _cur_block_id();
 
 				// push 要跳转的地址
-				
 				auto& comm = result.refCommandVector(cur_block_id);
 				comm.push_back(CommandHelper::getPushOpera(
 						new Data(DataType::BLK_INDEX, block_id)));
@@ -112,73 +109,20 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 			// 退出这层block
 			_vsblock_index_vec.pop_back();
 
+			// 恢复工具栈
+			localEnd();
+
 			// 关闭局部变量栈
 			result.refCommandVector(block_id).push_back(COMMAND(LOCAL_END));
-			
-			// 当做上下文结束符";"处理		
-#if CHECK_Compiler
-			std::cout << "CONTEXT_CLOSED" << std::endl;
-#endif	
-			// pop到END处为止, 忽略之后所有的参数
-			while (ctx.type != Context_Type::END) {
-				if (ctool_stk.empty() && _vsblock_index_vec.empty()) {
-					// 确定当前的block中的指令长度
-					result.get_block_ref(block_id).setEndAddr();
-					// 如果为空, 结束
-					goto END;
-				}
-				else if(!ctool_stk.empty()) {
-					if (!ctool()._context_stk.empty()) {
-						ctx = ctool()._context_stk.back();
-						ctool()._context_stk.pop_back();
-#if CHECK_Compiler
-						std::cout << "Context stack POP = " << ctx.getName() << std::endl;
-						show_cstk("Context stk", ctool()._context_stk);
-						show_cstk("temp stk", ctool().tempStk);
-#endif
-					}
-					else {
-						// 恢复工具栈
-						ctool_stk.pop_back();
-					}
-				}
-				else if (!_vsblock_index_vec.empty()) {
-					break;
-				}
-			}
-
-			// 生成代码(这里的上下文一定上面while中找到的END类型)
-			if (!ctool_stk.empty()) {
-				auto commands = ctx.getCommandSet(ctool()._context_stk, result.refCommandVector(block_id), word, this);
-				for (auto commad : commands) {
-					result.refCommandVector(block_id).push_back(commad);
-				}
-
-				// 如果之前保存了外层上下文, 就生成外部的COMMAND
-				if (!ctool().tempStk.empty()) {
-					Context ctx_t = ctool().tempStk.back();
-					ctool().tempStk.pop_back();
-#if CHECK_Compiler
-					std::cout << __LINE__ << " TEMP stack POP = " << ctx_t.getName() << std::endl;
-					show_cstk("Context stk", ctool()._context_stk);
-					show_cstk("temp stk", ctool().tempStk);
-#endif
-					// 生成代码
-					auto commands = ctx_t.getCommandSet(ctool()._context_stk, result.refCommandVector(block_id), word, this);
-					for (auto commad : commands) {
-						result.refCommandVector(block_id).push_back(commad);
-					}
-				}
-
-				// 判断是否生成SHRINK指令
-				if ((ctool().blk_op_count -= 1) == 0) {
-					result.refCommandVector(block_id).push_back(COMMAND(SHRINK));
-				}
-			}
 
 			// 确定当前的block中的指令长度
 			result.get_block_ref(block_id).setEndAddr();
-			localEnd();
+		
+			// 如果当前没有外部的block, 程序退出编译
+			if (_vsblock_index_vec.empty()) {
+				// 如果为空, 结束
+				goto END;
+			}
 		}
 		else if (type == WordType::STRING_OPEN || type == WordType::STRING_CLOSED) {
 #if CHECK_Compiler

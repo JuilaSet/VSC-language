@@ -393,11 +393,13 @@ public:
 	void localBegin() {
 		wt_map_list.push_back(word_type_map());
 		li_map_list.push_back(local_index_map());
+		ctool_stk.push_back(_compiler_tool());
 	}
 
 	void localEnd() {
 		wt_map_list.pop_back();
 		li_map_list.pop_back();
+		ctool_stk.pop_back();
 	}
 
 	// 插入局部变量记录

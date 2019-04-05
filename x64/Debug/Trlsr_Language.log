@@ -1,3 +1,9 @@
-﻿  vsEvaluator.cpp
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\vsevaluator.cpp(44): warning C4267: “=”: 从“size_t”转换到“unsigned int”，可能丢失数据
+﻿  Compiler.cpp
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.cpp(33): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.cpp(69): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.cpp(80): warning C4267: “参数”: 从“size_t”转换到“const _Ty”，可能丢失数据
+          with
+          [
+              _Ty=int
+          ]
   Trlsr_Language.vcxproj -> D:\D_box\learning\workspace\C++studio\Trlsr_Language\x64\Debug\Trlsr_Language.exe

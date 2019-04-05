@@ -5,8 +5,6 @@
 
 void vsEvaluator::load_block(vsblock& block)
 {
-	// ..
-	// 对于子block而言, 之前会在local_begin中为这个block分配栈帧
 	_push_frame();
 
 	_flag_has_instruct = true;
@@ -14,7 +12,7 @@ void vsEvaluator::load_block(vsblock& block)
 	// 进入block, 从头开始执行
 	this->_instruct_ptr = &block.instruct();
 	this->_block_ptr = &block;
-	ipc = 0;
+	ipc = -1; // 跳转后变成0
 }
 
 void vsEvaluator::exit_block()
