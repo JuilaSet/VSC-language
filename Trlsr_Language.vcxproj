@@ -152,6 +152,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Compiler.h" />
+    <ClInclude Include="vscommand.h" />
+    <ClInclude Include="vsoperator.h" />
     <ClInclude Include="vsVirtualMachine.h" />
     <ClInclude Include="vsEvaluator.h" />
     <ClInclude Include="Input.h" />
@@ -166,6 +168,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Compiler.cpp" />
+    <ClCompile Include="vscommand.cpp" />
+    <ClCompile Include="vsoperator.cpp" />
     <ClCompile Include="vsVirtualMachine.cpp" />
     <ClCompile Include="vsEvaluator.cpp" />
     <ClCompile Include="Input.cpp" />

@@ -1,16 +1,6 @@
 ﻿#pragma once
-#include <vector>
-#include <deque>
-#include <map>
-#include <unordered_map>
-#include <stack>
-#include <string>
-#include <functional>
-#include <initializer_list>
 
-#include "vsEvaluator.h"
-
-#define CHECK_Compiler false
+#define CHECK_Compiler true
 #define CHECK_Compiler_alloc false
 
 // 空上下文
@@ -28,6 +18,7 @@ enum class Context_Type :int {
 };
 
 class S_Expr_Compiler;
+using _command_set = std::vector<Command>;
 
 // 上下文类
 class Context {
@@ -219,32 +210,64 @@ public:
 // 存放编译结果
 class Compile_result {
 protected:
-	std::map<size_t, vsblock> _sb_map;
-	std::vector<Command> _commdVec;
+	std::map<size_t, vsblock> _sb_map; // id _> sb_map
+	bool _has_blk;
 public:
-	Compile_result() {}
+	Compile_result(): _has_blk(false){}
 	~Compile_result() {}
+
+	// 遍历所有的map
+	void for_each_block(std::function<void (vsblock&)> func) {
+		for (auto& it: _sb_map) {
+			func(it.second);
+		}
+	}
 
 	// 初始化
 	void init() {
 		_sb_map.clear();
-		_commdVec.clear();
+		_has_blk = false;
 	}
 
-	std::vector<Command> getCommandVector() {
-		return _commdVec;
+	// 是否含有block
+	inline bool has_block() const {
+		return _has_blk;
 	}
 
-	std::vector<Command>& refCommandVector() {
-		return _commdVec;
+	// 加入block
+	void add_block(vsblock block) {
+		_has_blk = true;
+		auto pair = std::make_pair(block.id(), block);
+		_sb_map.insert(pair);
 	}
 
-	std::map<size_t, vsblock> getBlockMap() {
+	// 索引block
+	vsblock& get_block_ref(size_t block_index) {
+		assert(!_sb_map.empty());
+		auto it = _sb_map.find(block_index);
+		assert(it != _sb_map.end());
+		auto& block = it->second;
+		return block;
+	}
+
+	// 返回生成的block表
+	std::map<size_t, vsblock>& get_sb_map() {
 		return _sb_map;
 	}
 
-	std::map<size_t, vsblock>& refBlockMap() {
-		return _sb_map;
+	// 返回block的指令
+	std::vector<Command> getCommandVector(size_t block_index) {
+		auto it = _sb_map.find(block_index);
+		assert(it != _sb_map.end());
+		auto& block = get_block_ref(block_index);
+		return block.instruct();
+	}
+
+	std::vector<Command>& refCommandVector(size_t block_index) {
+		auto it = _sb_map.find(block_index);
+		assert(it != _sb_map.end());
+		auto& block = get_block_ref(block_index);
+		return block.instruct();
 	}
 };
 
@@ -262,15 +285,19 @@ public:
 class S_Expr_Compiler: public Basic_Compiler
 {
 public:
-	enum { 
+	enum {
 		// 分配给标识符的索引最大量
-		max_slot_size = 256 
+		max_slot_size = 256,
+		// 分配给block的最大数量
+		max_block_index_size = 1024
 	};
 protected:
 	std::vector<word_type_map> wt_map_list;		// 存放变量类型
 	std::vector<local_index_map> li_map_list;	// 存放标识符到局部变量表的索引映射
 	std::vector<_compiler_tool> ctool_stk;		// 编译工具栈， 进入时block入栈, 只对尾部元素操作, 退出block时出栈
-	std::vector<vsblock> _vsblock_vec;			// block栈
+	
+	size_t _block_index = 0;					// 分配block的id用的
+	std::vector<int> _vsblock_index_vec;		// block id栈
 
 	// 自动分配变量表的下标(表示符的名称 -> 下标)
 	int _auto_alloc_local_index(Word& w) {
@@ -295,12 +322,35 @@ protected:
 		}
 	}
 
+	// 当前代码地址(top的block的代码地址), 如果没有生成过代码就返回0
+	size_t _cur_comm_pos(Compile_result& result) {
+		if (!result.has_block())return 0;
+		else {
+			size_t block_id = _cur_block_id();
+			return result.get_block_ref(block_id).instruct().size();
+		}
+	}
+
+	// 分配给block的index
+	size_t _alloc_block_index() {
+		size_t index = ++_block_index;
+		assert(max_block_index_size >= index);
+		return index;
+	}
+
+	// 当前所在的block
+	size_t _cur_block_id() {
+		assert(!_vsblock_index_vec.empty());
+		return _vsblock_index_vec.back();
+	}
+
 public:
 	// 生成list_block的代码
 	virtual void generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper)
 		throw (Context_error);
 
 	inline _compiler_tool& ctool() {
+		assert(!ctool_stk.empty());
 		return ctool_stk.back();
 	}
 	
@@ -393,7 +443,11 @@ public:
 	}
 
 	void init() {
-		ctool().init();
+		_block_index = 0;
+		// ctool().init();
+		assert(_vsblock_index_vec.empty());
+		assert(ctool_stk.empty());
+		
 		wt_map_list.clear();
 		li_map_list.clear();
 	}

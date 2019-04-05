@@ -17,12 +17,28 @@
 #include <functional>
 #include <memory>
 #include <regex>
+#include <cassert>
+#include <sstream>
+#include <vector>
+#include <deque>
+#include <map>
+#include <unordered_map>
+#include <stack>
+#include <initializer_list>
+
+#include <exception>
+#include <thread>
+
+#include "Token.h"
+#include "Data.h"
 
 #include "Input.h"
-#include "Token.h"
 #include "Lexer.h"
 #include "Parser.h"
 #include "vsEvaluator.h"
+#include "vsoperator.h"
+#include "vscommand.h"
+#include "vsfunction.h"
 #include "Compiler.h"
 #include "vsVirtualMachine.h"
 

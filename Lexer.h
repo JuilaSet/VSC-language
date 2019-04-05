@@ -7,9 +7,6 @@
 #include <sstream>
 #include <regex>
 
-#include "Data.h"
-#include "vsfunction.h"
-
 #define CHECK_Lexer false // 是否显示调试信息
 
 const std::string EOS = "\0";
@@ -169,7 +166,7 @@ word_type_helper.regist_controller(str); \
 
 //
 
-class FileInput;
+class Input;
 class Lexer
 {
 	unsigned int _fd;
@@ -195,6 +192,10 @@ public:
 	Lexer(Input* input);
 
 	bool fillList(Token_helper& tokenHelper, WordTypeHelper& word_type_helper, bool fillAll=true, unsigned int size=0);	// 填充列表size行单词 返回文件是否读完, 填入NO_RANGE表示读取全部文件内容
+
+	std::vector<Word>& get_words_list() {
+		return _words_list;
+	}
 
 	bool next();	// 返回是否还有东西可读
 	Word read();

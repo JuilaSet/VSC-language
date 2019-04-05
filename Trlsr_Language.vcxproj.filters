@@ -51,6 +51,12 @@
     <ClInclude Include="vsVirtualMachine.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="vsoperator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="vscommand.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -90,6 +96,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="vsVirtualMachine.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="vsoperator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="vscommand.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

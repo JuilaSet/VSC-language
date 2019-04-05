@@ -13,7 +13,9 @@ enum class DataType :int {
 	// opcode地址型, 不允许转换为任何类型
 	OPERA_ADDR,
 	// 索引类型, 只允许用于索引
-	ID_INDEX
+	ID_INDEX,
+	// block的索引类型
+	BLK_INDEX
 };
 
 struct data_t
@@ -23,10 +25,11 @@ struct data_t
 };
 
 class Data {
-
+	friend class DataCreator;
 protected:
 	DataType type;
 	data_t _data;
+
 public:
 	Data() :type(DataType::NON), _data({ "", 0 }) {}
 
@@ -130,6 +133,7 @@ public:
 		else {
 			assert(type != DataType::OPERA_ADDR);
 			assert(type != DataType::ID_INDEX);
+			assert(type != DataType::BLK_INDEX);
 			std::stringstream ss;
 			ss << _data.value_int;
 			return ss.str();
@@ -156,6 +160,9 @@ public:
 		case DataType::ID_INDEX:
 			assert(false);
 			break;
+		case DataType::BLK_INDEX:
+			assert(false);
+			break;
 		default:
 			ret = false;
 			break;
@@ -176,6 +183,7 @@ public:
 		else {
 			assert(type != DataType::OPERA_ADDR);	// 不允许用户自定义跳转位置
 			assert(type != DataType::ID_INDEX);
+			assert(type != DataType::BLK_INDEX);
 			return _data.value_int;
 		}
 	}
@@ -188,7 +196,7 @@ public:
 
 	// 返回索引(只能是索引类型)
 	virtual size_t toIndex() const {
-		assert(type == DataType::ID_INDEX);
+		assert(type == DataType::ID_INDEX || type == DataType::BLK_INDEX);
 		return _data.value_int;
 	}
 
@@ -210,9 +218,16 @@ public:
 			return "OPERA_ADDR";
 		case DataType::ID_INDEX:
 			return "ID_INDEX";
+		case DataType::BLK_INDEX:
+			return "BLK_INDEX";
 		default:
 			assert(false);
 			return "ERROR";
 		}
 	}
 };
+
+using data_ptr = std::shared_ptr<Data>;
+namespace NULL_DATA {
+	const data_ptr null_data = data_ptr(new Data());
+}

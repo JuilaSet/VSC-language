@@ -54,7 +54,8 @@ void regist_keywords_contents(Context_helper& helper) {
 			}, Context_Type::END, "time_end")
 		})
 	);
-
+	
+	/*
 	helper.regist_context(Word(WordType::CONTROLLER, "prcd").serialize(),
 		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 			helper.push_command_index(_vec.size());
@@ -78,21 +79,7 @@ void regist_keywords_contents(Context_helper& helper) {
 			}, Context_Type::END, "prcd_end")
 		})
 	);
-
-	helper.regist_context(Word(WordType::CONTROLLER, "tuple").serialize(),
-		helper.build_context(
-		[](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {	// op_0
-			return _command_set{ CommandHelper::getPushOpera(Data()) };	// 存入void
-		},
-		{
-			Context([](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {	// op_always
-				return _command_set{ };
-			}, Context_Type::ALWAYS, "tuple_op1"),
-			Context([](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {	// op_end
-				return _command_set{ };
-			}, Context_Type::END, "tuple_end")
-		})
-	);
+	*/
 
 	helper.regist_context(Word(WordType::CONTROLLER, "def").serialize(),
 		helper.build_context(
@@ -106,7 +93,7 @@ void regist_keywords_contents(Context_helper& helper) {
 					// 获取分配的下标
 					int index = compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
 					commandVec.pop_back();
-					commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
+					commandVec.push_back(CommandHelper::getPushOpera(new Data(DataType::ID_INDEX, index)));
 					return _command_set{};
 				}, Context_Type::NORMAL, "def_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
@@ -133,7 +120,7 @@ void regist_keywords_contents(Context_helper& helper) {
 					// 获取分配的下标
 					int index = compiler->get_alloced_index(w);	// 告知Compiler声明过了第一个参数
 					commandVec.pop_back();
-					commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
+					commandVec.push_back(CommandHelper::getPushOpera(new Data(DataType::ID_INDEX, index)));
 					return _command_set{};
 				}, Context_Type::NORMAL, "assign_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
@@ -171,6 +158,7 @@ void regist_keywords_contents(Context_helper& helper) {
 			})
 	);
 
+	/*
 	helper.regist_context(Word(WordType::CONTROLLER, "ignore").serialize(),
 		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 			helper.push_command_index(_vec.size());
@@ -184,14 +172,16 @@ void regist_keywords_contents(Context_helper& helper) {
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				int last_index = helper.pop_command_index();
 				int addr = _vec.size();
-				_vec[last_index] = CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr));
+				_vec[last_index] = CommandHelper::getPushOpera(new Data(DataType::OPERA_ADDR, addr));
 				return _command_set{
 						COMMAND(NOP)
 				};
 			}, Context_Type::END)
 		})
 	);
+	*/
 
+	/*
 	helper.regist_context(Word(WordType::CONTROLLER, "if").serialize(),
 		helper.build_context(
 			[&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) { return _command_set{}; },
@@ -208,14 +198,15 @@ void regist_keywords_contents(Context_helper& helper) {
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 					int last_index = helper.pop_command_index();
 					int addr = _vec.size();
-					_vec[last_index] = CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr));
+					_vec[last_index] = CommandHelper::getPushOpera(new Data(DataType::OPERA_ADDR, addr));
 					return _command_set{
 						COMMAND(NOP)
 					};
 				}, Context_Type::END, "if_end")
 			})
-	);
+	);*/
 
+	/*
 	helper.regist_context(Word(WordType::CONTROLLER, "while").serialize(),
 		helper.build_context(
 			[&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
@@ -245,7 +236,9 @@ void regist_keywords_contents(Context_helper& helper) {
 				}, Context_Type::END)
 			})
 	);
+	*/
 
+	/*
 	helper.regist_context(Word(WordType::CONTROLLER, "rept").serialize(),
 		helper.build_context(
 			[&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {	return _command_set{}; },
@@ -269,6 +262,7 @@ void regist_keywords_contents(Context_helper& helper) {
 				}, Context_Type::END, "rept_end")
 			})
 	);
+	*/
 	
 	// IDENTIFIER_SPEC
 	
@@ -435,6 +429,7 @@ void regist_keywords_contents(Context_helper& helper) {
 			})
 	);
 
+	/*
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "l").serialize(),
 		helper.build_context(
 			[](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
@@ -466,6 +461,7 @@ void regist_keywords_contents(Context_helper& helper) {
 					}, Context_Type::END)
 				})
 	);
+	*/
 
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "echo").serialize(),
 		helper.build_context(
@@ -522,17 +518,20 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_OPERATO_WORDS(helper, "g");
 	REGIST_OPERATO_WORDS(helper, "l");
 
-	REGIST_CONTROLLER_WORDS(helper, "time");
+	
 	REGIST_CONTROLLER_WORDS(helper, "call");
 	REGIST_CONTROLLER_WORDS(helper, "prcd");
-	REGIST_CONTROLLER_WORDS(helper, "tuple");
+
+	REGIST_CONTROLLER_WORDS(helper, "time");
+	REGIST_CONTROLLER_WORDS(helper, "abort");
+
 	REGIST_CONTROLLER_WORDS(helper, "def");
 	REGIST_CONTROLLER_WORDS(helper, "assign");
 	REGIST_CONTROLLER_WORDS(helper, "ignore");
-	REGIST_CONTROLLER_WORDS(helper, "while");
-	REGIST_CONTROLLER_WORDS(helper, "rept");
+	
+//	REGIST_CONTROLLER_WORDS(helper, "while");
+//	REGIST_CONTROLLER_WORDS(helper, "rept");
 	REGIST_CONTROLLER_WORDS(helper, "if");
-	REGIST_CONTROLLER_WORDS(helper, "abort");
 }
 
 // 注册语法铁路图
@@ -1173,8 +1172,8 @@ void test_input_cli(){
 	S_Expr_Compiler compiler;
 	Compile_result cresult;
 
-	// 解释器
-	vsEvaluator eval;
+	// 虚拟机
+	vsVirtualMachine vm(0);
 
 	while (1) {
 		p.clear_word_vec();
@@ -1191,22 +1190,25 @@ void test_input_cli(){
 
 		try {
 			// 语法分析
-			int b = p.parse("top");
+			/*int b = p.parse("top");
 			cerr << "Parse " << (b ? "success!" : "failed!") << endl;
 			if (!b) {
 				cout << "Parse ERROR =\n" << p.getErrors() << endl;
 			}
-			else {
-
+			else*/
+			{
 				// 生成目标代码
-				compiler.generate_code(p.get_word_vector_ref(), cresult, ctx_helper);	// 可能抛出异常
+				// compiler.generate_code(p.get_word_vector_ref(), cresult, ctx_helper);	// 可能抛出异常
+				compiler.generate_code(lex.get_words_list(), cresult, ctx_helper);	// 可能抛出异常
 				cout << "Code Generated finished!" << endl << endl;
 
 				// 执行代码
-				eval.setInstructPtr(&cresult.refCommandVector());
-				if(eval.eval(nullptr) == -1)break;
+				vm.init(cresult, 1);
+				vm.run();
+				if(vm.get_eval_ret_value() == -1)break;
 
 				// 清除结果
+				compiler.init();
 				cresult.init();
 			}
 		}

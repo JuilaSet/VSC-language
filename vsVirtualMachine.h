@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "vsEvaluator.h"
 
 #define COPY_TO_BIT_SET(bitarr, begin, non_char_data, size) \
 		char* cptr = (char*)(&(non_char_data));			\
@@ -83,16 +82,89 @@ public:
 	}
 };
 
+///
+/// 异常类
+///
+
+// 虚拟机没有准备完毕
+struct vsVm_not_inited_exception : public std::exception 
+{
+private:
+	int _vsvm_id;
+public:
+	vsVm_not_inited_exception(size_t vsvmid) : _vsvm_id(vsvmid) {}
+	const char * what() const throw ()
+	{
+		std::stringstream ss;
+		ss << "id = " << _vsvm_id << " vsvm not ready Exception";
+		std::string info;
+		ss >> info;
+		return info.c_str();
+	}
+};
+
 // 虚拟机
 class vsVirtualMachine
 {
-	vec_command_t _instruct;		// 指向当前执行的instruct []][
-	unsigned int ipc;				// ip指针
-public:
-	void run(vsEvaluator& eval);	// 执行虚拟机代码
+	size_t _id;							// 虚拟机的id
 
-	vsVirtualMachine() {}
-	vsVirtualMachine(vec_command_t instruct) : _instruct(instruct) {}
+
+	///
+	/// 属性
+	///
+
+	std::map<size_t, vsblock> _sb_map;	// block表 (id -> vsblock)
+	std::shared_ptr<vsEvaluator> _eval_main; // 表示主线程的解释器
+	size_t _enter_point;				// 入口点
+
+	///
+	/// 标志flag
+	///
+
+	bool _inited;				// 是否初始化完成, 即完成加载工作(block表加载, 入口点设置)
+	int _eval_ret_value;		// 解释器的退出值
+public:
+	void run();	// 执行虚拟机代码
+	
+	/// 辅助函数
+	///
+
+	// 获取block
+	vsblock& get_block_ref(size_t block_index) {
+		assert(!_sb_map.empty());
+		auto it = _sb_map.find(block_index);
+		assert(it != _sb_map.end());
+		auto& block = it->second;
+		return block;
+	}
+
+	// 获取退出值
+	int get_eval_ret_value() {
+		return _eval_ret_value;
+	}
+
+	///
+	/// 虚拟机函数
+	///
+
+	// 初始化并设置block表
+	void init(Compile_result cresult, size_t enter_point){
+		_sb_map = cresult.get_sb_map();
+		_enter_point = enter_point;
+		_inited = true;
+	}
+
+	// 初始化时，不指定属性
+	vsVirtualMachine(size_t id) 
+		: _id(id), _inited(false) {}
+
+	// 直接通过结果对象来初始化
+	vsVirtualMachine(size_t id, Compile_result cresult, size_t enter_point)
+		: _id(id), _sb_map(cresult.get_sb_map()), _enter_point(enter_point), _inited(true){}
+	
+	// 通过block表来初始化
+	vsVirtualMachine(size_t id, std::map<size_t, vsblock> sb_map, size_t enter_point)
+		: _id(id), _sb_map(sb_map), _enter_point(enter_point), _inited(true){}
+
 	~vsVirtualMachine() {};
 };
-

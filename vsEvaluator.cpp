@@ -3,21 +3,80 @@
 
 // vsEvaluator
 
-void vsEvaluator::setInstructPtr(vec_command_t* ins) {
+void vsEvaluator::load_block(vsblock& block)
+{
+	// ..
+	// 对于子block而言, 之前会在local_begin中为这个block分配栈帧
+	_push_frame();
+
 	_flag_has_instruct = true;
-	this->_instruct_ptr = ins;
-	init();
+
+	// 进入block, 从头开始执行
+	this->_instruct_ptr = &block.instruct();
+	this->_block_ptr = &block;
+	ipc = 0;
+}
+
+void vsEvaluator::exit_block()
+{
+	assert(!_stk_frame.empty());
+	auto& _frame = this->_stk_frame.back();
+	auto _return_addr = _frame.ret.return_addr;
+	auto _return_blk_id = _frame.ret.return_block_id;
+
+	// 退出运行时栈帧
+	_pop_frame();
+
+	// 如果为空, 退出程序
+	if (this->_stk_frame.empty()) {
+		this->_stop = true;
+	}
+	else {
+		// 出错, 可能因为帧没有与block的调用对应上
+		assert(_return_addr != -1 && _return_blk_id != -1);
+
+		// 返回上一个block
+		auto& lastblock = _vm->get_block_ref(_return_blk_id);
+
+		// 恢复现场
+		this->_instruct_ptr = &lastblock.instruct();
+		this->_block_ptr = &lastblock;
+		this->ipc = _return_addr;
+	}
 }
 
 // 创建并压入栈帧
-void vsEvaluator::push_frame() {
-	StackFrame stkframe;
+void vsEvaluator::_push_frame() {
+#if CHECK_Eval
+	std::cerr << "Push frame ";
+#endif
+
+	_StackFrame stkframe;
+
+	// 出错, 可能是stk_frame在错误的地方push了栈帧
+	assert( this->_block_ptr == nullptr && _stk_frame.empty() || 
+		this->_block_ptr != nullptr && !_stk_frame.empty());
+
+	// 如果不是顶层的block, 就告知返回地址, 设置当前返回地址 = 当前执行的地址
+	if (this->_block_ptr != nullptr) {
+		stkframe.ret.return_block_id = _block_ptr->id();
+		stkframe.ret.return_addr = this->ipc;
+	}
 	_stk_frame.emplace_back(stkframe);
+#if CHECK_Eval
+	std::cerr << ", frame stk size = " << _stk_frame.size() << std::endl;
+#endif
 }
 
 // 弹出局部变量
-void vsEvaluator::pop_frame() {
+void vsEvaluator::_pop_frame() {
+#if CHECK_Eval
+	std::cerr << "Pop frame ";
+#endif
 	_stk_frame.pop_back();
+#if CHECK_Eval
+	std::cerr << ", frame stk size = " << _stk_frame.size() << std::endl;
+#endif
 }
 
 // new def
@@ -80,7 +139,7 @@ data_ptr vsEvaluator::new_get_data(size_t index) {
 	return null_data;
 }
 
-int vsEvaluator::step(vsVirtualMachine* vm) {
+int vsEvaluator::step() {
 	if (ipc == _instruct_ptr->size())return 0;
 	else {
 		assert(ipc < _instruct_ptr->size());
@@ -115,16 +174,17 @@ int vsEvaluator::step(vsVirtualMachine* vm) {
 	}
 }
 
-int vsEvaluator::eval(vsVirtualMachine* vm) {
+int vsEvaluator::eval() {
 	auto begin = 0;
 	auto end = _instruct_ptr->size();
-	init();
-	for (ipc = begin; ipc != end; ++ipc) {
+	// 一直执行， 直到stop为止
+	for (ipc = begin; true; ++ipc) {
 #if CHECK_Eval
 		std::cerr << "IPC= " << ipc << "\t" << std::ends;
 #endif
 		(*_instruct_ptr)[ipc].opera(this);
 #if CHECK_Eval
+		std::cerr << "Data info:" << std::endl;
 		//  遍历所有的frame
 		for (auto& frame: _stk_frame) {
 			std::cerr << "[";
@@ -155,94 +215,3 @@ int vsEvaluator::eval(vsVirtualMachine* vm) {
 }
 
 vsEvaluator::~vsEvaluator() { }
-
-#define COMMAND_GET(name) \
-if (str == #name)	\
-	op = Command(OPERATOR::name);\
-
-//
-
-Command CommandHelper::getBasicCommandOfString(std::string str) {
-	Command op = Command(OPERATOR::ERROR);
-	COMMAND_GET(ABORT)
-	else
-	COMMAND_GET(NOP)
-	else
-	COMMAND_GET(PUSH_POS)
-	else
-	COMMAND_GET(POP)
-	else
-	COMMAND_GET(CAST_NUMBER)
-	else
-	COMMAND_GET(CAST_STRING)
-	else
-	COMMAND_GET(CAST_BOOL)
-	else
-	COMMAND_GET(EQL)
-	else
-	COMMAND_GET(NEQL)
-	else
-	COMMAND_GET(CMP)
-	else
-	COMMAND_GET(TEST)
-	else
-	COMMAND_GET(JG)
-	else
-	COMMAND_GET(JL)
-	else
-	COMMAND_GET(JEG)
-	else
-	COMMAND_GET(JEL)
-	else
-	COMMAND_GET(JMP)
-	else
-	COMMAND_GET(JMP_TRUE)
-	else
-	COMMAND_GET(JMP_FALSE)
-	else
-	COMMAND_GET(COUNT)
-	else
-	COMMAND_GET(NUL)
-	else
-	COMMAND_GET(ECX)
-	else
-	COMMAND_GET(REPT)
-	else
-	COMMAND_GET(LOCAL_BEGIN)
-	else
-	COMMAND_GET(LOCAL_END)
-	else
-	COMMAND_GET(NEW_DRF)
-	else
-	COMMAND_GET(NEW_DEF)
-	else
-	COMMAND_GET(NEW_ASSIGN)
-	else
-	COMMAND_GET(STRCAT)
-	else
-	COMMAND_GET(ADD)
-	else
-	COMMAND_GET(NOT)
-	else
-	COMMAND_GET(EQ)
-	else
-	COMMAND_GET(L)
-	else
-	COMMAND_GET(G)
-	else
-	COMMAND_GET(SUB)
-	else
-	COMMAND_GET(SHRINK)
-	else
-	COMMAND_GET(ISNON)
-	else
-	COMMAND_GET(RET)
-	else
-	COMMAND_GET(CALL)
-	else {
-#if CHECK_Eval
-	std::cerr << "ERROR: " << str << std::endl;
-#endif
-	}
-	return op;
-}

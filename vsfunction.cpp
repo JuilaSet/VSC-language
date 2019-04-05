@@ -6,15 +6,6 @@
 // function
 //
 
-vsfunction::vsfunction()
-{
-}
-
-
-vsfunction::~vsfunction()
-{
-}
-
 
 //
 // vsblock
