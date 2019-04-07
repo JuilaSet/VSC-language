@@ -34,6 +34,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 #if CHECK_Compiler
 	std::cout << "\n\nGenerate Code Begin:" << std::endl;
 #endif
+	_cresult_ptr = &result;
 	auto begin = _word_vector.begin();
 	auto end = _word_vector.end();
 	for (auto it = begin; it != end; ++it) {
@@ -45,9 +46,10 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 		WordType type = word.getType();
 		std::string context_name = word.serialize();
 		Context ctx;
-		if (type == WordType::LOCAL_OPEN) {	// ctool().blk_op_count入栈0
+		if (type == WordType::LOCAL_OPEN) {
+			// 入栈ctool
 			localBegin();
-
+			
 			assert(!ctool_stk.empty());
 			ctool().blk_op_count = 0;
 
@@ -65,15 +67,17 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 				// push 要跳转的地址
 				auto& comm = result.refCommandVector(cur_block_id);
 				comm.push_back(CommandHelper::getPushOpera(
-						new Data(DataType::BLK_INDEX, block_id)));
+						Data(DataType::BLK_INDEX, block_id)));
 
-				// 跳转指令
-				comm.push_back(COMMAND(CALL_BLK));
+				assert(ctool_stk.size() > 1);
+				if (!(ctool_stk.rbegin() + 1)->is_def_blk()) { 
+					// 生成跳转到block指令
+					comm.push_back(COMMAND(CALL_BLK));
+				}
 			}
 			
 			// 创建一个block对象, 给予_id
-			vsblock blk(block_id);
-			result.add_block(blk);
+			new_block(result, block_id);
 
 			// block id入栈
 			_vsblock_index_vec.push_back(block_id);
@@ -90,9 +94,12 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 		else if (type == WordType::LOCAL_CLOSED) {
 #if CHECK_Compiler
 			std::cout << "Word = " << word.serialize() << std::endl;
-			if (!ctool_stk.empty()) {
-				show_cstk("Context stk", ctool()._context_stk);
-				show_cstk("temp stk", ctool().tempStk);
+			for (auto& t : ctool_stk) {
+				if (!ctool_stk.empty()) {
+					show_cstk("Context stk", t._context_stk);
+					show_cstk("temp stk", t.tempStk);
+				}
+				std::cerr << std::endl;
 			}
 #endif
 
@@ -100,9 +107,8 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 #if CHECK_Eval_command
 			std::cout << "Block instruct: " << std::endl;
 			result.for_each_block([](auto blk) {
-				std::cout << "Block " << blk.id() << ':';
-				show_comms(blk.instruct());
-				std::cout << std::endl;
+				std::cout << "Block " << blk->id() << ':';
+				show_comms(blk->instruct());
 			});
 #endif
 
@@ -114,21 +120,69 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 
 			// 关闭局部变量栈
 			result.refCommandVector(block_id).push_back(COMMAND(LOCAL_END));
-
-			// 确定当前的block中的指令长度
-			result.get_block_ref(block_id).setEndAddr();
 		
 			// 如果当前没有外部的block, 程序退出编译
 			if (_vsblock_index_vec.empty()) {
+				// 确定当前的block中的指令长度
+				result.get_block_ref(block_id)->setEndAddr();
 				// 如果为空, 结束
 				goto END;
+			}
+
+			// 确定当前的block中的指令长度
+			result.get_block_ref(block_id)->setEndAddr();
+
+#if CHECK_Compiler
+			std::cout << "生成上一层block操作符的代码" << std::endl;
+			for (auto& t : ctool_stk) {
+				if (!ctool_stk.empty()) {
+					show_cstk("Context stk", t._context_stk);
+					show_cstk("temp stk", t.tempStk);
+				}
+				std::cerr << std::endl;
+			}
+#endif
+
+			// block具有原子性: 生成上一层block操作符的代码
+			assert(!ctool_stk.empty());
+
+			// 如果之前没有上下文， 就不生成代码
+			if (!ctool()._context_stk.empty()) {
+				ctx = ctool()._context_stk.back();
+
+				assert(!ctool()._context_stk.empty());
+				block_id = _cur_block_id();
+
+				// 如果不是always类型就丢弃这个
+				if (ctx.type != Context_Type::ALWAYS) {
+					ctool()._context_stk.pop_back();
+#if CHECK_Compiler
+					std::cout << "如果不是always类型就丢弃这个:" << std::endl;
+					if (!ctool_stk.empty()) {
+						show_cstk("Context stk", ctool()._context_stk);
+						show_cstk("temp stk", ctool().tempStk);
+					}
+#endif
+				}
+				auto commands = ctx.getCommandSet(ctool()._context_stk, result.refCommandVector(block_id), word, this);
+				for (auto commad : commands) {
+#if CHECK_Eval_command
+					std::cout << "生成代码:" << commad.name() << std::endl;
+#endif
+					result.refCommandVector(block_id).push_back(commad);
+				}
 			}
 		}
 		else if (type == WordType::STRING_OPEN || type == WordType::STRING_CLOSED) {
 #if CHECK_Compiler
 			std::cout << "Word = " << word.serialize() << std::endl;
-			show_cstk("Context stk", ctool()._context_stk);
-			show_cstk("temp stk", ctool().tempStk);
+			for (auto& t : ctool_stk) {
+				if (!ctool_stk.empty()) {
+					show_cstk("Context stk", t._context_stk);
+					show_cstk("temp stk", t.tempStk);
+				}
+				std::cerr << std::endl;
+			}
 #endif
 			// 什么都不做
 			assert(!ctool_stk.empty());
@@ -140,46 +194,53 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 			std::cout << "Word = " << word.serialize() << std::endl;
 #endif	
 			size_t block_id = _cur_block_id();
+			// 如果之前没有上下文就忽略
+			if (!ctool()._context_stk.empty()) {
 
-			// pop到END处为止, 忽略之后所有的参数
-			while (ctx.type != Context_Type::END) {
-				// pop
-				assert(!ctool()._context_stk.empty());
-				ctx = ctool()._context_stk.back();
-				ctool()._context_stk.pop_back();
+				// pop到END处为止, 忽略之后所有的参数
+				while (ctx.type != Context_Type::END) {
+					// pop
+					ctx = ctool()._context_stk.back();
+					ctool()._context_stk.pop_back();
 #if CHECK_Compiler
-				std::cout << "Context stack POP = " << ctx.getName() << std::endl;
-				show_cstk("Context stk", ctool()._context_stk);
-				show_cstk("temp stk", ctool().tempStk);
+					std::cout << "Context stack POP = " << ctx.getName() << std::endl;
+					for (auto& t : ctool_stk) {
+						if (!ctool_stk.empty()) {
+							show_cstk("Context stk", t._context_stk);
+							show_cstk("temp stk", t.tempStk);
+						}
+						std::cerr << std::endl;
+					}
 #endif
-			}
+				}
 
-			// 生成代码
-			auto commands = ctx.getCommandSet(ctool()._context_stk, result.refCommandVector(block_id), word, this);
-			for (auto commad : commands) {
-				result.refCommandVector(block_id).push_back(commad);
-			}
-
-			// 如果之前保存了外部op, 就生成外部op的COMMAND
-			if (!ctool().tempStk.empty()) {
-				ctx = ctool().tempStk.back();
-				ctool().tempStk.pop_back();
-#if CHECK_Compiler
-				std::cerr << "TEMP STK POP = " << ctx.getName() << std::endl;
-				show_cstk("Context stk", ctool()._context_stk);
-				show_cstk("temp stk", ctool().tempStk);
-#endif		
 				// 生成代码
 				auto commands = ctx.getCommandSet(ctool()._context_stk, result.refCommandVector(block_id), word, this);
 				for (auto commad : commands) {
 					result.refCommandVector(block_id).push_back(commad);
 				}
-			}
 
-			// 判断是否生成SHRINK指令
-			assert(!ctool_stk.empty());
-			if ((ctool().blk_op_count -= 1) == 0) {
-				result.refCommandVector(block_id).push_back(COMMAND(SHRINK));
+				// 如果之前保存了外部op, 就生成外部op的COMMAND
+				if (!ctool().tempStk.empty()) {
+					ctx = ctool().tempStk.back();
+					ctool().tempStk.pop_back();
+#if CHECK_Compiler
+					std::cerr << "TEMP STK POP = " << ctx.getName() << std::endl;
+					show_cstk("Context stk", ctool()._context_stk);
+					show_cstk("temp stk", ctool().tempStk);
+#endif		
+					// 生成代码
+					auto commands = ctx.getCommandSet(ctool()._context_stk, result.refCommandVector(block_id), word, this);
+					for (auto commad : commands) {
+						result.refCommandVector(block_id).push_back(commad);
+					}
+				}
+
+				// 判断是否生成SHRINK指令
+				assert(!ctool_stk.empty());
+				if ((ctool().blk_op_count -= 1) == 0) {
+					result.refCommandVector(block_id).push_back(COMMAND(SHRINK));
+				}
 			}
 		}
 		else if (type == WordType::NUMBER || type == WordType::STRING || type == WordType::IDENTIFIER_ENABLED) {	// 新增, 对基本类型的操作
@@ -188,23 +249,23 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 #endif		
 			auto block_id = _cur_block_id();
 
-			assert(!ctool_stk.empty());
-			ctx = ctool()._context_stk.back();
 			if (ctx.type != Context_Type::END) {		// 忽略END上下文
 			// pop
 #if CHECK_Compiler
 				std::cout << "Context stack POP = " << ctx.getName() << std::endl;
 				std::cout << "COMMAND: PUSH " << context_name << std::endl;
-				show_cstk("Context stk", ctool()._context_stk);
-				show_cstk("temp stk", ctool().tempStk);
+				for (auto& t : ctool_stk) {
+					if (!ctool_stk.empty()) {
+						show_cstk("Context stk", t._context_stk);
+						show_cstk("temp stk", t.tempStk);
+					}
+					std::cerr << std::endl;
+				}
 #endif
-				if (type == WordType::IDENTIFIER_ENABLED && !ctool().is_in_def()) {
-					// 如果不在def或assign语句的第一个参数内, 生成解引用代码(即使是事先没有定义)
-					// && isType(word, WordType::IDENTIFIER)
-					ctx = ctool()._context_stk.back();
+				if (type == WordType::IDENTIFIER_ENABLED && !ctool().is_in_def() && isType(word, WordType::IDENTIFIER)){
 
 #if CHECK_Compiler
-					std::cout << "如果已经定义了, 并且不在def语句的第一个参数内, 生成解引用代码" << std::endl;
+					std::cout << "如果之前定义过, 并且不在def语句的第一个参数内, 生成解引用代码" << std::endl;
 					std::cout << "Context stack POP " << ctx.getName() << std::endl;
 					show_cstk("Context stk", ctool()._context_stk);
 					show_cstk("temp stk", ctool().tempStk);
@@ -214,27 +275,25 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 					// 生成解引用代码
 					int index = get_alloced_index(word);
 					if (index != -1) {
-						result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(new Data(DataType::ID_INDEX, index)));
+						result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
 						result.refCommandVector(block_id).push_back(COMMAND(NEW_DRF));
 					}
 					else {
 						result.refCommandVector(block_id).push_back(COMMAND(NUL));
 					}
-
-					assert(!ctool()._context_stk.empty());
-					if (ctx.type != Context_Type::ALWAYS)ctool()._context_stk.pop_back();
-					// 生成代码
-					auto commands = ctx.getCommandSet(ctool()._context_stk, result.refCommandVector(block_id), word, this);
-					for (auto commad : commands) {
-						result.refCommandVector(block_id).push_back(commad);
-					}
 				}
 				else {
-					result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(new Data(word.getData())));	// push 立即数
-					assert(!ctool()._context_stk.empty());
+					result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(Data(word.getData())));	// push 立即数
+				}
+				
+				// 生成操作符的代码
+				assert(!ctool_stk.empty());
+
+				// 如果之前没有上下文， 就不生成代码
+				if (!ctool()._context_stk.empty()) {
+					ctx = ctool()._context_stk.back();
 					// 如果不是always类型就丢弃这个
 					if (ctx.type != Context_Type::ALWAYS) ctool()._context_stk.pop_back();
-					// 生成代码
 					auto commands = ctx.getCommandSet(ctool()._context_stk, result.refCommandVector(block_id), word, this);
 					for (auto commad : commands) {
 						result.refCommandVector(block_id).push_back(commad);
@@ -254,8 +313,13 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 				assert(!ctool()._context_stk.empty());
 				auto commands = ctx.getCommandSet(ctool()._context_stk, result.refCommandVector(block_id), word, this);	// 在这里push新的上下文
 #if CHECK_Compiler
-				show_cstk("Context stk", ctool()._context_stk);
-				show_cstk("temp stk", ctool().tempStk);
+				for (auto& t : ctool_stk) {
+					if (!ctool_stk.empty()) {
+						show_cstk("Context stk", t._context_stk);
+						show_cstk("temp stk", t.tempStk);
+					}
+					std::cerr << std::endl;
+				}
 #endif		
 				for (auto commad : commands) {
 					result.refCommandVector(block_id).push_back(commad);
@@ -299,8 +363,13 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 			auto commands = ctx.getCommandSet(ctool()._context_stk, result.refCommandVector(block_id), word, this);	// 在这里push新的上下文
 #if CHECK_Compiler
 			std::cout << "Get new Context stack size" << std::endl;
-			show_cstk("Context stk", ctool()._context_stk);
-			show_cstk("temp stk", ctool().tempStk);
+			for (auto& t : ctool_stk) {
+				if (!ctool_stk.empty()) {
+					show_cstk("Context stk", t._context_stk);
+					show_cstk("temp stk", t.tempStk);
+				}
+				std::cerr << std::endl;
+			}
 #endif		
 			for (auto commad : commands) {
 				result.refCommandVector(block_id).push_back(commad);
@@ -319,10 +388,11 @@ END:
 	// 显示最终的结果
 	std::cout << "Finally :" << std::endl;
 	result.for_each_block([](auto blk) {
-		std::cout << "Block " << blk.id() << ':';
-		show_comms(blk.instruct());
+		std::cout << "Block " << blk->id() << ':';
+		show_comms(blk->instruct());
 		std::cout << std::endl;
 	});
 #endif
+	_cresult_ptr = nullptr;
 	return;
 }

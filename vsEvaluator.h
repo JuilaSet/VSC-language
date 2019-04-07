@@ -1,16 +1,4 @@
 ﻿#pragma once
-#include <cstdlib>
-#include <cassert>
-
-#include <vector>
-#include <set>
-#include <string>
-#include <memory>
-#include <sstream>
-#include <functional>
-#include <chrono>
-
-#include "Lexer.h"
 
 #define CHECK_Eval true
 #define CHECK_Eval_command true
@@ -25,22 +13,60 @@ using data_ptr = std::shared_ptr<Data>;
 using data_list_t = std::map<std::string, data_ptr>;
 using new_data_list_t = std::vector<data_ptr>;
 
-// 返回信息(默认-1)
+//		//
+// 异常	//
+//		//
+
+struct exception_info {
+	int id;
+	exception_info(int _id) :id(_id) {}
+};
+
+// 栈溢出异常
+class stack_overflow_exception {
+	std::shared_ptr<exception_info> _info;
+public:
+	stack_overflow_exception(int id) : _info(std::shared_ptr<exception_info>(new exception_info(id))) {}
+
+	std::string what() const throw ()
+	{
+		std::string buf;
+		std::stringstream ss;
+		ss << _info->id << std::endl;
+		ss >> buf;
+		std::string info = "stackoverflow exception: blk_id ";
+		info += buf + " alloc memory failed.\n";
+		return info;
+	}
+};
+
+// 返回地址信息(默认-1)
 struct _return_info {
 	size_t return_addr = -1;			// 返回地址
 	size_t return_block_id = -1;		// 返回的block id
 };
+
+//			//
+//  解释器	//
+//			//
 
 // 运行时栈帧
 struct _StackFrame {
 	new_data_list_t local_var_table; // 局部变量表, 根据int做随机访问, 每次有新的标识符就向上增加
 	std::vector<data_ptr> stk;		 // 操作数栈
 	_return_info ret;
+	bool _strong_hold;
 };
 
 // 堆栈解释器
+using block_ptr = std::shared_ptr<vsblock>;
 class vsEvaluator
 {
+public:
+	enum {
+		max_stack_size = MAX_STACK_SIZE		// 最大栈帧数, 超过会触发栈溢出异常
+	};
+private:
 	// 友元类
 	friend class CommandHelper;
 	friend class Command;
@@ -50,7 +76,7 @@ class vsEvaluator
 	vsVirtualMachine* _vm;								// 所在的虚拟机
 	
 	vec_command_t* _instruct_ptr;						// 指令数组
-	vsblock* _block_ptr;								// block指针, 指向当前的block
+	block_ptr _block_ptr;								// block指针, 指向当前的block
 	std::vector<_StackFrame> _stk_frame;				// 栈帧
 
 	// std::vector<unsigned int> blk_stk;				// 保存所在语句块数据栈大小恢复值
@@ -75,22 +101,22 @@ class vsEvaluator
 
 protected:
 	// 创建并压入栈帧
-	void _push_frame();
+	void _push_frame() throw(stack_overflow_exception);
 
 	// 弹出局部变量
 	void _pop_frame();
 
 public:
 	vsEvaluator(vsVirtualMachine* vm)
-		:_vm(vm), _block_ptr(nullptr), _stop_val(0), _stop(false), _flag_has_instruct(false) { }
+		:_vm(vm), _stop_val(0), _stop(false), _flag_has_instruct(false) { }
 
 	vsEvaluator(vsVirtualMachine* vm, vec_command_t* ptr)
-		:_vm(vm), _block_ptr(nullptr), _instruct_ptr(ptr), _stop(false), _stop_val(0), _flag_has_instruct(true) { }
+		:_vm(vm), _instruct_ptr(ptr), _stop(false), _stop_val(0), _flag_has_instruct(true) { }
 
 	~vsEvaluator();
 
 	// 加载block, 在调用call_blk时调用
-	void load_block(vsblock& block);
+	void load_block(block_ptr block);
 
 	// 退出block, 会调用pop_frame
 	void exit_block();
@@ -106,7 +132,7 @@ public:
 		ipc = 0;
 		// 清空栈帧
 		_stk_frame.clear();
-	}
+	}		
 
 	// new def
 	void new_regist_identity(size_t index, data_ptr d);
@@ -173,7 +199,7 @@ public:
 	}
 
 	// 压入元素
-	inline void push(data_ptr d) {
+	void push(data_ptr d){
 		assert(!_stk_frame.empty());
 		auto& stk = current_stk_frame().stk;
 		stk.push_back(d);

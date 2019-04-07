@@ -113,7 +113,7 @@ class vsVirtualMachine
 	/// 属性
 	///
 
-	std::map<size_t, vsblock> _sb_map;	// block表 (id -> vsblock)
+	std::map<size_t, block_ptr> _sb_map;	// block表 (id -> vsblock)
 	std::shared_ptr<vsEvaluator> _eval_main; // 表示主线程的解释器
 	size_t _enter_point;				// 入口点
 
@@ -130,11 +130,11 @@ public:
 	///
 
 	// 获取block
-	vsblock& get_block_ref(size_t block_index) {
+	block_ptr get_block_ref(size_t block_index) {
 		assert(!_sb_map.empty());
 		auto it = _sb_map.find(block_index);
 		assert(it != _sb_map.end());
-		auto& block = it->second;
+		block_ptr block = it->second;
 		return block;
 	}
 
@@ -163,7 +163,7 @@ public:
 		: _id(id), _sb_map(cresult.get_sb_map()), _enter_point(enter_point), _inited(true){}
 	
 	// 通过block表来初始化
-	vsVirtualMachine(size_t id, std::map<size_t, vsblock> sb_map, size_t enter_point)
+	vsVirtualMachine(size_t id, std::map<size_t, block_ptr> sb_map, size_t enter_point)
 		: _id(id), _sb_map(sb_map), _enter_point(enter_point), _inited(true){}
 
 	~vsVirtualMachine() {};

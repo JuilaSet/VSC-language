@@ -11,8 +11,8 @@ if (str == #name)	\
 Command CommandHelper::getBasicCommandOfString(std::string str) {
 	Command op = Command(OPERATOR::ERROR);
 	COMMAND_GET(ABORT)
-else
-COMMAND_GET(NOP)
+	else
+	COMMAND_GET(NOP)
 	else
 	COMMAND_GET(PUSH_POS)
 	else

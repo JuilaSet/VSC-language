@@ -636,7 +636,11 @@ void OPERATOR::NEW_ASSIGN(vsEval_ptr eval)
 	assert(!stk.empty());
 	data_ptr id = eval->pop();
 	assert(id->getType() == DataType::ID_INDEX);
-	eval->new_set_data(id->toIndex(), value);
+	bool failedorNot = eval->new_set_data(id->toIndex(), value);
+	
+	// 是否成功赋值
+	assert(failedorNot);
+
 	// 返回赋值的data
 	eval->push(value);
 #if CHECK_Eval 
@@ -696,6 +700,15 @@ void OPERATOR::RET(vsEval_ptr eval) {
 #if CHECK_Eval 
 	std::cerr << addr->toEchoString() << std::endl;
 #endif
+}
+
+void OPERATOR::BREAK(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::BREAK " << std::endl;
+#endif
+	// 退出block
+	assert(eval->_block_ptr);
+	eval->exit_block();
 }
 
 void OPERATOR::CALL_BLK(vsEval_ptr eval)

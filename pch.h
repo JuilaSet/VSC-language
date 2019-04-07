@@ -9,28 +9,40 @@
 #ifndef PCH_H
 #define PCH_H
 
-// TODO: 添加要在此处预编译的标头
+// 最大栈帧数, 超过会触发栈溢出异常
+#define MAX_STACK_SIZE 1024
+
+// 流
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <string>
-#include <functional>
-#include <memory>
 #include <regex>
-#include <cassert>
 #include <sstream>
+
+// 容器
+#include <functional>
+#include <string>
 #include <vector>
 #include <deque>
 #include <map>
 #include <unordered_map>
 #include <stack>
 #include <initializer_list>
+#include <set>
 
-#include <exception>
+// 线程
+#include <memory>
+#include <chrono>
 #include <thread>
+
+// 调试
+#include <cstdlib>
+#include <cassert>
+#include <exception>
 
 #include "Token.h"
 #include "Data.h"
+#include "vsObject.h"
 
 #include "Input.h"
 #include "Lexer.h"

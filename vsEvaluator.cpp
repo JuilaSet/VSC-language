@@ -3,15 +3,15 @@
 
 // vsEvaluator
 
-void vsEvaluator::load_block(vsblock& block)
+void vsEvaluator::load_block(block_ptr block)
 {
 	_push_frame();
 
 	_flag_has_instruct = true;
 
 	// 进入block, 从头开始执行
-	this->_instruct_ptr = &block.instruct();
-	this->_block_ptr = &block;
+	this->_instruct_ptr = &block->instruct();
+	this->_block_ptr = block;
 	ipc = -1; // 跳转后变成0
 }
 
@@ -34,21 +34,22 @@ void vsEvaluator::exit_block()
 		assert(_return_addr != -1 && _return_blk_id != -1);
 
 		// 返回上一个block
-		auto& lastblock = _vm->get_block_ref(_return_blk_id);
+		block_ptr lastblock = _vm->get_block_ref(_return_blk_id);
 
 		// 恢复现场
-		this->_instruct_ptr = &lastblock.instruct();
-		this->_block_ptr = &lastblock;
+		this->_instruct_ptr = &lastblock->instruct();
+		this->_block_ptr = lastblock;
 		this->ipc = _return_addr;
 	}
 }
 
 // 创建并压入栈帧
-void vsEvaluator::_push_frame() {
+void vsEvaluator::_push_frame() throw(stack_overflow_exception) {
 #if CHECK_Eval
 	std::cerr << "Push frame ";
 #endif
-
+	// 查看是否栈溢出
+	if (max_stack_size < _stk_frame.size())throw stack_overflow_exception(_block_ptr->id());
 	_StackFrame stkframe;
 
 	// 出错, 可能是stk_frame在错误的地方push了栈帧
@@ -59,6 +60,7 @@ void vsEvaluator::_push_frame() {
 	if (this->_block_ptr != nullptr) {
 		stkframe.ret.return_block_id = _block_ptr->id();
 		stkframe.ret.return_addr = this->ipc;
+		stkframe._strong_hold = _block_ptr->strong_hold();
 	}
 	_stk_frame.emplace_back(stkframe);
 #if CHECK_Eval
@@ -108,6 +110,10 @@ bool vsEvaluator::new_set_data(size_t index, data_ptr d) {
 			var_table[index] = data_ptr(d);
 			return true;
 		}
+		// 如果当前是强作用域， 就不往上寻找
+		else if (frame._strong_hold) {
+			return false;
+		}
 	}
 #if CHECK_Eval
 	std::cerr << __LINE__ << "\tNEW STYLE ASSIGN FAILED" << std::endl;
@@ -128,6 +134,10 @@ data_ptr vsEvaluator::new_get_data(size_t index) {
 		// 存在就返回这个data
 		if (var_table.size() > index) {
 			return var_table[index];
+		}
+		// 如果当前是强作用域， 就不往上寻找
+		else if (frame._strong_hold) {
+			return null_data;
 		}
 	}
 #if CHECK_Eval

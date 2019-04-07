@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #define CHECK_Compiler true
-#define CHECK_Compiler_alloc false
+#define CHECK_Compiler_alloc true
 
 // 空上下文
 #define EMPTY_CONTEXT \
@@ -157,6 +157,10 @@ protected:
 
 	int def_stk = 0;				// 判断是否在"定义或赋值语句"的第一个参数中
 
+	bool _is_def_blk = false;		// 判断是否是定义过程， 而不是执行过程
+
+	bool _sub_strong_hold = false;	// 子作用域是否是强作用域
+
 	std::vector<Word> word_stk;		// 临时存放word
 
 public:
@@ -184,6 +188,15 @@ public:
 		return paras_count.back();
 	}
 
+	// 设置作用域
+	void setSubFieldStrongHold(bool b) { _sub_strong_hold = b; }
+	bool subFieldStrongHold() { return _sub_strong_hold; }
+
+	// 判断是否生成call_blk语句
+	void in_def_blk() { _is_def_blk = true; }
+	void out_def_blk() { _is_def_blk = false; }
+	bool is_def_blk() const { return _is_def_blk; }
+
 	// 翻转代码
 	void reserve(std::vector<Command>& commdVec, int size) {
 		std::reverse(commdVec.end() - size, commdVec.end());
@@ -203,6 +216,7 @@ public:
 		_context_stk.clear();
 		paras_count.clear();
 		def_stk = 0;
+		_is_def_blk = false;
 		word_stk.clear();
 	}
 };
@@ -210,14 +224,14 @@ public:
 // 存放编译结果
 class Compile_result {
 protected:
-	std::map<size_t, vsblock> _sb_map; // id _> sb_map
+	std::map<size_t, block_ptr> _sb_map; // id _> sb_map
 	bool _has_blk;
 public:
 	Compile_result(): _has_blk(false){}
 	~Compile_result() {}
 
 	// 遍历所有的map
-	void for_each_block(std::function<void (vsblock&)> func) {
+	void for_each_block(std::function<void (block_ptr&)> func) {
 		for (auto& it: _sb_map) {
 			func(it.second);
 		}
@@ -230,19 +244,17 @@ public:
 	}
 
 	// 是否含有block
-	inline bool has_block() const {
-		return _has_blk;
-	}
+	inline bool has_block() const {	return _has_blk; }
 
 	// 加入block
-	void add_block(vsblock block) {
+	void add_block(block_ptr block) {
 		_has_blk = true;
-		auto pair = std::make_pair(block.id(), block);
+		auto pair = std::make_pair(block->id(), block);
 		_sb_map.insert(pair);
 	}
 
 	// 索引block
-	vsblock& get_block_ref(size_t block_index) {
+	block_ptr get_block_ref(size_t block_index) {
 		assert(!_sb_map.empty());
 		auto it = _sb_map.find(block_index);
 		assert(it != _sb_map.end());
@@ -251,7 +263,7 @@ public:
 	}
 
 	// 返回生成的block表
-	std::map<size_t, vsblock>& get_sb_map() {
+	std::map<size_t, block_ptr>& get_sb_map() {
 		return _sb_map;
 	}
 
@@ -259,15 +271,15 @@ public:
 	std::vector<Command> getCommandVector(size_t block_index) {
 		auto it = _sb_map.find(block_index);
 		assert(it != _sb_map.end());
-		auto& block = get_block_ref(block_index);
-		return block.instruct();
+		block_ptr block = get_block_ref(block_index);
+		return block->instruct();
 	}
 
 	std::vector<Command>& refCommandVector(size_t block_index) {
 		auto it = _sb_map.find(block_index);
 		assert(it != _sb_map.end());
-		auto& block = get_block_ref(block_index);
-		return block.instruct();
+		block_ptr block = get_block_ref(block_index);
+		return block->instruct();
 	}
 };
 
@@ -291,6 +303,7 @@ public:
 		// 分配给block的最大数量
 		max_block_index_size = 1024
 	};
+
 protected:
 	std::vector<word_type_map> wt_map_list;		// 存放变量类型
 	std::vector<local_index_map> li_map_list;	// 存放标识符到局部变量表的索引映射
@@ -298,6 +311,20 @@ protected:
 	
 	size_t _block_index = 0;					// 分配block的id用的
 	std::vector<int> _vsblock_index_vec;		// block id栈
+
+	Compile_result* _cresult_ptr;				// 存放结果
+protected:
+
+	// 新建一个block
+	void new_block(Compile_result& result, size_t block_id) {
+		auto stronghold = false;
+		if (ctool_stk.size() > 1) {
+			// 查看上一层ctool是否规定它是强作用域
+			stronghold = (ctool_stk.rbegin() + 1)->subFieldStrongHold();
+		}
+		block_ptr blk(new vsblock(block_id, stronghold));
+		result.add_block(blk);
+	}
 
 	// 自动分配变量表的下标(表示符的名称 -> 下标)
 	int _auto_alloc_local_index(Word& w) {
@@ -327,7 +354,7 @@ protected:
 		if (!result.has_block())return 0;
 		else {
 			size_t block_id = _cur_block_id();
-			return result.get_block_ref(block_id).instruct().size();
+			return result.get_block_ref(block_id)->instruct().size();
 		}
 	}
 
@@ -344,6 +371,12 @@ protected:
 		return _vsblock_index_vec.back();
 	}
 
+	// 当前所在的block
+	block_ptr _cur_block_ptr() {
+		assert(_cresult_ptr != nullptr);
+		return _cresult_ptr->get_block_ref(_cur_block_id());
+	}
+
 public:
 	// 生成list_block的代码
 	virtual void generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper)
@@ -355,15 +388,12 @@ public:
 	}
 	
 	// 判断是否解引用
-	void in_def() {
-		ctool().in_def();
-	}
-	void out_def() {
-		ctool().out_def();
-	}
-	bool is_in_def() {
-		return ctool().is_in_def();
-	}
+	void in_def() { ctool().in_def(); }
+	void out_def() { ctool().out_def(); }
+
+	// 判断是否生成call_blk语句
+	void in_def_blk() { ctool().in_def_blk(); }
+	void out_def_blk() { ctool().out_def_blk(); }
 
 	// 参数计数
 	void paras_begin() {
@@ -395,12 +425,14 @@ public:
 		li_map_list.push_back(local_index_map());
 		ctool_stk.push_back(_compiler_tool());
 	}
-
 	void localEnd() {
 		wt_map_list.pop_back();
 		li_map_list.pop_back();
 		ctool_stk.pop_back();
 	}
+
+	// 设置当前的作用域的子作用域的属性
+	void setSubFieldStrongHold(bool b) { ctool().setSubFieldStrongHold(b); }
 
 	// 插入局部变量记录
 	int insert_local(Word& w, WordType type) {
@@ -412,7 +444,7 @@ public:
 	}
 
 	// 查看当前的IDENTIFIER_ENABLED是否被分配过局部变量下标, 否返回-1, 是返回下标大小
-	int get_alloced_index(Word& w) {
+	size_t get_alloced_index(Word& w) {
 		auto rbegin = li_map_list.rbegin();
 		auto rend = li_map_list.rend();
 		auto serialized_str = w.serialize();
@@ -420,13 +452,21 @@ public:
 			auto fit = it->find(serialized_str);
 			if (fit != it->end()) {
 				// 存在这个下标
-				int index = fit->second;
+				size_t index = fit->second;
+#if CHECK_Compiler_alloc
+				std::cerr << "ALLOC index = " << index << std::endl;
+#endif
 				return index;
+			}
+			// 强作用域下不会向上查询
+			else if(_cur_block_ptr()->strong_hold()){
+				return -1;
 			}
 		}
 		return -1;
 	}
 
+	// 判断单词的类型
 	bool isType(Word& w, WordType type) {
 		auto rend = wt_map_list.rend();
 		auto rbegin = wt_map_list.rbegin();
@@ -440,6 +480,10 @@ public:
 					return false;	// 变量名存放对象的类型不匹配
 				}
 			}
+			// 强作用域下不会向上查询
+			else if (_cur_block_ptr()->strong_hold()) {
+				return -1;
+			}
 		}
 		return false;	// 没有这个变量名
 	}
@@ -447,11 +491,13 @@ public:
 	void init() {
 		_block_index = 0;
 		// ctool().init();
-		assert(_vsblock_index_vec.empty());
-		assert(ctool_stk.empty());
+		// assert(_vsblock_index_vec.empty());
+		// assert(ctool_stk.empty());
 		
+		_vsblock_index_vec.clear();
+		ctool_stk.clear();
 		wt_map_list.clear();
-		li_map_list.clear();
+		//li_map_list.clear();
 	}
 
 	// 

@@ -1,5 +1,26 @@
 ﻿#pragma once
 
+//			//
+// 计算异常 //
+//			//
+class not_def_exception {
+	std::string id_name;
+	size_t _id;
+	std::string _message;
+public:
+	not_def_exception(const std::string name) : id_name(name) {
+		_message = id_name + " was not defined";
+	}
+
+	not_def_exception(const size_t id) : _id(id) {
+		_message = "id= " + std::to_string(id) + " was not defined";
+	}
+
+	std::string what() const {
+		return _message;
+	}
+};
+
 // 
 // 如果要添加OPERATOR, 先在OPCODE中添加, 再在OPERATOR类中注册方法, 最后在getBasicCommandOfString中添加字符串转换
 //
@@ -37,6 +58,7 @@ enum class OPCODE :int {
 	CALL,		// 将栈顶地址位置保存到temp_addr, 将当前地址位置入栈, ipc跳转到temp_addr
 	CALL_BLK,	// 跳转到指定的block处
 	RET,		// 跳转到栈顶地址位置, 不自动-1
+	BREAK,		// 跳出该block
 
 	// 特殊立即数
 	TIME_BEGIN,		// 当前时间
@@ -151,6 +173,8 @@ public:
 	static void CALL(vsEval_ptr eval);
 
 	static void RET(vsEval_ptr eval);
+
+	static void BREAK(vsEval_ptr eval);
 
 	static void CALL_BLK(vsEval_ptr eval);
 

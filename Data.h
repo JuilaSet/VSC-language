@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include <iostream>
 
 #define CHECK_Data false
 
@@ -21,11 +20,10 @@ enum class DataType :int {
 struct data_t
 {
 	std::string value_str;
-	int value_int;
+	size_t value_int;
 };
 
 class Data {
-	friend class DataCreator;
 protected:
 	DataType type;
 	data_t _data;
