@@ -3,6 +3,7 @@
 //			//
 // 计算异常 //
 //			//
+
 class not_def_exception {
 	std::string id_name;
 	size_t _id;
@@ -55,6 +56,9 @@ enum class OPCODE :int {
 	REPT,		// 参数(addr), 返回n次
 	COUNT,		// 参数(number), 设置ecx
 
+	// 过程调用
+	PARA_PASS,  // 传递实参给形参, 注册data到该帧的形参表中
+	PARA_DRF,	// 对形参解引用, 从该帧的形参表中查询
 	CALL,		// 将栈顶地址位置保存到temp_addr, 将当前地址位置入栈, ipc跳转到temp_addr
 	CALL_BLK,	// 跳转到指定的block处
 	RET,		// 跳转到栈顶地址位置, 不自动-1
@@ -169,14 +173,22 @@ public:
 
 	static void NEW_DRF(vsEval_ptr eval);
 
-	// []][
 	static void CALL(vsEval_ptr eval);
 
+	// 带有返回值的break
 	static void RET(vsEval_ptr eval);
 
+	// 从block中返回
 	static void BREAK(vsEval_ptr eval);
 
+	// call的是参数表中的[0]位置的data
 	static void CALL_BLK(vsEval_ptr eval);
+
+	// 对形参解引用, 从该帧的形参表中查询
+	static void PARA_PASS(vsEval_ptr eval);
+
+	// 传递实参给形参, 注册data到该帧的形参表中
+	static void PARA_DRF(vsEval_ptr eval);
 
 	// 在编译时, local_begin符号用于确定作用域, 执行时这个功能留在之后用于优化代码
 	static void LOCAL_BEGIN(vsEval_ptr eval);

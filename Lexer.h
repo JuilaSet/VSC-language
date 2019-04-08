@@ -47,7 +47,8 @@ enum class WordType : int {
 	IDENTIFIER,			// 正式标识符(注册完成的符号)
 	IDENTIFIER_SPEC,	// 特殊标识符(代表一定数值的符号)
 	OPERATOR_WORD,		// 运算符
-	CONTROLLER			// 流程控制符
+	CONTROLLER,			// 流程控制符
+	FUNC_PARA			// 函数形参
 };
 
 static std::string getWordTypeName(WordType type) {
@@ -110,10 +111,13 @@ static std::string getWordTypeName(WordType type) {
 	case WordType::CONTROLLER:
 		ret = "CONTROLLER";
 		break;
+	case WordType::FUNC_PARA:
+		ret = "FUNC_PARA";
+		break;
 	default:
 		break;
 	}
-	return ret;
+	return ret; 
 }
 
 // word

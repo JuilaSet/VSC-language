@@ -12,6 +12,12 @@
 // 最大栈帧数, 超过会触发栈溢出异常
 #define MAX_STACK_SIZE 1024
 
+// 分配给标识符的索引最大量
+#define MAX_SLOT_SIZE 256
+
+// 分配给block的最大数量
+#define MAX_BLOCK_INDEX_SIZE 1024
+
 // 流
 #include <iostream>
 #include <fstream>

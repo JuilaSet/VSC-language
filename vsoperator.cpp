@@ -665,7 +665,6 @@ void OPERATOR::NEW_DRF(vsEval_ptr eval)
 	eval->push(d);
 }
 
-// []][
 void OPERATOR::CALL(vsEval_ptr eval) {
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::CALL ";
@@ -675,14 +674,18 @@ void OPERATOR::CALL(vsEval_ptr eval) {
 	assert(!stk.empty());
 	data_ptr temp_addr = eval->pop();
 	assert(temp_addr->getType() == DataType::OPERA_ADDR);
+
 #if CHECK_Eval 
 	std::cerr << temp_addr->toEchoString() << std::endl;
 #endif
+
 	unsigned int addr = eval->ipc;
+
 	// 当前地址入栈
 	assert(eval->_instruct_ptr->size() > addr);
 	eval->push(data_ptr(new Data(DataType::OPERA_ADDR, addr)));
-	// jmp
+
+	// jmp_block
 	eval->ipc = temp_addr->toAddr() - 1;
 }
 
@@ -690,15 +693,23 @@ void OPERATOR::RET(vsEval_ptr eval) {
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::RET ";
 #endif
-	auto& stk = eval->current_stk_frame().stk;
 
+	// 获取下标
+	auto& stk = eval->current_stk_frame().stk;
 	assert(!stk.empty());
-	data_ptr addr = eval->pop();
-	assert(eval->_instruct_ptr->size() > addr->toAddr());
-	// jmp
-	eval->ipc = addr->toAddr();
+
+	// 得到返回值, 可以是任何类型
+	data_ptr ret_data = eval->pop();
+
+	// 退出block
+	assert(eval->_block_ptr);
+	eval->exit_block();
+
+	// 将返回值放入上一层的stk
+	eval->push(ret_data);
+
 #if CHECK_Eval 
-	std::cerr << addr->toEchoString() << std::endl;
+	std::cerr << ret_data->toEchoString() << std::endl;
 #endif
 }
 
@@ -713,20 +724,69 @@ void OPERATOR::BREAK(vsEval_ptr eval) {
 
 void OPERATOR::CALL_BLK(vsEval_ptr eval)
 {
+	// 注意: call Block的时候还是在栈外面
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::CALL_BLK ";
 #endif
-	auto& stk = eval->current_stk_frame().stk;
-	assert(!stk.empty());
+	auto& frame = eval->current_stk_frame();
 
-	data_ptr temp_index = eval->pop();
-	assert(temp_index->getType() == DataType::BLK_INDEX);
-#if CHECK_Eval 
-	std::cerr << temp_index->toEchoString() << std::endl;
-#endif
-	auto block_id = temp_index->toIndex();
+	// call列表的第一个参数, 索引将要传递给下一次的参数
+	auto& act_list = frame.temp_stkframe.next_paras_info.act_para_list;
+	assert(!act_list.empty());
+	data_ptr d_index = act_list[0];
+
+	assert(d_index->getType() == DataType::BLK_INDEX);
+	auto block_id = d_index->toIndex();
+
 	// 跳转block
 	eval->load_block(eval->_vm->get_block_ref(block_id));
+
+#if CHECK_Eval 
+	std::cerr << block_id << std::endl;
+#endif
+}
+
+// 传递实参给形参, 注册data到该临时帧的形参表中
+void OPERATOR::PARA_PASS(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::PARA_PASS ";
+#endif
+
+	data_ptr data = eval->pop();
+
+	// 将实参PUSH到当前栈帧的实参列表中, 会在push_frame中传递信息给新建的frame
+	assert(!eval->_stk_frame.empty());
+	eval->para_pass_data(data);
+
+#if CHECK_Eval 
+	std::cerr << data->toEchoString() << std::endl;
+#endif
+}
+
+// 对形参解引用, 从该帧的形参表中查询
+void OPERATOR::PARA_DRF(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::PARA_DRF ";
+#endif
+	auto& stk = eval->current_stk_frame().stk;
+	
+	assert(!eval->_stk_frame.empty());
+	auto frame = eval->current_stk_frame();
+
+	// 获取下标
+	assert(!stk.empty());
+	data_ptr index_d = eval->pop();
+	size_t index = index_d->toIndex();
+
+	// 从当前栈帧的实参列表中查找参数
+	data_ptr data = eval->para_get_data(index);
+
+	// 返回解引用的指针
+	eval->push(data);
+
+#if CHECK_Eval 
+	std::cerr << index << std::endl;
+#endif
 }
 
 // 在编译时, local_begin符号用于确定作用域, 执行时这个功能留在之后用于优化代码

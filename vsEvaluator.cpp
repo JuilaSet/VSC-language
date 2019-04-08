@@ -61,8 +61,13 @@ void vsEvaluator::_push_frame() throw(stack_overflow_exception) {
 		stkframe.ret.return_block_id = _block_ptr->id();
 		stkframe.ret.return_addr = this->ipc;
 		stkframe._strong_hold = _block_ptr->strong_hold();
+		// 传递信息
+		assert(!_stk_frame.empty());
+		auto& _temp_stkframe = current_stk_frame().temp_stkframe;
+		stkframe.pass_message(_temp_stkframe); // 其中会初始化temp_stkframe
 	}
 	_stk_frame.emplace_back(stkframe);
+
 #if CHECK_Eval
 	std::cerr << ", frame stk size = " << _stk_frame.size() << std::endl;
 #endif
@@ -112,9 +117,10 @@ bool vsEvaluator::new_set_data(size_t index, data_ptr d) {
 		}
 		// 如果当前是强作用域， 就不往上寻找
 		else if (frame._strong_hold) {
-			return false;
+			goto END;
 		}
 	}
+END:
 #if CHECK_Eval
 	std::cerr << __LINE__ << "\tNEW STYLE ASSIGN FAILED" << std::endl;
 #endif
@@ -137,11 +143,48 @@ data_ptr vsEvaluator::new_get_data(size_t index) {
 		}
 		// 如果当前是强作用域， 就不往上寻找
 		else if (frame._strong_hold) {
-			return null_data;
+			goto END;
 		}
 	}
+END:
 #if CHECK_Eval
 	std::cerr << __LINE__ << "\tNEW STYLE DRF FAILED" << std::endl;
+#endif
+	// 不存在就返回null
+	return null_data;
+}
+
+// para pass
+void vsEvaluator::para_pass_data(data_ptr data) {
+	auto& frame = current_stk_frame();
+	// 传递给临时参数表, 会在push_frame中传递信息给新建的frame
+	frame.temp_stkframe.next_paras_info.act_para_list.push_back(data);
+}
+
+// para drf
+data_ptr vsEvaluator::para_get_data(size_t index) {
+	/*auto rbegin = _stk_frame.rbegin();
+	auto rend = _stk_frame.rend();
+
+	for (auto it = rbegin; it != rend; ++it) {
+		auto& frame = *it;
+		auto& _act_para_list = frame.paras_info.act_para_list;
+		// 存在就返回这个data
+		if (_act_para_list.size() > index) {
+			return _act_para_list[index];
+		}
+	}*/
+	
+	// 只找寻一层
+	assert(!_stk_frame.empty());
+	auto& frame = _stk_frame.back();
+	auto& _act_para_list = frame.paras_info.act_para_list;
+	// 存在就返回这个data
+	if (_act_para_list.size() > index) {
+		return _act_para_list[index];
+	}
+#if CHECK_Eval
+	std::cerr << __LINE__ << "\tPARA DRF FAILED" << std::endl;
 #endif
 	// 不存在就返回null
 	return null_data;
@@ -209,6 +252,22 @@ int vsEvaluator::eval() {
 			auto size = table.size();
 			for (int i = 0; i < size; ++i) {
 				std::cout << i << '=' << table[i]->toEchoString() << ',' << std::ends;
+			}
+
+			// 将要传递给下一次的参数
+			std::cerr << std::endl << "next paras info >";
+			auto& act_list = frame.temp_stkframe.next_paras_info.act_para_list;
+			auto size_act_list = act_list.size();
+			for (int i = 0; i < size_act_list; ++i) {
+				std::cout << i << '=' << act_list[i]->toEchoString() << ',' << std::ends;
+			}
+			
+			// 遍历每一个栈帧的参数列表
+			std::cerr << std::endl << "paras >";
+			auto& list = frame.paras_info.act_para_list;
+			auto size_list = list.size();
+			for (int i = 0; i < size_list; ++i) {
+				std::cout << i << '=' << list[i]->toEchoString() << ',' << std::ends;
 			}
 			std::cerr << "] " << std::endl;
 		}

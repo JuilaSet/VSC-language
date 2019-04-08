@@ -2,8 +2,8 @@
 #include <memory>
 #include <iostream>
 
-#define CHECK_Function true;
-#define CHECK_Function_block true;
+#define CHECK_Function false;
+#define CHECK_Function_block false;
 
 //
 // vsblock
@@ -19,7 +19,7 @@ protected:
 	size_t _instruct_length;		// 停止地址(block的地址长度)
 
 	bool _strong_hold;				// 是否是强作用域
-	std::vector<data_ptr> _paras_vec;	// 指令参数位置 -> 传入数据
+//	std::vector<data_ptr> _paras_vec;	// 默认参数
 public:
 
 	size_t id() const {

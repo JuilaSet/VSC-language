@@ -1,6 +1,15 @@
 [
-for tuple 1 2 3;
-a [
-	echo a;
-]
+def func 
+	lambda a [
+		return lambda a b [
+			return 
+			 add a b;;
+		];;
+	];
+;
+// 计算100 + 200
+echo
+ call 
+  call 
+   func;  1 2;
 ]

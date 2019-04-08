@@ -30,7 +30,7 @@ S_Expr_Compiler::~S_Expr_Compiler()
 }
 
 void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper)
-	throw (Context_error) {
+	throw (Context_error, not_def_exception) {
 #if CHECK_Compiler
 	std::cout << "\n\nGenerate Code Begin:" << std::endl;
 #endif
@@ -70,7 +70,9 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 						Data(DataType::BLK_INDEX, block_id)));
 
 				assert(ctool_stk.size() > 1);
-				if (!(ctool_stk.rbegin() + 1)->is_def_blk()) { 
+				if (!(ctool_stk.rbegin() + 1)->is_def_blk()) {
+					// 地址传参
+					comm.push_back(COMMAND(PARA_PASS));
 					// 生成跳转到block指令
 					comm.push_back(COMMAND(CALL_BLK));
 				}
@@ -262,7 +264,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 					std::cerr << std::endl;
 				}
 #endif
-				if (type == WordType::IDENTIFIER_ENABLED && !ctool().is_in_def() && isType(word, WordType::IDENTIFIER)){
+				if (type == WordType::IDENTIFIER_ENABLED && !ctool().is_in_def()){
 
 #if CHECK_Compiler
 					std::cout << "如果之前定义过, 并且不在def语句的第一个参数内, 生成解引用代码" << std::endl;
@@ -270,16 +272,30 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 					show_cstk("Context stk", ctool()._context_stk);
 					show_cstk("temp stk", ctool().tempStk);
 #endif
-					// pop
-
-					// 生成解引用代码
-					int index = get_alloced_index(word);
-					if (index != -1) {
-						result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
-						result.refCommandVector(block_id).push_back(COMMAND(NEW_DRF));
+					// 如果 IDENTIFIER_ENABLED 是形参定义
+					if (ctool().is_def_paras()) {
+						// 为其分配形参下标, 写入临时ctool属性中
+						_auto_allc_form_para_index(word);
 					}
 					else {
-						result.refCommandVector(block_id).push_back(COMMAND(NUL));
+						// 寻找局部变量下标, 局部变量会覆盖函数的形参, 使其不可见
+						int index = get_alloced_index(word);
+						if (index != -1) {
+							result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
+							result.refCommandVector(block_id).push_back(COMMAND(NEW_DRF));
+						} 
+						else {
+							// 寻找函数参数下标
+							int index_p = get_form_para_alloced_index(word);
+							if (index_p != -1) {
+								result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index_p)));
+								result.refCommandVector(block_id).push_back(COMMAND(PARA_DRF));
+							}
+							else {
+								// 未定义, 抛出未定义异常(变量必须先声明, 再使用)
+								throw not_def_exception(word.getString());
+							}
+						}
 					}
 				}
 				else {
@@ -386,7 +402,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 END:
 #if CHECK_Eval_command
 	// 显示最终的结果
-	std::cout << "Finally :" << std::endl;
+	std::cout << std::endl << "Finally :" << std::endl;
 	result.for_each_block([](auto blk) {
 		std::cout << "Block " << blk->id() << ':';
 		show_comms(blk->instruct());

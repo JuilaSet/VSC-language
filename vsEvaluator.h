@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #define CHECK_Eval true
-#define CHECK_Eval_command true
+#define CHECK_Eval_command false
 
 // 
 class Command;
@@ -50,12 +50,45 @@ struct _return_info {
 //  解释器	//
 //			//
 
-// 运行时栈帧
+// 参数信息
+struct _StackFrameParasInfo {
+	std::vector<data_ptr> act_para_list;	// 实参表
+
+	// 初始化
+	void init() {
+		act_para_list.clear();
+	}
+};
+
+// 将要传递给下一帧的信息, 每次传递完成后会初始化
+struct _tempStackFrame {
+	_StackFrameParasInfo next_paras_info; // 参数信息
+
+	// 初始化
+	void init() {
+		next_paras_info.init();
+	}
+};
+
+// 运行时栈帧, 相当于block的一个状态
 struct _StackFrame {
+	_tempStackFrame temp_stkframe;	 // 将要传递给下一帧的信息
+
+	_StackFrameParasInfo paras_info; // 参数信息
 	new_data_list_t local_var_table; // 局部变量表, 根据int做随机访问, 每次有新的标识符就向上增加
 	std::vector<data_ptr> stk;		 // 操作数栈
-	_return_info ret;
-	bool _strong_hold;
+
+	_return_info ret;				 // 返回信息
+	bool _strong_hold;				 // 是否是强作用域
+
+	// 传递信息
+	void pass_message(_tempStackFrame& tframe) {
+		paras_info = tframe.next_paras_info;
+		// ...
+
+		// 传递完成后初始化
+		tframe.init();
+	}
 };
 
 // 堆栈解释器
@@ -76,7 +109,7 @@ private:
 	vsVirtualMachine* _vm;								// 所在的虚拟机
 	
 	vec_command_t* _instruct_ptr;						// 指令数组
-	block_ptr _block_ptr;								// block指针, 指向当前的block
+	block_ptr _block_ptr;								// block指针, 指向当前的block, block在vm中固定
 	std::vector<_StackFrame> _stk_frame;				// 栈帧
 
 	// std::vector<unsigned int> blk_stk;				// 保存所在语句块数据栈大小恢复值
@@ -142,6 +175,12 @@ public:
 	
 	// new drf
 	data_ptr new_get_data(size_t index);
+
+	// para pass(传递参数给函数)
+	void para_pass_data(data_ptr data);
+
+	// para drf(对参数解引用)
+	data_ptr para_get_data(size_t index);
 
 	// 单步执行
 	virtual int step();

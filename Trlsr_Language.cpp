@@ -16,16 +16,37 @@ using namespace std;
 void regist_keywords_contents(Context_helper& helper) {
 
 	// CONTROLLER
+	
+	helper.regist_context(Word(WordType::CONTROLLER, "lambda").serialize(),
+		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+			compiler->def_paras_begin();
+			compiler->dont_gene_callblk();
+			return _command_set{ };
+		},
+		{
+			Context([=](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				return _command_set{  };
+			}, Context_Type::ALWAYS), 
+			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				compiler->def_paras_end();
+				compiler->enable_gene_callblk();
+				return _command_set{ };
+			}, Context_Type::END)
+		})
+	); 
 
 	helper.regist_context(Word(WordType::CONTROLLER, "call").serialize(),
 		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 			compiler->paras_begin();
+			compiler->dont_gene_callblk(); // 支持 call []
 			return _command_set{ };
 		},
 		{
-			EMPTY_CONTEXT,
 			Context([=](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
-				return _command_set{ };
+				compiler->enable_gene_callblk();
+				return _command_set{ 
+					COMMAND(PARA_PASS)
+				};
 			}, Context_Type::ALWAYS), 
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				compiler->paras_end();
@@ -34,7 +55,7 @@ void regist_keywords_contents(Context_helper& helper) {
 				};
 			}, Context_Type::END)
 		})
-	);
+	); 
 
 	helper.regist_context(Word(WordType::CONTROLLER, "time").serialize(),
 		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
@@ -85,13 +106,13 @@ void regist_keywords_contents(Context_helper& helper) {
 		helper.build_context(
 			[&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
 				compiler->in_def();
-				// compiler->setSubFieldStrongHold(true);
+				compiler->setSubFieldStrongHold(true);
 				return _command_set{};
 			},
 			{
 				Context([&](ContextStk& cstk, _command_set& commandVec, Word& w,  auto* compiler) {
 					compiler->out_def();
-					compiler->in_def_blk();
+					compiler->dont_gene_callblk();
 					// 获取分配的下标
 					int index = compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
 					commandVec.pop_back();
@@ -99,12 +120,12 @@ void regist_keywords_contents(Context_helper& helper) {
 					return _command_set{};
 				}, Context_Type::NORMAL, "def_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-					compiler->out_def_blk();
+					compiler->enable_gene_callblk();
 					return _command_set{};
 				}, Context_Type::NORMAL, "def_op2"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
 					// 还原作用域设置
-					// compiler->setSubFieldStrongHold(false);
+					compiler->setSubFieldStrongHold(false);
 					return _command_set{
 						COMMAND(NEW_DEF)
 					};
@@ -147,6 +168,22 @@ void regist_keywords_contents(Context_helper& helper) {
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
 					return _command_set{
 						COMMAND(BREAK)
+					};
+				}, Context_Type::END)
+			})
+	);
+
+	helper.regist_context(Word(WordType::CONTROLLER, "return").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) { 
+				compiler->dont_gene_callblk();
+				return _command_set{};
+			},
+			{
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->enable_gene_callblk();
+					return _command_set{
+						COMMAND(RET)
 					};
 				}, Context_Type::END)
 			})
@@ -280,7 +317,7 @@ void regist_keywords_contents(Context_helper& helper) {
 		cout << "COMMAND:::: $C" << endl;
 #endif
 			return _command_set{ COMMAND(ECX) };
-		},{ })	// 只能有一个上下文
+		}, { })	// 只能有一个上下文
 	);
 
 	helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$null").serialize(),
@@ -528,7 +565,10 @@ void regist_words(WordTypeHelper& helper) {
 
 	
 	REGIST_CONTROLLER_WORDS(helper, "call");
-	REGIST_CONTROLLER_WORDS(helper, "prcd");
+	REGIST_CONTROLLER_WORDS(helper, "lambda");
+//	REGIST_CONTROLLER_WORDS(helper, "prcd");
+	REGIST_CONTROLLER_WORDS(helper, "return");
+	REGIST_CONTROLLER_WORDS(helper, "break");
 
 	REGIST_CONTROLLER_WORDS(helper, "time");
 	REGIST_CONTROLLER_WORDS(helper, "abort");
@@ -536,7 +576,6 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_CONTROLLER_WORDS(helper, "def");
 	REGIST_CONTROLLER_WORDS(helper, "assign");
 	REGIST_CONTROLLER_WORDS(helper, "ignore");
-	REGIST_CONTROLLER_WORDS(helper, "break");
 	
 	REGIST_CONTROLLER_WORDS(helper, "while");
 //	REGIST_CONTROLLER_WORDS(helper, "rept");
@@ -1170,8 +1209,8 @@ void test_input_cli(){
 	regist_words(word_type_helper);
 
 	// 初始化scanner
-	Lexer lex(new CLIInput("luo ->"));
-	// Lexer lex(new FileInput("in.tr"));
+	// Lexer lex(new CLIInput("luo ->"));
+	Lexer lex(new FileInput("in.tr"));
 
 	// 注册语法规则
 	Parser p(&lex);
@@ -1184,7 +1223,7 @@ void test_input_cli(){
 	// 虚拟机
 	vsVirtualMachine vm(0);
 
-	while (1) {
+//	while (1) {
 		p.clear_word_vec();
 
 		// 词法分析
@@ -1214,7 +1253,7 @@ void test_input_cli(){
 				// 执行代码
 				vm.init(cresult, 1);
 				vm.run();
-				if(vm.get_eval_ret_value() == -1)break;
+				// if(vm.get_eval_ret_value() == -1)break;
 			}
 		}
 		catch (Context_found_error e) {
@@ -1229,12 +1268,11 @@ void test_input_cli(){
 		// 清除结果
 		compiler.init();
 		cresult.init();
-	}
+//	}
 
 }
 
 int main(int argc, char* argv[]) {
 	test_input_cli();
-
 	return 0;
 };
