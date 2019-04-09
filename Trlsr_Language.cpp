@@ -115,6 +115,7 @@ void regist_keywords_contents(Context_helper& helper) {
 					compiler->dont_gene_callblk();
 					// 获取分配的下标
 					int index = compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
+					// 将之前的 push 立即数指令弹出
 					commandVec.pop_back();
 					commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
 					return _command_set{};
@@ -141,12 +142,22 @@ void regist_keywords_contents(Context_helper& helper) {
 			},
 			{
 				Context([&](ContextStk& cstk, _command_set& commandVec, Word& w,  auto* compiler) {
+					// 将之前的 push 立即数指令弹出
+					commandVec.pop_back();
 					compiler->out_def();
 					// 获取分配的下标
 					int index = compiler->get_alloced_index(w);
-					if(index == -1) throw not_def_exception(w.getString());
-					commandVec.pop_back();
-					commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
+					int index_p = compiler->get_form_para_alloced_index(w);
+					if (index != -1) {
+						commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
+					}
+					else if (index_p != -1) {
+						// 对形参赋值
+						commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::PARA_INDEX, index_p)));
+					}
+					else {
+						throw undefined_exception(w.getString());
+					}
 					return _command_set{};
 				}, Context_Type::NORMAL, "assign_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
@@ -158,6 +169,43 @@ void regist_keywords_contents(Context_helper& helper) {
 						COMMAND(NEW_ASSIGN)
 					};
 				}, Context_Type::END, "assign_end")
+			})
+	);
+	
+	helper.regist_context(Word(WordType::CONTROLLER, "cp").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+				compiler->in_def();
+				return _command_set{};
+			},
+			{
+				Context([&](ContextStk& cstk, _command_set& commandVec, Word& w,  auto* compiler) {
+					// 将之前的 push 立即数指令弹出
+					commandVec.pop_back();
+					compiler->out_def();
+					// 获取分配的下标
+					int index = compiler->get_alloced_index(w);
+					int index_p = compiler->get_form_para_alloced_index(w);
+					if (index != -1) {
+						commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
+					}
+					else if (index_p != -1) {
+						// 对形参赋值
+						commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::PARA_INDEX, index_p)));
+					}
+					else {
+						throw undefined_exception(w.getString());
+					}
+					return _command_set{};
+				}, Context_Type::NORMAL, "copy_op1"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					return _command_set{};
+				}, Context_Type::NORMAL, "copy_op2"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					return _command_set{
+						COMMAND(CP)
+					};
+				}, Context_Type::END, "copy_end")
 			})
 	);
 
@@ -332,7 +380,7 @@ void regist_keywords_contents(Context_helper& helper) {
 
 	// OPERATOR_WORD
 
-	helper.regist_context(Word(WordType::OPERATOR_WORD, "add").serialize(),
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "+").serialize(),
 		helper.build_context(
 			[](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_0
 				return _command_set{ };
@@ -541,6 +589,7 @@ void regist_token(Token_helper& helper) {
 	REGIST_TOKEN(helper, "\t", "tab");
 	REGIST_TOKEN(helper, "\n", "space");
 	REGIST_TOKEN(helper, ":", "colon");
+	REGIST_TOKEN(helper, ":=", "copy");
 	REGIST_TOKEN(helper, ";", "context_closed");
 	REGIST_TOKEN(helper, "*", "star");
 	REGIST_TOKEN(helper, "<", "string_open");
@@ -554,8 +603,7 @@ void regist_token(Token_helper& helper) {
 
 // 注册word
 void regist_words(WordTypeHelper& helper) {
-	REGIST_OPERATO_WORDS(helper, "add");
-	REGIST_OPERATO_WORDS(helper, "sub");
+	REGIST_OPERATO_WORDS(helper, "+");
 	REGIST_OPERATO_WORDS(helper, "echo");
 	REGIST_OPERATO_WORDS(helper, "strcat");
 	REGIST_OPERATO_WORDS(helper, "not");
@@ -563,7 +611,6 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_OPERATO_WORDS(helper, "g");
 	REGIST_OPERATO_WORDS(helper, "l");
 
-	
 	REGIST_CONTROLLER_WORDS(helper, "call");
 	REGIST_CONTROLLER_WORDS(helper, "lambda");
 //	REGIST_CONTROLLER_WORDS(helper, "prcd");
@@ -575,6 +622,7 @@ void regist_words(WordTypeHelper& helper) {
 
 	REGIST_CONTROLLER_WORDS(helper, "def");
 	REGIST_CONTROLLER_WORDS(helper, "assign");
+	REGIST_CONTROLLER_WORDS(helper, "cp");
 	REGIST_CONTROLLER_WORDS(helper, "ignore");
 	
 	REGIST_CONTROLLER_WORDS(helper, "while");
@@ -1209,7 +1257,7 @@ void test_input_cli(){
 	regist_words(word_type_helper);
 
 	// 初始化scanner
-	// Lexer lex(new CLIInput("luo ->"));
+	//Lexer lex(new CLIInput("luo ->"));
 	Lexer lex(new FileInput("in.tr"));
 
 	// 注册语法规则
@@ -1262,7 +1310,7 @@ void test_input_cli(){
 		catch (stack_overflow_exception e) {
 			cerr << e.what() << endl;
 		}
-		catch (not_def_exception e) {
+		catch (undefined_exception e) {
 			cerr << e.what() << endl;
 		}
 		// 清除结果

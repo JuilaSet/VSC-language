@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#define CHECK_Eval true
+#define CHECK_Eval false
 #define CHECK_Eval_command false
 
 // 
@@ -171,13 +171,16 @@ public:
 	void new_regist_identity(size_t index, data_ptr d);
 
 	// new assign
-	bool new_set_data(size_t index, data_ptr d);
+	bool new_set_data(size_t index, data_ptr d, bool isCopyMode = false);
 	
 	// new drf
 	data_ptr new_get_data(size_t index);
 
 	// para pass(传递参数给函数)
 	void para_pass_data(data_ptr data);
+
+	// para assign(给参数赋值)
+	bool para_assign_data(size_t index, data_ptr data, bool isCopyMode = false);
 
 	// para drf(对参数解引用)
 	data_ptr para_get_data(size_t index);

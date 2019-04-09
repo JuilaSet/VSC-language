@@ -467,7 +467,7 @@ protected:
 public:
 	// 生成list_block的代码
 	virtual void generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper)
-		throw (Context_error, not_def_exception);
+		throw (Context_error, undefined_exception);
 
 	// 当前的ctool
 	inline _compiler_tool& ctool() {
@@ -619,6 +619,7 @@ public:
 		return false;	// 没有这个变量名
 	}
 
+	// 初始化
 	void init() {
 		_block_index = 0;
 		// ctool().init();

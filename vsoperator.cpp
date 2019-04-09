@@ -635,11 +635,21 @@ void OPERATOR::NEW_ASSIGN(vsEval_ptr eval)
 	data_ptr value = eval->pop();
 	assert(!stk.empty());
 	data_ptr id = eval->pop();
-	assert(id->getType() == DataType::ID_INDEX);
-	bool failedorNot = eval->new_set_data(id->toIndex(), value);
 	
-	// 是否成功赋值
-	assert(failedorNot);
+	auto type = id->getType();
+	if (type == DataType::ID_INDEX) {
+		// 当做局部变量赋值
+		bool local_assign_success = eval->new_set_data(id->toIndex(), value);
+		assert(local_assign_success);
+	}
+	else if (type == DataType::PARA_INDEX) {
+		// 当做参数变量赋值
+		bool paras_assign_success = eval->para_assign_data(id->toIndex(), value);
+		assert(paras_assign_success);
+	}
+	else {
+		assert(false);
+	}
 
 	// 返回赋值的data
 	eval->push(value);
@@ -663,6 +673,41 @@ void OPERATOR::NEW_DRF(vsEval_ptr eval)
 #endif
 	// 返回解引用的指针
 	eval->push(d);
+}
+
+// 对象所指向的内容进行浅复制
+void OPERATOR::CP(vsEval_ptr eval) {
+
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tCP ";
+#endif
+	auto& stk = eval->current_stk_frame().stk;
+
+	assert(!stk.empty());
+	data_ptr value = eval->pop();
+	assert(!stk.empty());
+	data_ptr id = eval->pop();
+
+	auto type = id->getType();
+	if (type == DataType::ID_INDEX) {
+		// 当做局部变量赋值
+		bool local_assign_success = eval->new_set_data(id->toIndex(), value, true);
+		assert(local_assign_success);
+	}
+	else if (type == DataType::PARA_INDEX) {
+		// 当做参数变量赋值
+		bool paras_assign_success = eval->para_assign_data(id->toIndex(), value, true);
+		assert(paras_assign_success);
+	}
+	else {
+		assert(false);
+	}
+
+	// 返回赋值的data
+	eval->push(value);
+#if CHECK_Eval 
+	std::cerr << id->toEchoString() << ":= " << value->toEchoString() << std::endl;
+#endif
 }
 
 void OPERATOR::CALL(vsEval_ptr eval) {

@@ -102,7 +102,7 @@ void vsEvaluator::new_regist_identity(size_t index, data_ptr d) {
 }
 
 // new assign
-bool vsEvaluator::new_set_data(size_t index, data_ptr d) {
+bool vsEvaluator::new_set_data(size_t index, data_ptr d, bool isCopyMode) {
 	// 从当前栈开始一一搜索
 	assert(!_stk_frame.empty());
 	auto rbegin = _stk_frame.rbegin();
@@ -112,7 +112,11 @@ bool vsEvaluator::new_set_data(size_t index, data_ptr d) {
 		auto& var_table = frame.local_var_table;
 		// 找到后对其赋值， 返回true并退出
 		if (var_table.size() > index) {
-			var_table[index] = data_ptr(d);
+			// 是否是copy
+			if(isCopyMode)
+				var_table[index]->operator= (*d);
+			else
+				var_table[index] = data_ptr(d);
 			return true;
 		}
 		// 如果当前是强作用域， 就不往上寻找
@@ -159,6 +163,28 @@ void vsEvaluator::para_pass_data(data_ptr data) {
 	auto& frame = current_stk_frame();
 	// 传递给临时参数表, 会在push_frame中传递信息给新建的frame
 	frame.temp_stkframe.next_paras_info.act_para_list.push_back(data);
+}
+
+// para assign
+bool vsEvaluator::para_assign_data(size_t index, data_ptr data, bool isCopyMode) {
+	// 只找寻一层
+	assert(!_stk_frame.empty());
+	auto& frame = _stk_frame.back();
+	auto& _act_para_list = frame.paras_info.act_para_list;
+	// 存在就对这个data赋值
+	if (_act_para_list.size() > index) {
+		// 是否是copy
+		if (isCopyMode)
+			_act_para_list[index]->operator= (*data);
+		else
+			_act_para_list[index] = data;
+		return true;
+	}
+#if CHECK_Eval
+	std::cerr << __LINE__ << "\tPARA ASSIGN FAILED" << std::endl;
+#endif
+	// 不存在
+	return false;
 }
 
 // para drf

@@ -1,122 +1,4 @@
-﻿  pch.cpp
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\data.h(185): warning C4267: “return”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\data.h(192): warning C4267: “return”: 从“size_t”转换到“unsigned int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\input.h(45): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\vsevaluator.h(137): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\vsfunction.h(58): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.h(105): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.h(163): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.h(376): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.h(470): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.h(431): warning C4267: “return”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.h(566): warning C4267: “return”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.h(616): warning C4305: “return”: 从“int”到“bool”截断
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\vsvirtualmachine.h(22): warning C4312: “类型强制转换”: 从“int”转换到更大的“void *”
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\vsvirtualmachine.h(95): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\utility(208): warning C4244: “初始化”: 从“const _Ty2”转换到“_Ty2”，可能丢失数据
-          with
-          [
-              _Ty2=unsigned __int64
-          ]
-          and
-          [
-              _Ty2=int
-          ]
-  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\xmemory0(879): note: 参见对正在编译的函数 模板 实例化“std::pair<const _Kty,_Ty>::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64,0>(const std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64> &) noexcept(false)”的引用
-          with
-          [
-              _Kty=std::string,
-              _Ty=int
-          ]
-  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\xmemory0(881): note: 参见对正在编译的函数 模板 实例化“std::pair<const _Kty,_Ty>::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64,0>(const std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64> &) noexcept(false)”的引用
-          with
-          [
-              _Kty=std::string,
-              _Ty=int
-          ]
-  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\xtree(976): note: 参见对正在编译的函数 模板 实例化“void std::_Default_allocator_traits<_Alloc>::construct<_Ty,std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64>&>(_Alloc &,_Objty *const ,std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64> &)”的引用
-          with
-          [
-              _Alloc=std::allocator<std::_Tree_node<std::pair<const std::string,int>,std::_Default_allocator_traits<std::allocator<std::pair<const std::string,int>>>::void_pointer>>,
-              _Ty=std::pair<const std::string,int>,
-              _Objty=std::pair<const std::string,int>
-          ]
-  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\xtree(983): note: 参见对正在编译的函数 模板 实例化“void std::_Default_allocator_traits<_Alloc>::construct<_Ty,std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64>&>(_Alloc &,_Objty *const ,std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64> &)”的引用
-          with
-          [
-              _Alloc=std::allocator<std::_Tree_node<std::pair<const std::string,int>,std::_Default_allocator_traits<std::allocator<std::pair<const std::string,int>>>::void_pointer>>,
-              _Ty=std::pair<const std::string,int>,
-              _Objty=std::pair<const std::string,int>
-          ]
-  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\xtree(1154): note: 参见对正在编译的函数 模板 实例化“std::_Tree_node<_Ty,std::_Default_allocator_traits<_Alloc>::void_pointer> *std::_Tree_comp_alloc<_Traits>::_Buynode<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64>&>(std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64> &)”的引用
-          with
-          [
-              _Ty=std::pair<const std::string,int>,
-              _Alloc=std::allocator<std::pair<const std::string,int>>,
-              _Traits=std::_Tmap_traits<std::string,int,std::less<std::string>,std::allocator<std::pair<const std::string,int>>,false>
-          ]
-  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\xtree(1155): note: 参见对正在编译的函数 模板 实例化“std::_Tree_node<_Ty,std::_Default_allocator_traits<_Alloc>::void_pointer> *std::_Tree_comp_alloc<_Traits>::_Buynode<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64>&>(std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64> &)”的引用
-          with
-          [
-              _Ty=std::pair<const std::string,int>,
-              _Alloc=std::allocator<std::pair<const std::string,int>>,
-              _Traits=std::_Tmap_traits<std::string,int,std::less<std::string>,std::allocator<std::pair<const std::string,int>>,false>
-          ]
-  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\map(213): note: 参见对正在编译的函数 模板 实例化“std::pair<std::_Tree_iterator<std::_Tree_val<std::_Tree_simple_types<_Ty>>>,bool> std::_Tree<std::_Tmap_traits<_Kty,int,_Pr,_Alloc,false>>::emplace<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64>&>(std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64> &)”的引用
-          with
-          [
-              _Ty=std::pair<const std::string,int>,
-              _Kty=std::string,
-              _Pr=std::less<std::string>,
-              _Alloc=std::allocator<std::pair<const std::string,int>>
-          ]
-  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\map(213): note: 参见对正在编译的函数 模板 实例化“std::pair<std::_Tree_iterator<std::_Tree_val<std::_Tree_simple_types<_Ty>>>,bool> std::_Tree<std::_Tmap_traits<_Kty,int,_Pr,_Alloc,false>>::emplace<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64>&>(std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64> &)”的引用
-          with
-          [
-              _Ty=std::pair<const std::string,int>,
-              _Kty=std::string,
-              _Pr=std::less<std::string>,
-              _Alloc=std::allocator<std::pair<const std::string,int>>
-          ]
-  d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.h(426): note: 参见对正在编译的函数 模板 实例化“std::pair<std::_Tree_iterator<std::_Tree_val<std::_Tree_simple_types<_Ty>>>,bool> std::map<std::string,int,std::less<_Kty>,std::allocator<_Ty>>::insert<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64>&,void>(_Valty)”的引用
-          with
-          [
-              _Ty=std::pair<const std::string,int>,
-              _Kty=std::string,
-              _Valty=std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64> &
-          ]
-  d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.h(426): note: 参见对正在编译的函数 模板 实例化“std::pair<std::_Tree_iterator<std::_Tree_val<std::_Tree_simple_types<_Ty>>>,bool> std::map<std::string,int,std::less<_Kty>,std::allocator<_Ty>>::insert<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64>&,void>(_Valty)”的引用
-          with
-          [
-              _Ty=std::pair<const std::string,int>,
-              _Kty=std::string,
-              _Valty=std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char>>,unsigned __int64> &
-          ]
-  Compiler.cpp
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.cpp(33): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.cpp(70): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\compiler.cpp(85): warning C4267: “参数”: 从“size_t”转换到“const _Ty”，可能丢失数据
-          with
-          [
-              _Ty=int
-          ]
-  Data.cpp
-  Input.cpp
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\input.cpp(50): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
-  Lexer.cpp
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(24): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(146): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(216): warning C4267: “=”: 从“size_t”转换到“unsigned int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(284): warning C4267: “初始化”: 从“size_t”转换到“unsigned int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(296): warning C4267: “初始化”: 从“size_t”转换到“unsigned int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\lexer.cpp(308): warning C4267: “初始化”: 从“size_t”转换到“unsigned int”，可能丢失数据
-  Node.cpp
-  Parser.cpp
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\parser.cpp(56): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\parser.cpp(76): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
-  Text.cpp
-  Token.cpp
-  Trlsr_Language.cpp
+﻿  Trlsr_Language.cpp
 d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(62): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_c2da75b725bf81229e1b2b50a05f98db>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_c2da75b725bf81229e1b2b50a05f98db>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
@@ -139,7 +21,7 @@ d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_langua
               _Ty=Context,
               _Fx=regist_keywords_contents::<lambda_c2da75b725bf81229e1b2b50a05f98db>
           ]
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(227): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(275): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_8bb868799e82ca9ea54576e903d94d9e>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_8bb868799e82ca9ea54576e903d94d9e>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
           with
@@ -161,7 +43,7 @@ d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_langua
               _Ty=Context,
               _Fx=regist_keywords_contents::<lambda_8bb868799e82ca9ea54576e903d94d9e>
           ]
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(217): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(265): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_2901be4cefc8c51884a5e2dd9a18f3c7>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_2901be4cefc8c51884a5e2dd9a18f3c7>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
           with
@@ -183,7 +65,7 @@ d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_langua
               _Ty=Context,
               _Fx=regist_keywords_contents::<lambda_2901be4cefc8c51884a5e2dd9a18f3c7>
           ]
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(239): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(287): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_71d1cc35266c1b1743827fbf3e4c88cf>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_71d1cc35266c1b1743827fbf3e4c88cf>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
           with
@@ -205,7 +87,7 @@ d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_langua
               _Ty=Context,
               _Fx=regist_keywords_contents::<lambda_71d1cc35266c1b1743827fbf3e4c88cf>
           ]
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(249): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(297): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_87d3e006bd9942c1e60004609c8d0267>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_87d3e006bd9942c1e60004609c8d0267>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
           with
@@ -227,7 +109,7 @@ d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_langua
               _Ty=Context,
               _Fx=regist_keywords_contents::<lambda_87d3e006bd9942c1e60004609c8d0267>
           ]
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(264): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(312): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_0da0a987941471037de427b5f2e61846>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_0da0a987941471037de427b5f2e61846>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
           with
@@ -249,7 +131,7 @@ d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_langua
               _Ty=Context,
               _Fx=regist_keywords_contents::<lambda_0da0a987941471037de427b5f2e61846>
           ]
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(275): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(323): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_7100f7e1f4e5d9c1ff29d084cb4dbbac>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_7100f7e1f4e5d9c1ff29d084cb4dbbac>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
           with
@@ -271,7 +153,7 @@ d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_langua
               _Ty=Context,
               _Fx=regist_keywords_contents::<lambda_7100f7e1f4e5d9c1ff29d084cb4dbbac>
           ]
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(259): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(307): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_57f428f9e98e593468867d0ecb5e8beb>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
   d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_57f428f9e98e593468867d0ecb5e8beb>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
           with
@@ -293,14 +175,4 @@ d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_langua
               _Ty=Context,
               _Fx=regist_keywords_contents::<lambda_57f428f9e98e593468867d0ecb5e8beb>
           ]
-  vsEvaluator.cpp
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\vsevaluator.cpp(42): warning C4267: “=”: 从“size_t”转换到“unsigned int”，可能丢失数据
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\vsevaluator.cpp(47): warning C4290: 忽略 C++ 异常规范，但指示函数不是 __declspec(nothrow)
-d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\vsevaluator.cpp(52): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-  vsObject.cpp
-  vsVirtualMachine.cpp
-  vscommand.cpp
-  vsfunction.cpp
-  vsoperator.cpp
-  正在生成代码...
   Trlsr_Language.vcxproj -> D:\D_box\learning\workspace\C++studio\Trlsr_Language\x64\Debug\Trlsr_Language.exe

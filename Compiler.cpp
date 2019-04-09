@@ -30,7 +30,7 @@ S_Expr_Compiler::~S_Expr_Compiler()
 }
 
 void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper)
-	throw (Context_error, not_def_exception) {
+	throw (Context_error, undefined_exception) {
 #if CHECK_Compiler
 	std::cout << "\n\nGenerate Code Begin:" << std::endl;
 #endif
@@ -272,7 +272,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 					show_cstk("Context stk", ctool()._context_stk);
 					show_cstk("temp stk", ctool().tempStk);
 #endif
-					// 如果 IDENTIFIER_ENABLED 是形参定义
+					// 如果 IDENTIFIER_ENABLED 是定义形参
 					if (ctool().is_def_paras()) {
 						// 为其分配形参下标, 写入临时ctool属性中
 						_auto_allc_form_para_index(word);
@@ -293,7 +293,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 							}
 							else {
 								// 未定义, 抛出未定义异常(变量必须先声明, 再使用)
-								throw not_def_exception(word.getString());
+								throw undefined_exception(word.getString());
 							}
 						}
 					}

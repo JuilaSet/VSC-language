@@ -14,7 +14,9 @@ enum class DataType :int {
 	// 索引类型, 只允许用于索引
 	ID_INDEX,
 	// block的索引类型
-	BLK_INDEX
+	BLK_INDEX,
+	// 参数类型
+	PARA_INDEX
 };
 
 struct data_t
@@ -58,7 +60,7 @@ public:
 	virtual ~Data() = default;
 #endif
 
-	Data operator=(const Data& d) {
+	virtual Data operator=(const Data& d) {
 		type = d.type;
 		if (d.type == DataType::STRING) {
 			_data.value_str = d._data.value_str;
@@ -132,6 +134,7 @@ public:
 			assert(type != DataType::OPERA_ADDR);
 			assert(type != DataType::ID_INDEX);
 			assert(type != DataType::BLK_INDEX);
+			assert(type != DataType::PARA_INDEX);
 			std::stringstream ss;
 			ss << _data.value_int;
 			return ss.str();
@@ -153,11 +156,8 @@ public:
 			ret = _data.value_int == 0 ? false : true;
 			break;
 		case DataType::OPERA_ADDR:
-			assert(false);
-			break;
+		case DataType::PARA_INDEX:
 		case DataType::ID_INDEX:
-			assert(false);
-			break;
 		case DataType::BLK_INDEX:
 			assert(false);
 			break;
@@ -181,7 +181,8 @@ public:
 		else {
 			assert(type != DataType::OPERA_ADDR);	// 不允许用户自定义跳转位置
 			assert(type != DataType::ID_INDEX);
-			assert(type != DataType::BLK_INDEX);
+			assert(type != DataType::PARA_INDEX);
+			assert(type != DataType::BLK_INDEX); 
 			return _data.value_int;
 		}
 	}
@@ -194,7 +195,7 @@ public:
 
 	// 返回索引(只能是索引类型)
 	virtual size_t toIndex() const {
-		assert(type == DataType::ID_INDEX || type == DataType::BLK_INDEX);
+		assert(type == DataType::ID_INDEX || type == DataType::BLK_INDEX || type == DataType::PARA_INDEX);
 		return _data.value_int;
 	}
 
@@ -218,6 +219,8 @@ public:
 			return "ID_INDEX";
 		case DataType::BLK_INDEX:
 			return "BLK_INDEX";
+		case DataType::PARA_INDEX:
+			return "PARA_INDEX";
 		default:
 			assert(false);
 			return "ERROR";

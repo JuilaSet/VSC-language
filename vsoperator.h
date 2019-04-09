@@ -4,16 +4,16 @@
 // 计算异常 //
 //			//
 
-class not_def_exception {
+class undefined_exception {
 	std::string id_name;
 	size_t _id;
 	std::string _message;
 public:
-	not_def_exception(const std::string name) : id_name(name) {
+	undefined_exception(const std::string name) : id_name(name) {
 		_message = id_name + " was not defined";
 	}
 
-	not_def_exception(const size_t id) : _id(id) {
+	undefined_exception(const size_t id) : _id(id) {
 		_message = "id= " + std::to_string(id) + " was not defined";
 	}
 
@@ -76,6 +76,7 @@ enum class OPCODE :int {
 	// 运算
 	DRF,		// 解除引用
 	DEF,		// 变量定义
+	CP,			// 对象潜复制
 	ASSIGN,		// 变量赋值
 	ADD,		// 栈前两个元素相加
 	SUB,		// 栈前两个元素相减
@@ -172,6 +173,8 @@ public:
 	static void NEW_ASSIGN(vsEval_ptr eval);
 
 	static void NEW_DRF(vsEval_ptr eval);
+	
+	static void CP(vsEval_ptr eval);
 
 	static void CALL(vsEval_ptr eval);
 
