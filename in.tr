@@ -1,19 +1,23 @@
 [
-	def func lambda a [
-		// 复制到a句柄指向的对象
-		cp a 10;
+	def twice lambda f x [
+		return call f call f x x; call f x x;;;
 	];;
-	def a1 0;
-	echo a1;	// 0
-	call func a1;
-	echo a1;	// 10
 
-	def func2 lambda a [
-		// 更改a句柄
-		assign a add 1 2;;
+	def f lambda a b [
+		return add a b;;
 	];;
-	def a2 0;
-	echo a2;	// 0
-	call func2 a2;
-	echo a2;	// 0
+
+	echo call twice f 1 1;;
 ]
+
+/*
+python对应代码: 
+
+def twice(function, x):
+    return function(function(x))
+ 
+def f(x):
+    return x + 3
+ 
+print(twice(f, 7)) # 13
+*/

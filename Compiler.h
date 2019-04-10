@@ -378,7 +378,7 @@ public:
 	virtual ~Basic_Compiler() = default;
 };
 
-// s-表达式 编译器
+// 前缀表达式 编译器
 class S_Expr_Compiler: public Basic_Compiler
 {
 public:

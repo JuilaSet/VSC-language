@@ -3,9 +3,9 @@
 
 // vsEvaluator
 
-void vsEvaluator::load_block(block_ptr block)
+void vsEvaluator::load_block(block_ptr block, int paras_count)
 {
-	_push_frame();
+	_push_frame(paras_count);
 
 	_flag_has_instruct = true;
 
@@ -43,8 +43,8 @@ void vsEvaluator::exit_block()
 	}
 }
 
-// 创建并压入栈帧
-void vsEvaluator::_push_frame() throw(stack_overflow_exception) {
+// 创建并压入栈帧, 设置参数个数
+void vsEvaluator::_push_frame(int paras_count) throw(stack_overflow_exception) {
 #if CHECK_Eval
 	std::cerr << "Push frame ";
 #endif
@@ -64,7 +64,7 @@ void vsEvaluator::_push_frame() throw(stack_overflow_exception) {
 		// 传递信息
 		assert(!_stk_frame.empty());
 		auto& _temp_stkframe = current_stk_frame().temp_stkframe;
-		stkframe.pass_message(_temp_stkframe); // 其中会初始化temp_stkframe
+		stkframe.pass_message(_temp_stkframe, paras_count); // 其中会初始化temp_stkframe
 	}
 	_stk_frame.emplace_back(stkframe);
 
@@ -162,7 +162,8 @@ END:
 void vsEvaluator::para_pass_data(data_ptr data) {
 	auto& frame = current_stk_frame();
 	// 传递给临时参数表, 会在push_frame中传递信息给新建的frame
-	frame.temp_stkframe.next_paras_info.act_para_list.push_back(data);
+	assert(!frame.temp_stkframe.next_paras_info.empty());
+	frame.temp_stkframe.backParasInfo().act_para_list.push_back(data);
 }
 
 // para assign
@@ -278,14 +279,6 @@ int vsEvaluator::eval() {
 			auto size = table.size();
 			for (int i = 0; i < size; ++i) {
 				std::cout << i << '=' << table[i]->toEchoString() << ',' << std::ends;
-			}
-
-			// 将要传递给下一次的参数
-			std::cerr << std::endl << "next paras info >";
-			auto& act_list = frame.temp_stkframe.next_paras_info.act_para_list;
-			auto size_act_list = act_list.size();
-			for (int i = 0; i < size_act_list; ++i) {
-				std::cout << i << '=' << act_list[i]->toEchoString() << ',' << std::ends;
 			}
 			
 			// 遍历每一个栈帧的参数列表

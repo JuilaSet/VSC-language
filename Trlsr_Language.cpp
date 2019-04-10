@@ -38,20 +38,24 @@ void regist_keywords_contents(Context_helper& helper) {
 	helper.regist_context(Word(WordType::CONTROLLER, "call").serialize(),
 		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 			compiler->paras_begin();
-			compiler->dont_gene_callblk(); // 支持 call []
-			return _command_set{ };
+			compiler->dont_gene_callblk();
+			return _command_set{ COMMAND(CALL_BLK_BEGIN) };
 		},
 		{
 			Context([=](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				compiler->paras()++;
 				compiler->enable_gene_callblk();
 				return _command_set{ 
 					COMMAND(PARA_PASS)
 				};
 			}, Context_Type::ALWAYS), 
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				auto count = compiler->paras();
 				compiler->paras_end();
 				return _command_set{
-						COMMAND(CALL_BLK)
+						CommandHelper::getPushOpera(Data(DataType::NUMBER, count)),
+						COMMAND(CALL_BLK),
+						COMMAND(CALL_BLK_END)
 				};
 			}, Context_Type::END)
 		})
@@ -380,7 +384,7 @@ void regist_keywords_contents(Context_helper& helper) {
 
 	// OPERATOR_WORD
 
-	helper.regist_context(Word(WordType::OPERATOR_WORD, "+").serialize(),
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "add").serialize(),
 		helper.build_context(
 			[](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_0
 				return _command_set{ };
@@ -603,7 +607,7 @@ void regist_token(Token_helper& helper) {
 
 // 注册word
 void regist_words(WordTypeHelper& helper) {
-	REGIST_OPERATO_WORDS(helper, "+");
+	REGIST_OPERATO_WORDS(helper, "add");
 	REGIST_OPERATO_WORDS(helper, "echo");
 	REGIST_OPERATO_WORDS(helper, "strcat");
 	REGIST_OPERATO_WORDS(helper, "not");
@@ -1271,7 +1275,8 @@ void test_input_cli(){
 	// 虚拟机
 	vsVirtualMachine vm(0);
 
-//	while (1) {
+//	while (1) 
+	{
 		p.clear_word_vec();
 
 		// 词法分析
@@ -1301,7 +1306,7 @@ void test_input_cli(){
 				// 执行代码
 				vm.init(cresult, 1);
 				vm.run();
-				// if(vm.get_eval_ret_value() == -1)break;
+			//	if(vm.get_eval_ret_value() == -1)break;
 			}
 		}
 		catch (Context_found_error e) {
@@ -1316,8 +1321,7 @@ void test_input_cli(){
 		// 清除结果
 		compiler.init();
 		cresult.init();
-//	}
-
+	}
 }
 
 int main(int argc, char* argv[]) {

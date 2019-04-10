@@ -51,8 +51,9 @@ struct _return_info {
 //			//
 
 // 参数信息
+using act_paras_vec = std::vector<data_ptr>;
 struct _StackFrameParasInfo {
-	std::vector<data_ptr> act_para_list;	// 实参表
+	act_paras_vec act_para_list;	// 实参表
 
 	// 初始化
 	void init() {
@@ -62,11 +63,26 @@ struct _StackFrameParasInfo {
 
 // 将要传递给下一帧的信息, 每次传递完成后会初始化
 struct _tempStackFrame {
-	_StackFrameParasInfo next_paras_info; // 参数信息
+	std::vector <_StackFrameParasInfo> next_paras_info; // 参数信息栈, 每一次call都push一层
 
 	// 初始化
 	void init() {
-		next_paras_info.init();
+		next_paras_info.clear();
+	}
+
+	// 添加一次信息
+	void push_next_paras_info() {
+		next_paras_info.emplace_back();
+	}
+
+	// 消去信息
+	void pop_next_paras_info() {
+		next_paras_info.pop_back();
+	}
+
+	// 最顶层的(参数)
+	_StackFrameParasInfo& backParasInfo() {
+		return next_paras_info.back();
 	}
 };
 
@@ -81,13 +97,21 @@ struct _StackFrame {
 	_return_info ret;				 // 返回信息
 	bool _strong_hold;				 // 是否是强作用域
 
-	// 传递信息
-	void pass_message(_tempStackFrame& tframe) {
-		paras_info = tframe.next_paras_info;
-		// ...
+	// 添加一次信息
+	void push_next_temp_paras_info() {
+		temp_stkframe.push_next_paras_info();
+	}
 
-		// 传递完成后初始化
-		tframe.init();
+	// 消去信息
+	void pop_next_temp_paras_info() {
+		temp_stkframe.pop_next_paras_info();
+	}
+
+	// 传递信息
+	void pass_message(_tempStackFrame& tframe, int paras_count) {
+		// 根据当前的传递的参数个数
+		paras_info = tframe.backParasInfo();
+		// ...
 	}
 };
 
@@ -99,7 +123,7 @@ public:
 	enum {
 		max_stack_size = MAX_STACK_SIZE		// 最大栈帧数, 超过会触发栈溢出异常
 	};
-private:
+protected:
 	// 友元类
 	friend class CommandHelper;
 	friend class Command;
@@ -134,7 +158,7 @@ private:
 
 protected:
 	// 创建并压入栈帧
-	void _push_frame() throw(stack_overflow_exception);
+	void _push_frame(int paras_count) throw(stack_overflow_exception);
 
 	// 弹出局部变量
 	void _pop_frame();
@@ -149,7 +173,7 @@ public:
 	~vsEvaluator();
 
 	// 加载block, 在调用call_blk时调用
-	void load_block(block_ptr block);
+	void load_block(block_ptr block, int paras_count);
 
 	// 退出block, 会调用pop_frame
 	void exit_block();
@@ -159,7 +183,7 @@ public:
 		this->_stk_frame.clear();
 	}
 
-	// 初始化虚拟机
+	// 初始化解释器
 	void init() {
 		_stop = false;
 		ipc = 0;

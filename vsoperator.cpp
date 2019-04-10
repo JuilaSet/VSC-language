@@ -518,7 +518,7 @@ void OPERATOR::NUL(vsEval_ptr eval) {
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::NUL " << std::endl;
 #endif
-	eval->push(eval->null_data);	// 计数器大小
+	eval->push(eval->null_data);
 }
 
 void OPERATOR::REPT(vsEval_ptr eval) {
@@ -717,6 +717,7 @@ void OPERATOR::CALL(vsEval_ptr eval) {
 	auto& stk = eval->current_stk_frame().stk;
 
 	assert(!stk.empty());
+
 	data_ptr temp_addr = eval->pop();
 	assert(temp_addr->getType() == DataType::OPERA_ADDR);
 
@@ -767,6 +768,17 @@ void OPERATOR::BREAK(vsEval_ptr eval) {
 	eval->exit_block();
 }
 
+void OPERATOR::CALL_BLK_BEGIN(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::CALL_BLK_BEGIN ";
+#endif
+	auto& frame = eval->current_stk_frame();
+	frame.push_next_temp_paras_info();
+#if CHECK_Eval 
+	std::cerr << std::endl;
+#endif
+}
+
 void OPERATOR::CALL_BLK(vsEval_ptr eval)
 {
 	// 注意: call Block的时候还是在栈外面
@@ -774,20 +786,39 @@ void OPERATOR::CALL_BLK(vsEval_ptr eval)
 	std::cerr << __LINE__ << "\tOPCODE::CALL_BLK ";
 #endif
 	auto& frame = eval->current_stk_frame();
+	assert(!frame.stk.empty());
+
+	// call的参数个数
+	auto count = eval->pop()->toNumber();
 
 	// call列表的第一个参数, 索引将要传递给下一次的参数
-	auto& act_list = frame.temp_stkframe.next_paras_info.act_para_list;
+	auto& act_list = frame.temp_stkframe.backParasInfo().act_para_list;
 	assert(!act_list.empty());
 	data_ptr d_index = act_list[0];
-
-	assert(d_index->getType() == DataType::BLK_INDEX);
+	if (d_index->getType() != DataType::BLK_INDEX) {
+		std::cout << d_index->toTypeName() << std::endl;
+		std::cout << d_index->toEchoString() << std::endl;
+		assert(false);
+	}
 	auto block_id = d_index->toIndex();
 
 	// 跳转block
-	eval->load_block(eval->_vm->get_block_ref(block_id));
+	eval->load_block(eval->_vm->get_block_ref(block_id), count);
 
 #if CHECK_Eval 
 	std::cerr << block_id << std::endl;
+#endif
+}
+
+// 从call_blk中返回
+void OPERATOR::CALL_BLK_END(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::CALL_END ";
+#endif
+	auto& frame = eval->current_stk_frame();
+	frame.pop_next_temp_paras_info();
+#if CHECK_Eval 
+	std::cerr << std::endl;
 #endif
 }
 

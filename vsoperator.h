@@ -184,8 +184,14 @@ public:
 	// 从block中返回
 	static void BREAK(vsEval_ptr eval);
 
+	// 开始传参
+	static void CALL_BLK_BEGIN(vsEval_ptr eval);
+
 	// call的是参数表中的[0]位置的data
 	static void CALL_BLK(vsEval_ptr eval);
+
+	// 从call_blk中返回
+	static void CALL_BLK_END(vsEval_ptr eval);
 
 	// 对形参解引用, 从该帧的形参表中查询
 	static void PARA_PASS(vsEval_ptr eval);

@@ -64,24 +64,3 @@ public:
 };
 
 using block_ptr = std::shared_ptr<vsblock>;
-
-//
-// function
-// : 通过evaluator来执行
-//
-
-using blk_ptr = std::shared_ptr<vsblock>;
-using vec_command_t = std::vector<Command>;
-
-class vsfunction : public vsblock
-{
-
-public:
-	vsfunction(size_t _id): vsblock(_id)
-	{
-	}
-
-	~vsfunction()
-	{
-	}
-};
