@@ -67,7 +67,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 				// push 要跳转的地址
 				auto& comm = result.refCommandVector(cur_block_id);
 				comm.push_back(CommandHelper::getPushOpera(
-						Data(DataType::BLK_INDEX, block_id)));
+						data_ptr(new NumData(DataType::BLK_INDEX, block_id))));
 
 				assert(ctool_stk.size() > 1);
 				if (!(ctool_stk.rbegin() + 1)->is_def_blk()) {
@@ -281,14 +281,14 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 						// 寻找局部变量下标, 局部变量会覆盖函数的形参, 使其不可见
 						int index = get_alloced_index(word);
 						if (index != -1) {
-							result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
+							result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index))));
 							result.refCommandVector(block_id).push_back(COMMAND(NEW_DRF));
 						} 
 						else {
 							// 寻找函数参数下标
 							int index_p = get_form_para_alloced_index(word);
 							if (index_p != -1) {
-								result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index_p)));
+								result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index_p))));
 								result.refCommandVector(block_id).push_back(COMMAND(PARA_DRF));
 							}
 							else {
@@ -299,7 +299,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 					}
 				}
 				else {
-					result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(Data(word.getData())));	// push 立即数
+					result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(word.getData()));	// push 立即数
 				}
 				
 				// 生成操作符的代码

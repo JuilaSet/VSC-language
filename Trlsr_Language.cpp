@@ -2,13 +2,6 @@
 //
 
 #include "pch.h"
-#include <fstream>
-#include <thread>
-#include <vector>
-#include <chrono>
-#include <atomic>
-#include <mutex>
-#include <regex>
 
 using namespace std;
 
@@ -53,7 +46,7 @@ void regist_keywords_contents(Context_helper& helper) {
 				auto count = compiler->paras();
 				compiler->paras_end();
 				return _command_set{
-						CommandHelper::getPushOpera(Data(DataType::NUMBER, count)),
+						CommandHelper::getPushOpera(data_ptr(new NumData(DataType::NUMBER, count))),
 						COMMAND(CALL_BLK),
 						COMMAND(CALL_BLK_END)
 				};
@@ -96,10 +89,10 @@ void regist_keywords_contents(Context_helper& helper) {
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				int last_index = helper.pop_command_index();
 				int addr = _vec.size();
-				_vec[last_index] = CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr + 1));
+				_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new NumData(DataType::OPERA_ADDR, addr + 1)));
 				return _command_set{
 						COMMAND(RET),
-						CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, last_index + 2))	// push过程的首地址
+						CommandHelper::getPushOpera(data_ptr(new NumData((DataType::OPERA_ADDR, last_index + 2)))	// push过程的首地址
 				};
 			}, Context_Type::END, "prcd_end")
 		})
@@ -119,9 +112,8 @@ void regist_keywords_contents(Context_helper& helper) {
 					compiler->dont_gene_callblk();
 					// 获取分配的下标
 					int index = compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
-					// 将之前的 push 立即数指令弹出
-					commandVec.pop_back();
-					commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
+					commandVec.pop_back(); // 将之前的 push 立即数指令弹出
+					commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index))));
 					return _command_set{};
 				}, Context_Type::NORMAL, "def_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
@@ -153,11 +145,11 @@ void regist_keywords_contents(Context_helper& helper) {
 					int index = compiler->get_alloced_index(w);
 					int index_p = compiler->get_form_para_alloced_index(w);
 					if (index != -1) {
-						commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
+						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index))));
 					}
 					else if (index_p != -1) {
 						// 对形参赋值
-						commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::PARA_INDEX, index_p)));
+						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::PARA_INDEX, index_p))));
 					}
 					else {
 						throw undefined_exception(w.getString());
@@ -191,11 +183,11 @@ void regist_keywords_contents(Context_helper& helper) {
 					int index = compiler->get_alloced_index(w);
 					int index_p = compiler->get_form_para_alloced_index(w);
 					if (index != -1) {
-						commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::ID_INDEX, index)));
+						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index))));
 					}
 					else if (index_p != -1) {
 						// 对形参赋值
-						commandVec.push_back(CommandHelper::getPushOpera(Data(DataType::PARA_INDEX, index_p)));
+						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::PARA_INDEX, index_p))));
 					}
 					else {
 						throw undefined_exception(w.getString());
@@ -277,7 +269,7 @@ void regist_keywords_contents(Context_helper& helper) {
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				int last_index = helper.pop_command_index();
 				int addr = _vec.size();
-				_vec[last_index] = CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr));
+				_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new NumData(DataType::OPERA_ADDR, addr)));
 				return _command_set{ };
 			}, Context_Type::END)
 		})
@@ -299,7 +291,7 @@ void regist_keywords_contents(Context_helper& helper) {
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 					int last_index = helper.pop_command_index();
 					int addr = _vec.size();
-					_vec[last_index] = CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr));
+					_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new NumData(DataType::OPERA_ADDR, addr)));
 					return _command_set{ };
 				}, Context_Type::END, "if_end")
 			})
@@ -325,9 +317,9 @@ void regist_keywords_contents(Context_helper& helper) {
 					int last_index = helper.pop_command_index();
 					int head_index = helper.pop_command_index();
 					int addr = _vec.size();
-					_vec[last_index] = CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr + 2));
+					_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new NumData(DataType::OPERA_ADDR, addr + 2)));
 					return _command_set{
-						CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, head_index)),
+						CommandHelper::getPushOpera(data_ptr(new NumData(DataType::OPERA_ADDR, head_index))),
 						COMMAND(JMP)
 					};
 				}, Context_Type::END)
@@ -353,7 +345,7 @@ void regist_keywords_contents(Context_helper& helper) {
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 					int addr = helper.pop_command_index();
 					return _command_set{
-						CommandHelper::getPushOpera(Data(DataType::OPERA_ADDR, addr)),
+						CommandHelper::getPushOpera(NumData(DataType::OPERA_ADDR, addr)),
 						COMMAND(REPT)};
 				}, Context_Type::END, "rept_end")
 			})
@@ -1261,8 +1253,8 @@ void test_input_cli(){
 	regist_words(word_type_helper);
 
 	// 初始化scanner
-	//Lexer lex(new CLIInput("luo ->"));
-	Lexer lex(new FileInput("in.tr"));
+	Lexer lex(new CLIInput("luo ->"));
+	//Lexer lex(new FileInput("in.tr"));
 
 	// 注册语法规则
 	Parser p(&lex);
@@ -1275,7 +1267,7 @@ void test_input_cli(){
 	// 虚拟机
 	vsVirtualMachine vm(0);
 
-//	while (1) 
+	while (1) 
 	{
 		p.clear_word_vec();
 
@@ -1306,7 +1298,7 @@ void test_input_cli(){
 				// 执行代码
 				vm.init(cresult, 1);
 				vm.run();
-			//	if(vm.get_eval_ret_value() == -1)break;
+				if(vm.get_eval_ret_value() == -1)break;
 			}
 		}
 		catch (Context_found_error e) {

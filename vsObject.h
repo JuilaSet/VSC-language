@@ -13,7 +13,7 @@ public:
 //	对象	//
 //			//
 
-class _vsObject : public Data
+class _vsObject : public NumData
 {
 	friend class ObjectCreator;
 protected:

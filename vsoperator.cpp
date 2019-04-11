@@ -37,7 +37,7 @@ void OPERATOR::PUSH_POS(vsEval_ptr eval)
 
 	unsigned int addr = eval->ipc;
 	assert(eval->_instruct_ptr->size() > addr);
-	eval->push(data_ptr(new Data(DataType::OPERA_ADDR, addr)));
+	eval->push(data_ptr(new NumData(DataType::OPERA_ADDR, addr)));
 }
 
 void OPERATOR::REVERSE_TOP(vsEval_ptr eval) {
@@ -64,7 +64,7 @@ void OPERATOR::ADD(vsEval_ptr eval) {
 	int a2 = n2->toNumber();
 
 	// newed
-	data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, a1 + a2));
+	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, a1 + a2));
 	eval->push(d_temp);
 #if CHECK_Eval 
 	std::cerr << a1 << " + " << a2 << " = " << d_temp->toNumber() << std::endl;
@@ -87,7 +87,7 @@ void OPERATOR::SUB(vsEval_ptr eval) {
 	assert(n2->getType() == DataType::NUMBER);
 	int a2 = n2->toNumber();
 	// newed
-	data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, a2 - a1));
+	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, a2 - a1));
 	eval->push(d_temp);
 #if CHECK_Eval 
 	std::cerr << a2 << " - " << a1 << " = " << d_temp->toNumber() << std::endl;
@@ -105,7 +105,7 @@ void OPERATOR::NOT(vsEval_ptr eval) {
 	assert(n1->getType() == DataType::NUMBER);
 	int a1 = n1->toNumber();
 
-	data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, a1 == 0));
+	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, a1 == 0));
 	eval->push(d_temp);
 #if CHECK_Eval 
 	std::cerr << a1 << " = " << d_temp->toNumber() << std::endl;
@@ -125,7 +125,7 @@ void OPERATOR::EQ(vsEval_ptr eval) {
 	data_ptr n2 = eval->pop();
 
 	// newed
-	data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, *n2 == *n1));
+	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, *n2 == *n1));
 	eval->push(d_temp);
 #if CHECK_Eval 
 	std::cerr << (n2 == n1) << std::endl;
@@ -145,7 +145,7 @@ void OPERATOR::G(vsEval_ptr eval)
 	assert(!stk.empty());
 	data_ptr n2 = eval->pop();
 	// newed
-	data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, !(*n2 < *n1) && !(*n2 == *n1)));
+	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, !(*n2 < *n1) && !(*n2 == *n1)));
 	eval->push(d_temp);
 #if CHECK_Eval
 	std::cerr << (!(n2 < n1) && !(n2 == n1)) << std::endl;
@@ -165,7 +165,7 @@ void OPERATOR::L(vsEval_ptr eval)
 	assert(!stk.empty());
 	data_ptr n2 = eval->pop();
 	// newed
-	data_ptr d_temp = data_ptr(new Data(DataType::NUMBER, *n2 < *n1));
+	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, *n2 < *n1));
 	eval->push(d_temp);
 #if CHECK_Eval
 	std::cerr << (n2 < n1) << std::endl;
@@ -188,7 +188,7 @@ void OPERATOR::STRCAT(vsEval_ptr eval) {
 	assert(n2->getType() == DataType::STRING);
 	std::string a2 = n2->toString();
 
-	data_ptr d_temp = data_ptr(new Data(DataType::STRING, a2 + a1));
+	data_ptr d_temp = data_ptr(new StringData(a2 + a1));
 	eval->push(d_temp);
 #if CHECK_Eval 
 	std::cerr << a2 << " + " << a1 << " = " << d_temp->toEchoString() << std::endl;
@@ -221,7 +221,7 @@ void OPERATOR::CAST_NUMBER(vsEval_ptr eval)
 	assert(d->getType() != DataType::OPERA_ADDR);
 	int num = d->toNumber();
 	// newed
-	eval->push(data_ptr(new Data(DataType::NUMBER, num)));
+	eval->push(data_ptr(new NumData(DataType::NUMBER, num)));
 #if CHECK_Eval 
 	std::cerr << num << std::endl;
 #endif
@@ -238,7 +238,7 @@ void OPERATOR::CAST_STRING(vsEval_ptr eval)
 	data_ptr d = eval->pop();
 	assert(d->getType() != DataType::OPERA_ADDR);
 	std::string str = d->toString();
-	eval->push(data_ptr(new Data(DataType::STRING, str)));
+	eval->push(data_ptr(new StringData(str)));
 #if CHECK_Eval
 	std::cerr << str << std::endl;
 #endif
@@ -254,7 +254,7 @@ void OPERATOR::CAST_BOOL(vsEval_ptr eval) {
 	data_ptr d = eval->pop();
 	assert(d->getType() != DataType::OPERA_ADDR);
 	int b = d->toBool();
-	eval->push(data_ptr(new Data(DataType::NUMBER, b)));
+	eval->push(data_ptr(new NumData(DataType::NUMBER, b)));
 #if CHECK_Eval
 	std::cerr << b << std::endl;
 #endif
@@ -501,7 +501,7 @@ void OPERATOR::TIME_END(vsEval_ptr eval) {
 	std::string str;
 	s >> str;
 
-	eval->push(data_ptr(new Data(DataType::STRING, str)));
+	eval->push(data_ptr(new StringData(str)));
 #if CHECK_Eval 
 	std::cerr << str << std::endl;
 #endif
@@ -511,7 +511,7 @@ void OPERATOR::ECX(vsEval_ptr eval) {
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::ECX " << std::endl;
 #endif
-	eval->push(data_ptr(new Data(DataType::NUMBER, eval->ecx)));	// 计数器大小
+	eval->push(data_ptr(new NumData(DataType::NUMBER, eval->ecx)));	// 计数器大小
 }
 
 void OPERATOR::NUL(vsEval_ptr eval) {
@@ -729,7 +729,7 @@ void OPERATOR::CALL(vsEval_ptr eval) {
 
 	// 当前地址入栈
 	assert(eval->_instruct_ptr->size() > addr);
-	eval->push(data_ptr(new Data(DataType::OPERA_ADDR, addr)));
+	eval->push(data_ptr(new NumData(DataType::OPERA_ADDR, addr)));
 
 	// jmp_block
 	eval->ipc = temp_addr->toAddr() - 1;
@@ -796,7 +796,7 @@ void OPERATOR::CALL_BLK(vsEval_ptr eval)
 	assert(!act_list.empty());
 	data_ptr d_index = act_list[0];
 	if (d_index->getType() != DataType::BLK_INDEX) {
-		std::cout << d_index->toTypeName() << std::endl;
+		std::cout << d_index->getTypeName() << std::endl;
 		std::cout << d_index->toEchoString() << std::endl;
 		assert(false);
 	}

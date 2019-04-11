@@ -234,7 +234,7 @@ int vsEvaluator::step() {
 			std::cerr << "data >" << std::ends;
 			auto& stk = frame.stk;
 			for (auto d : stk) {
-				std::cerr << d->toTypeName() << ": " << d->toEchoString() << ',' << std::ends;
+				std::cerr << d->getTypeName() << ": " << d->toEchoString() << ',' << std::ends;
 			}
 
 			// 遍历每一个栈帧的局部变量表
@@ -270,7 +270,7 @@ int vsEvaluator::eval() {
 			std::cerr << "data >" << std::ends;
 			auto& stk = frame.stk;
 			for (auto d : stk) {
-				std::cerr << d->toTypeName() << ": " << d->toEchoString() << ',' << std::ends;
+				std::cerr << d->getTypeName() << ": " << d->toEchoString() << ',' << std::ends;
 			}
 
 			// 遍历每一个栈帧的局部变量表

@@ -42,16 +42,16 @@ public:
 		return Command(func);
 	}
 
-	static Command getPushOpera(Data d) {
+	static Command getPushOpera(data_ptr d) {
 		// 传入值， 防止析构
 		return Command([=](vsEvaluator *eval) {
 #if CHECK_Eval 
-			std::cerr << __LINE__ << "\tOPCODE::PUSH " << d.toEchoString() << std::endl;
+			std::cerr << __LINE__ << "\tOPCODE::PUSH " << d->toEchoString() << std::endl;
 #endif
-			eval->push(data_ptr(new Data(d)));
+			eval->push(d);
 		}
 #if CHECK_Eval_command
-			, "PUSH " + d.toEchoString()
+			, "PUSH " + d->toEchoString()
 #endif 
 			);
 	};

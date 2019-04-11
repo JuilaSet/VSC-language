@@ -1,2 +1,178 @@
-﻿  vsoperator.cpp
+﻿  Trlsr_Language.cpp
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(59): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_cc21e69614a6f9c550e8cfa25a2f406f>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_cc21e69614a6f9c550e8cfa25a2f406f>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
+          with
+          [
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 参见对正在编译的 类 模板 实例化 "std::_Is_invocable_r<_Ret,_Fx &,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Fx=regist_keywords_contents::<lambda_cc21e69614a6f9c550e8cfa25a2f406f>,
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 查看指向正在编译的变量模板“const bool conjunction_v<std::negation<std::is_same<<lambda_cc21e69614a6f9c550e8cfa25a2f406f>,std::function<std::vector<Command,std::allocator<Command> > __cdecl(std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *)> > >,std::_Is_invocable_r<std::vector<Command,std::allocator<Command> >,<lambda_cc21e69614a6f9c550e8cfa25a2f406f> &,std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *> >”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1499): note: 参见对正在编译的 别名 模板 实例化 "std::_Func_class<_Ret,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>::_Enable_if_callable_t<_Fx&,std::function<_command_set (std::vector<_Ty,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *)>>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Ty=Context,
+              _Fx=regist_keywords_contents::<lambda_cc21e69614a6f9c550e8cfa25a2f406f>
+          ]
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(271): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_0c2cf61391a3ac57c2d40abb6b1b49cb>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_0c2cf61391a3ac57c2d40abb6b1b49cb>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
+          with
+          [
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 参见对正在编译的 类 模板 实例化 "std::_Is_invocable_r<_Ret,_Fx &,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Fx=regist_keywords_contents::<lambda_0c2cf61391a3ac57c2d40abb6b1b49cb>,
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 查看指向正在编译的变量模板“const bool conjunction_v<std::negation<std::is_same<<lambda_0c2cf61391a3ac57c2d40abb6b1b49cb>,std::function<std::vector<Command,std::allocator<Command> > __cdecl(std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *)> > >,std::_Is_invocable_r<std::vector<Command,std::allocator<Command> >,<lambda_0c2cf61391a3ac57c2d40abb6b1b49cb> &,std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *> >”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1499): note: 参见对正在编译的 别名 模板 实例化 "std::_Func_class<_Ret,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>::_Enable_if_callable_t<_Fx&,std::function<_command_set (std::vector<_Ty,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *)>>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Ty=Context,
+              _Fx=regist_keywords_contents::<lambda_0c2cf61391a3ac57c2d40abb6b1b49cb>
+          ]
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(261): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_9b42fc483e9437f58243f224bc45f077>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_9b42fc483e9437f58243f224bc45f077>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
+          with
+          [
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 参见对正在编译的 类 模板 实例化 "std::_Is_invocable_r<_Ret,_Fx &,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Fx=regist_keywords_contents::<lambda_9b42fc483e9437f58243f224bc45f077>,
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 查看指向正在编译的变量模板“const bool conjunction_v<std::negation<std::is_same<<lambda_9b42fc483e9437f58243f224bc45f077>,std::function<std::vector<Command,std::allocator<Command> > __cdecl(std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *)> > >,std::_Is_invocable_r<std::vector<Command,std::allocator<Command> >,<lambda_9b42fc483e9437f58243f224bc45f077> &,std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *> >”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1499): note: 参见对正在编译的 别名 模板 实例化 "std::_Func_class<_Ret,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>::_Enable_if_callable_t<_Fx&,std::function<_command_set (std::vector<_Ty,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *)>>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Ty=Context,
+              _Fx=regist_keywords_contents::<lambda_9b42fc483e9437f58243f224bc45f077>
+          ]
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(283): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_b4d33dd677c5537f48c7793d15e94c4c>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_b4d33dd677c5537f48c7793d15e94c4c>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
+          with
+          [
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 参见对正在编译的 类 模板 实例化 "std::_Is_invocable_r<_Ret,_Fx &,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Fx=regist_keywords_contents::<lambda_b4d33dd677c5537f48c7793d15e94c4c>,
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 查看指向正在编译的变量模板“const bool conjunction_v<std::negation<std::is_same<<lambda_b4d33dd677c5537f48c7793d15e94c4c>,std::function<std::vector<Command,std::allocator<Command> > __cdecl(std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *)> > >,std::_Is_invocable_r<std::vector<Command,std::allocator<Command> >,<lambda_b4d33dd677c5537f48c7793d15e94c4c> &,std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *> >”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1499): note: 参见对正在编译的 别名 模板 实例化 "std::_Func_class<_Ret,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>::_Enable_if_callable_t<_Fx&,std::function<_command_set (std::vector<_Ty,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *)>>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Ty=Context,
+              _Fx=regist_keywords_contents::<lambda_b4d33dd677c5537f48c7793d15e94c4c>
+          ]
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(293): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_d74c51dfebd8e1e649ad0e2c2857f9f1>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_d74c51dfebd8e1e649ad0e2c2857f9f1>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
+          with
+          [
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 参见对正在编译的 类 模板 实例化 "std::_Is_invocable_r<_Ret,_Fx &,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Fx=regist_keywords_contents::<lambda_d74c51dfebd8e1e649ad0e2c2857f9f1>,
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 查看指向正在编译的变量模板“const bool conjunction_v<std::negation<std::is_same<<lambda_d74c51dfebd8e1e649ad0e2c2857f9f1>,std::function<std::vector<Command,std::allocator<Command> > __cdecl(std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *)> > >,std::_Is_invocable_r<std::vector<Command,std::allocator<Command> >,<lambda_d74c51dfebd8e1e649ad0e2c2857f9f1> &,std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *> >”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1499): note: 参见对正在编译的 别名 模板 实例化 "std::_Func_class<_Ret,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>::_Enable_if_callable_t<_Fx&,std::function<_command_set (std::vector<_Ty,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *)>>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Ty=Context,
+              _Fx=regist_keywords_contents::<lambda_d74c51dfebd8e1e649ad0e2c2857f9f1>
+          ]
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(308): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_9776e4df4acc5f749255935156329aa0>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_9776e4df4acc5f749255935156329aa0>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
+          with
+          [
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 参见对正在编译的 类 模板 实例化 "std::_Is_invocable_r<_Ret,_Fx &,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Fx=regist_keywords_contents::<lambda_9776e4df4acc5f749255935156329aa0>,
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 查看指向正在编译的变量模板“const bool conjunction_v<std::negation<std::is_same<<lambda_9776e4df4acc5f749255935156329aa0>,std::function<std::vector<Command,std::allocator<Command> > __cdecl(std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *)> > >,std::_Is_invocable_r<std::vector<Command,std::allocator<Command> >,<lambda_9776e4df4acc5f749255935156329aa0> &,std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *> >”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1499): note: 参见对正在编译的 别名 模板 实例化 "std::_Func_class<_Ret,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>::_Enable_if_callable_t<_Fx&,std::function<_command_set (std::vector<_Ty,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *)>>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Ty=Context,
+              _Fx=regist_keywords_contents::<lambda_9776e4df4acc5f749255935156329aa0>
+          ]
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(319): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_78abfe306271f3433f425ad44139dc44>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_78abfe306271f3433f425ad44139dc44>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
+          with
+          [
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 参见对正在编译的 类 模板 实例化 "std::_Is_invocable_r<_Ret,_Fx &,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Fx=regist_keywords_contents::<lambda_78abfe306271f3433f425ad44139dc44>,
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 查看指向正在编译的变量模板“const bool conjunction_v<std::negation<std::is_same<<lambda_78abfe306271f3433f425ad44139dc44>,std::function<std::vector<Command,std::allocator<Command> > __cdecl(std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *)> > >,std::_Is_invocable_r<std::vector<Command,std::allocator<Command> >,<lambda_78abfe306271f3433f425ad44139dc44> &,std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *> >”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1499): note: 参见对正在编译的 别名 模板 实例化 "std::_Func_class<_Ret,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>::_Enable_if_callable_t<_Fx&,std::function<_command_set (std::vector<_Ty,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *)>>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Ty=Context,
+              _Fx=regist_keywords_contents::<lambda_78abfe306271f3433f425ad44139dc44>
+          ]
+d:\d_box\learning\workspace\c++studio\trlsr_language\trlsr_language\trlsr_language.cpp(303): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(16707566): note: 参见对正在编译的函数 模板 实例化“auto regist_keywords_contents::<lambda_57f428f9e98e593468867d0ecb5e8beb>::operator ()<S_Expr_Compiler>(ContextStk &,_command_set &,Word &,S_Expr_Compiler *) const”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\type_traits(1871): note: 参见对正在编译的 别名 模板 实例化 "std::_Is_invocable_r_<_command_set,regist_keywords_contents::<lambda_57f428f9e98e593468867d0ecb5e8beb>&,std::vector<Context,std::allocator<_Ty>>&,_command_set&,Word&,S_Expr_Compiler*>" 的引用
+          with
+          [
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 参见对正在编译的 类 模板 实例化 "std::_Is_invocable_r<_Ret,_Fx &,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Fx=regist_keywords_contents::<lambda_57f428f9e98e593468867d0ecb5e8beb>,
+              _Ty=Context
+          ]
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1277): note: 查看指向正在编译的变量模板“const bool conjunction_v<std::negation<std::is_same<<lambda_57f428f9e98e593468867d0ecb5e8beb>,std::function<std::vector<Command,std::allocator<Command> > __cdecl(std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *)> > >,std::_Is_invocable_r<std::vector<Command,std::allocator<Command> >,<lambda_57f428f9e98e593468867d0ecb5e8beb> &,std::vector<Context,std::allocator<Context> > &,std::vector<Command,std::allocator<Command> > &,Word &,S_Expr_Compiler *> >”的引用
+  d:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.16.27023\include\functional(1499): note: 参见对正在编译的 别名 模板 实例化 "std::_Func_class<_Ret,std::vector<Context,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *>::_Enable_if_callable_t<_Fx&,std::function<_command_set (std::vector<_Ty,std::allocator<_Ty>> &,_command_set &,Word &,S_Expr_Compiler *)>>" 的引用
+          with
+          [
+              _Ret=_command_set,
+              _Ty=Context,
+              _Fx=regist_keywords_contents::<lambda_57f428f9e98e593468867d0ecb5e8beb>
+          ]
   Trlsr_Language.vcxproj -> D:\D_box\learning\workspace\C++studio\Trlsr_Language\x64\Debug\Trlsr_Language.exe

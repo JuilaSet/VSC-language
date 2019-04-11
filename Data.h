@@ -19,194 +19,49 @@ enum class DataType :int {
 	PARA_INDEX
 };
 
-struct data_t
-{
-	std::string value_str;
-	size_t value_int;
-};
-
-class Data {
+class vsData {
 protected:
-	DataType type;
-	data_t _data;
-
+	DataType _type;
 public:
-	Data() :type(DataType::NON), _data({ "", 0 }) {}
+	vsData(DataType type) :_type(type) {}
 
-	Data(DataType type, int data) :type(type) {
-		_data.value_int = data;
-	}
+	// 比较的方法
 
-	Data(DataType type, const std::string data) :type(type) {
-		_data.value_str = data;
-	}
+	virtual bool operator==(const vsData& d) = 0;
 
-	Data(const Data& d) {
-		type = d.type;
-		if (type == DataType::STRING) {
-			_data.value_str = d._data.value_str;
-		}
-		else {
-			_data.value_int = d._data.value_int;
-		}
-	}
+	virtual bool operator < (const vsData& d) = 0;
 
-#if CHECK_Data
-	virtual ~Data()
-	{
-		std::cout << "~Data " << toEchoString() << std::endl;
-	}
-#else
-	virtual ~Data() = default;
-#endif
-
-	virtual Data operator=(const Data& d) {
-		type = d.type;
-		if (d.type == DataType::STRING) {
-			_data.value_str = d._data.value_str;
-		}
-		else {
-			_data.value_int = d._data.value_int;
-		}
-		return *this;
-	}
-
-	bool operator==(const Data& d) {
-		bool ret = false;
-		if (d.type == type) {
-			if (type == DataType::STRING) {
-				ret = _data.value_str == d._data.value_str;
-			}
-			else {
-				ret = _data.value_int == d._data.value_int;
-			}
-		}
-		else {
-			ret = toString() == d.toString();
-		}
-		return ret;
-	}
-
-	bool operator < (const Data& d) {
-		bool ret = false;
-		if (d.type == type) {
-			if (type == DataType::STRING) {
-				ret = _data.value_str < d._data.value_str;
-			}
-			else {
-				ret = _data.value_int < d._data.value_int;
-			}
-		}
-		return ret;
-	}
-
-	bool operator > (const Data& d) {
-		bool ret = false;
-		if (d.type == type) {
-			if (type == DataType::STRING) {
-				ret = _data.value_str > d._data.value_str;
-			}
-			else {
-				ret = _data.value_int > d._data.value_int;
-			}
-		}
-		return ret;
-	}
+	virtual bool operator > (const vsData& d) = 0;
 
 	// 回显用函数
-	virtual std::string toEchoString() const {
-		if (type == DataType::STRING) {
-			return "<" + _data.value_str + ">";
-		}
-		else {
-			std::stringstream ss;
-			ss << _data.value_int;
-			return ss.str();
-		}
-	}
+	virtual std::string toEchoString() const = 0;
 
 	// 返回转换的字符串(支持数字转换为字符串)
-	virtual std::string toString() const {
-		if (type == DataType::STRING) {
-			return _data.value_str;
-		}
-		else {
-			assert(type != DataType::OPERA_ADDR);
-			assert(type != DataType::ID_INDEX);
-			assert(type != DataType::BLK_INDEX);
-			assert(type != DataType::PARA_INDEX);
-			std::stringstream ss;
-			ss << _data.value_int;
-			return ss.str();
-		}
-	}
+	virtual std::string toString() const = 0; 
 
 	// 返回转换的bool型(支持数字, 字符串转换bool)
-	virtual bool toBool() const {
-		bool ret;
-		switch (type)
-		{
-		case DataType::NON:
-			ret = false;
-			break;
-		case DataType::STRING:
-			ret = _data.value_str == "" ? false : true;
-			break;
-		case DataType::NUMBER:
-			ret = _data.value_int == 0 ? false : true;
-			break;
-		case DataType::OPERA_ADDR:
-		case DataType::PARA_INDEX:
-		case DataType::ID_INDEX:
-		case DataType::BLK_INDEX:
-			assert(false);
-			break;
-		default:
-			ret = false;
-			break;
-		}
-		return ret;
-	}
+	virtual bool toBool() const = 0; 
 
 	// 返回转换的数字(支持字符串转换为数字)
-	virtual int toNumber() const {
-		// 字符串转换为数字
-		if (type == DataType::STRING) {
-			std::stringstream s;
-			int a;
-			s << _data.value_str;
-			s >> a;
-			return a;
-		}
-		else {
-			assert(type != DataType::OPERA_ADDR);	// 不允许用户自定义跳转位置
-			assert(type != DataType::ID_INDEX);
-			assert(type != DataType::PARA_INDEX);
-			assert(type != DataType::BLK_INDEX); 
-			return _data.value_int;
-		}
-	}
+	virtual long long toNumber() const = 0;
 
 	// 返回地址(只能是地址类型)
-	virtual unsigned int toAddr() const {
-		assert(type == DataType::OPERA_ADDR);
-		return _data.value_int;
-	}
+	virtual unsigned int toAddr() const = 0; 
 
 	// 返回索引(只能是索引类型)
-	virtual size_t toIndex() const {
-		assert(type == DataType::ID_INDEX || type == DataType::BLK_INDEX || type == DataType::PARA_INDEX);
-		return _data.value_int;
-	}
+	virtual size_t toIndex() const = 0; 
+
+	// 查询成员
+	virtual std::shared_ptr<vsData> in(size_t index) = 0;
 
 	// 返回类型
-	virtual DataType getType() const {
-		return this->type;
+	DataType getType() const {
+		return _type;
 	}
 
 	// 返回类型名称
-	virtual std::string toTypeName() const {
-		switch (type) {
+	std::string getTypeName() const  {
+		switch (_type) {
 		case DataType::NON:
 			return "NON";
 		case DataType::STRING:
@@ -226,9 +81,286 @@ public:
 			return "ERROR";
 		}
 	}
+
+}; 
+using data_ptr = std::shared_ptr<vsData>;
+
+class NumData : public vsData, public std::enable_shared_from_this<NumData> {
+protected:
+	size_t value;
+
+public:
+	NumData():vsData(DataType::NON), value(0) { }
+
+	NumData(DataType type, int data) : vsData(type), value(data) { }
+
+	NumData(const vsData& d) :vsData(d.getType()), value(d.toNumber()) { }
+
+	NumData(const NumData& d) :vsData(d.getType()), value(d.value) { }
+
+#if CHECK_Data
+	virtual ~Data()
+	{
+		std::cout << "~Data " << toEchoString() << std::endl;
+	}
+#endif
+
+	virtual void operator=(const NumData& d) {
+		value = d.value;
+	}
+
+	// 比较
+	virtual bool operator==(const vsData& d) override {
+		bool ret = false;
+		switch (d.getType())
+		{
+		case DataType::STRING:
+			ret = value == d.toNumber(); // 与Number类型比较
+			break;
+		case DataType::NON:
+		case DataType::NUMBER:
+			ret = value == d.toNumber();
+			break;
+		case DataType::OPERA_ADDR:
+			ret = value == d.toAddr();
+			break;
+		case DataType::BLK_INDEX:
+		case DataType::ID_INDEX:
+		case DataType::PARA_INDEX:
+			ret = value == d.toIndex();
+			break;
+		default:
+			break;
+		}
+		return ret;
+	}
+
+	virtual bool operator < (const vsData& d) override {
+		bool ret = false;
+		switch (d.getType())
+		{
+		case DataType::STRING:
+			ret = value < d.toNumber(); // 与Number类型比较
+			break;
+		case DataType::NON:
+		case DataType::NUMBER:
+			ret = value < d.toNumber();
+			break;
+		case DataType::OPERA_ADDR:
+			ret = value < d.toAddr();
+			break;
+		case DataType::BLK_INDEX:
+		case DataType::ID_INDEX:
+		case DataType::PARA_INDEX:
+			ret = value < d.toIndex();
+			break;
+		default:
+			break;
+		}
+		return ret;
+	}
+
+	virtual bool operator > (const vsData& d) override {
+		bool ret = false;
+		switch (d.getType())
+		{
+		case DataType::STRING:
+			ret = value > d.toNumber(); // 与Number类型比较
+			break;
+		case DataType::NON:
+		case DataType::NUMBER:
+			ret = value > d.toNumber();
+			break;
+		case DataType::OPERA_ADDR:
+			ret = value > d.toAddr();
+			break;
+		case DataType::BLK_INDEX:
+		case DataType::ID_INDEX:
+		case DataType::PARA_INDEX:
+			ret = value > d.toIndex();
+			break;
+		default:
+			break;
+		}
+		return ret;
+	}
+
+	// 回显用函数
+	virtual std::string toEchoString() const override {
+		std::stringstream ss;
+		ss << value;
+		return ss.str();
+	}
+
+	// 返回转换的字符串(支持数字转换为字符串)
+	virtual std::string toString() const override {
+		assert(_type != DataType::OPERA_ADDR);
+		assert(_type != DataType::ID_INDEX);
+		assert(_type != DataType::BLK_INDEX);
+		assert(_type != DataType::PARA_INDEX);
+		std::stringstream ss;
+		ss << value;
+		return ss.str();
+	}
+
+	// 返回转换的bool型(支持数字, 字符串转换bool)
+	virtual bool toBool() const override {
+		return value;
+	}
+
+	// 返回转换的数字(支持字符串转换为数字)
+	virtual long long toNumber() const override {
+		assert(_type == DataType::NUMBER);
+		return value;
+	}
+
+	// 返回地址(只能是地址类型)
+	virtual unsigned int toAddr() const override {
+		assert(_type == DataType::OPERA_ADDR);
+		return value;
+	}
+
+	// 返回索引(只能是索引类型)
+	virtual size_t toIndex() const override {
+		assert(_type == DataType::ID_INDEX || _type == DataType::BLK_INDEX || _type == DataType::PARA_INDEX);
+		return value;
+	}
+	
+	// 查询成员(之后的成员全为0)
+	virtual data_ptr in(size_t index) override {
+		return data_ptr(new NumData(DataType::NUMBER, 0));
+	};
 };
 
-using data_ptr = std::shared_ptr<Data>;
+class StringData : public vsData {
+protected:
+	std::string value;
+public:
+	StringData() :vsData(DataType::STRING), value("") {}
+
+	StringData(const vsData& d) :vsData(d.getType()), value(d.toString()) { }
+
+	StringData(const std::string data):vsData(DataType::STRING), value(data) { }
+
+	// 比较的方法: 将d转换为string进行比较
+	virtual bool operator==(const vsData& d) {
+		bool ret = false;
+		switch (d.getType())
+		{
+		case DataType::STRING:
+			ret = value == d.toString();
+			break;
+		case DataType::NON:
+		case DataType::NUMBER:
+			ret = value == d.toString();
+			break;
+		case DataType::OPERA_ADDR:
+			ret = value == d.toString();
+			break;
+		case DataType::BLK_INDEX:
+		case DataType::ID_INDEX:
+		case DataType::PARA_INDEX:
+			ret = value == d.toString();
+			break;
+		default:
+			break;
+		}
+		return ret;
+	}
+
+	virtual bool operator < (const vsData& d) {
+		bool ret = false;
+		switch (d.getType())
+		{
+		case DataType::STRING:
+			ret = value < d.toString();
+			break;
+		case DataType::NON:
+		case DataType::NUMBER:
+			ret = value < d.toString();
+			break;
+		case DataType::OPERA_ADDR:
+			ret = value < d.toString();
+			break;
+		case DataType::BLK_INDEX:
+		case DataType::ID_INDEX:
+		case DataType::PARA_INDEX:
+			ret = value < d.toString();
+			break;
+		default:
+			break;
+		}
+		return ret;
+	}
+
+	virtual bool operator > (const vsData& d) {
+		bool ret = false;
+		switch (d.getType())
+		{
+		case DataType::STRING:
+			ret = value > d.toString();
+			break;
+		case DataType::NON:
+		case DataType::NUMBER:
+			ret = value > d.toString();
+			break;
+		case DataType::OPERA_ADDR:
+			ret = value > d.toString();
+			break;
+		case DataType::BLK_INDEX:
+		case DataType::ID_INDEX:
+		case DataType::PARA_INDEX:
+			ret = value > d.toString();
+			break;
+		default:
+			break;
+		}
+		return ret;
+	}
+
+	// 回显用函数
+	virtual std::string toEchoString() const {
+		return value;
+	}
+
+	// 返回转换的字符串(支持数字转换为字符串)
+	virtual std::string toString() const {
+		return value;
+	}
+
+	// 返回转换的bool型(支持数字, 字符串转换bool)
+	virtual bool toBool() const {
+		return value != "";
+	}
+
+	// 返回转换的数字(支持字符串转换为数字)
+	virtual long long toNumber() const {
+		std::stringstream ss;
+		ss << value;
+		long long n;
+		ss >> n;
+		return n;
+	}
+
+	// 返回地址(只能是地址类型)
+	virtual unsigned int toAddr() const {
+		assert(false); // 不能返回地址
+		return toNumber();
+	}
+
+	// 返回索引(只能是索引类型)
+	virtual size_t toIndex() const {
+		assert(false); // 不能返回索引
+		return toNumber();
+	}
+
+	// 返回索引
+	virtual data_ptr in(size_t index) override {
+		std::string sub = value.substr(index, 1);
+		return data_ptr(new StringData(sub));
+	}
+};
+
 namespace NULL_DATA {
-	const data_ptr null_data = data_ptr(new Data());
+	const data_ptr null_data = data_ptr(new NumData());
 }

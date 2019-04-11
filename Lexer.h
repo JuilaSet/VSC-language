@@ -134,16 +134,16 @@ public:
 	// 序列化word
 	std::string serialize() { return _str_ + "_" + getWordTypeName(_type_); }
 
-	Data getData() const {
+	data_ptr getData() const {
 		if (_type_ == WordType::NUMBER) {
 			int res;
 			std::stringstream ss;
 			ss << _str_;
 			ss >> res;
-			return Data(DataType::NUMBER, res);
+			return data_ptr(new NumData(DataType::NUMBER, res));
 		}
 		else {
-			return Data(DataType::STRING, _str_);
+			return data_ptr(new StringData(_str_));
 		}
 	}
 };

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#define CHECK_Eval false
-#define CHECK_Eval_command false
+#define CHECK_Eval true
+#define CHECK_Eval_command true
 
 // 
 class Command;
@@ -9,7 +9,7 @@ class CommandHelper;
 class vsVirtualMachine;
 class vsblock;
 using vec_command_t = std::vector<Command>;
-using data_ptr = std::shared_ptr<Data>;
+using data_ptr = std::shared_ptr<vsData>;
 using data_list_t = std::map<std::string, data_ptr>;
 using new_data_list_t = std::vector<data_ptr>;
 

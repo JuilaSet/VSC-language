@@ -1,13 +1,11 @@
 [
-	def twice lambda f x [
-		return call f call f x x; call f x x;;;
+	def C lambda msg [
+		def this str; msg;
 	];;
-
-	def f lambda a b [
-		return add a b;;
-	];;
-
-	echo call twice f 1 1;;
+	
+	def objc new C <abc>;;
+	def in objc k; c;
+	echo in objc str;;
 ]
 
 /*
