@@ -64,8 +64,6 @@ Command CommandHelper::getBasicCommandOfString(std::string str) {
 	else
 	COMMAND_GET(NEW_ASSIGN)
 	else
-	COMMAND_GET(STRCAT)
-	else
 	COMMAND_GET(ADD)
 	else
 	COMMAND_GET(NOT)
@@ -83,8 +81,6 @@ Command CommandHelper::getBasicCommandOfString(std::string str) {
 	COMMAND_GET(ISNON)
 	else
 	COMMAND_GET(RET)
-	else
-	COMMAND_GET(CALL)
 	else
 	COMMAND_GET(CALL_BLK)
 	else {

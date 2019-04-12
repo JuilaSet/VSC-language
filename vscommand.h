@@ -61,7 +61,7 @@ public:
 #if CHECK_Eval 
 			std::cerr << __LINE__ << "\tOPCODE::ECHO ";
 #endif
-			auto& stk = eval->current_stk_frame().stk;
+			auto& stk = eval->current_stk_frame()->stk;
 			assert(!stk.empty());
 			data_ptr d = eval->top();
 			std::string str = d->toEchoString();

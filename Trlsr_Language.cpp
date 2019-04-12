@@ -14,6 +14,7 @@ void regist_keywords_contents(Context_helper& helper) {
 		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 			compiler->def_paras_begin();
 			compiler->dont_gene_callblk();
+			compiler->setSubFieldStrongHold();
 			return _command_set{ };
 		},
 		{
@@ -23,6 +24,7 @@ void regist_keywords_contents(Context_helper& helper) {
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				compiler->def_paras_end();
 				compiler->enable_gene_callblk();
+				compiler->setSubFieldWeakHold();
 				return _command_set{ };
 			}, Context_Type::END)
 		})
@@ -47,8 +49,7 @@ void regist_keywords_contents(Context_helper& helper) {
 				compiler->paras_end();
 				return _command_set{
 						CommandHelper::getPushOpera(data_ptr(new NumData(DataType::NUMBER, count))),
-						COMMAND(CALL_BLK),
-						COMMAND(CALL_BLK_END)
+						COMMAND(CALL_BLK)
 				};
 			}, Context_Type::END)
 		})
@@ -103,7 +104,6 @@ void regist_keywords_contents(Context_helper& helper) {
 		helper.build_context(
 			[&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
 				compiler->in_def();
-				compiler->setSubFieldStrongHold(true);
 				return _command_set{};
 			},
 			{
@@ -114,6 +114,7 @@ void regist_keywords_contents(Context_helper& helper) {
 					int index = compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
 					commandVec.pop_back(); // 将之前的 push 立即数指令弹出
 					commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index))));
+					compiler->setSubFieldStrongHold();
 					return _command_set{};
 				}, Context_Type::NORMAL, "def_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
@@ -121,8 +122,7 @@ void regist_keywords_contents(Context_helper& helper) {
 					return _command_set{};
 				}, Context_Type::NORMAL, "def_op2"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-					// 还原作用域设置
-					compiler->setSubFieldStrongHold(false);
+					compiler->setSubFieldWeakHold();
 					return _command_set{
 						COMMAND(NEW_DEF)
 					};
@@ -221,11 +221,13 @@ void regist_keywords_contents(Context_helper& helper) {
 		helper.build_context(
 			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) { 
 				compiler->dont_gene_callblk();
+				compiler->setSubFieldStrongHold();
 				return _command_set{};
 			},
 			{
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
 					compiler->enable_gene_callblk();
+					compiler->setSubFieldWeakHold();
 					return _command_set{
 						COMMAND(RET)
 					};
@@ -384,24 +386,10 @@ void regist_keywords_contents(Context_helper& helper) {
 			{
 				// 转为数字
 				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
-					if (w.getType() != WordType::NUMBER) {
-						return _command_set{
-							COMMAND(CAST_NUMBER)
-						};
-					}
-					else {
-						return _command_set{ };
-					}
+					return _command_set{ };
 				}, Context_Type::NORMAL, "add_op1"),
 				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
-					if (w.getType() != WordType::NUMBER) {
-						return _command_set{
-							COMMAND(CAST_NUMBER)
-						};
-					}
-					else {
 						return _command_set{ };
-					}
 				}, Context_Type::NORMAL, "add_op2"),
 				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
 					return _command_set{
@@ -412,40 +400,6 @@ void regist_keywords_contents(Context_helper& helper) {
 	);
 
 	/*
-	helper.regist_context(Word(WordType::OPERATOR_WORD, "strcat").serialize(),
-		helper.build_context(
-			[](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {	// op_0
-				return _command_set{ };
-			},
-			{
-				// 转为字符串
-				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
-					if (w.getType() != WordType::STRING) {
-						return _command_set{
-							COMMAND(CAST_STRING)
-						};
-					}
-					else {
-						return _command_set{ };
-					}
-				}),
-				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
-					if (w.getType() != WordType::STRING) {
-						return _command_set{
-							COMMAND(CAST_STRING)
-						};
-					}
-					else {
-						return _command_set{ };
-					}
-				}),
-				Context([](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {	// op_end
-					return _command_set{
-						COMMAND(STRCAT)
-					};
-				}, Context_Type::END)
-			})
-	);
 
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "sub").serialize(),
 		helper.build_context(

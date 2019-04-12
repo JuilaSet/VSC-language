@@ -6,11 +6,14 @@
 #define CHECK_Function_block false;
 
 //
-// vsblock
-// : 通过evaluator来执行, 是静态的, 可以通过Data对象来引用
+// vsblock :
+//	* 通过evaluator来执行
+//	* 编译时确定
+//  * 可以通过vsData对象来引用<new NumData(DataType::BLK_INDEX, block_id)>
+//	* 在执行的时候会分配对应的栈帧作为执行的实例
 // 
 
-class vsblock
+class vsblock_static
 {
 protected:
 	vec_command_t _instruct;		// 指令数组
@@ -21,7 +24,6 @@ protected:
 	bool _strong_hold;				// 是否是强作用域
 //	std::vector<data_ptr> _paras_vec;	// 默认参数
 public:
-
 	size_t id() const {
 		return _id;
 	}
@@ -54,13 +56,13 @@ public:
 	}
 
 	// 确定id
-	vsblock(size_t id, bool strong_hold = false) :_id(id), _strong_hold(strong_hold) {
+	vsblock_static(size_t id, bool strong_hold = false) :_id(id), _strong_hold(strong_hold) {
 #if CHECK_Function_block
 		std::cout << "Def block startAddr := " << _id << std::endl;
 #endif
 	}
 
-	virtual ~vsblock() { }
+	virtual ~vsblock_static() { }
 };
 
-using block_ptr = std::shared_ptr<vsblock>;
+using block_ptr = std::shared_ptr<vsblock_static>;

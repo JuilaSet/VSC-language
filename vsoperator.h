@@ -80,7 +80,6 @@ enum class OPCODE :int {
 	ASSIGN,		// 变量赋值
 	ADD,		// 栈前两个元素相加
 	SUB,		// 栈前两个元素相减
-	STRCAT,		// 连接字符串
 
 	// 关系运算
 	NOT,		// 非
@@ -117,8 +116,6 @@ public:
 	static void G(vsEval_ptr eval);
 
 	static void L(vsEval_ptr eval);
-
-	static void STRCAT(vsEval_ptr eval);
 
 	static void POP(vsEval_ptr eval);
 
@@ -176,8 +173,6 @@ public:
 	
 	static void CP(vsEval_ptr eval);
 
-	static void CALL(vsEval_ptr eval);
-
 	// 带有返回值的break
 	static void RET(vsEval_ptr eval);
 
@@ -189,9 +184,6 @@ public:
 
 	// call的是参数表中的[0]位置的data
 	static void CALL_BLK(vsEval_ptr eval);
-
-	// 从call_blk中返回
-	static void CALL_BLK_END(vsEval_ptr eval);
 
 	// 对形参解引用, 从该帧的形参表中查询
 	static void PARA_PASS(vsEval_ptr eval);

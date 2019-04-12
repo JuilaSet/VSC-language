@@ -1,17 +1,10 @@
 ﻿#pragma once
 
-#define CHECK_Eval true
-#define CHECK_Eval_command true
-
 // 
 class Command;
 class CommandHelper;
 class vsVirtualMachine;
-class vsblock;
-using vec_command_t = std::vector<Command>;
-using data_ptr = std::shared_ptr<vsData>;
-using data_list_t = std::map<std::string, data_ptr>;
-using new_data_list_t = std::vector<data_ptr>;
+class vsblock_static;
 
 //		//
 // 异常	//
@@ -40,83 +33,12 @@ public:
 	}
 };
 
-// 返回地址信息(默认-1)
-struct _return_info {
-	size_t return_addr = -1;			// 返回地址
-	size_t return_block_id = -1;		// 返回的block id
-};
-
 //			//
 //  解释器	//
 //			//
 
-// 参数信息
-using act_paras_vec = std::vector<data_ptr>;
-struct _StackFrameParasInfo {
-	act_paras_vec act_para_list;	// 实参表
-
-	// 初始化
-	void init() {
-		act_para_list.clear();
-	}
-};
-
-// 将要传递给下一帧的信息, 每次传递完成后会初始化
-struct _tempStackFrame {
-	std::vector <_StackFrameParasInfo> next_paras_info; // 参数信息栈, 每一次call都push一层
-
-	// 初始化
-	void init() {
-		next_paras_info.clear();
-	}
-
-	// 添加一次信息
-	void push_next_paras_info() {
-		next_paras_info.emplace_back();
-	}
-
-	// 消去信息
-	void pop_next_paras_info() {
-		next_paras_info.pop_back();
-	}
-
-	// 最顶层的(参数)
-	_StackFrameParasInfo& backParasInfo() {
-		return next_paras_info.back();
-	}
-};
-
-// 运行时栈帧, 相当于block的一个状态
-struct _StackFrame {
-	_tempStackFrame temp_stkframe;	 // 将要传递给下一帧的信息
-
-	_StackFrameParasInfo paras_info; // 参数信息
-	new_data_list_t local_var_table; // 局部变量表, 根据int做随机访问, 每次有新的标识符就向上增加
-	std::vector<data_ptr> stk;		 // 操作数栈
-
-	_return_info ret;				 // 返回信息
-	bool _strong_hold;				 // 是否是强作用域
-
-	// 添加一次信息
-	void push_next_temp_paras_info() {
-		temp_stkframe.push_next_paras_info();
-	}
-
-	// 消去信息
-	void pop_next_temp_paras_info() {
-		temp_stkframe.pop_next_paras_info();
-	}
-
-	// 传递信息
-	void pass_message(_tempStackFrame& tframe, int paras_count) {
-		// 根据当前的传递的参数个数
-		paras_info = tframe.backParasInfo();
-		// ...
-	}
-};
-
 // 堆栈解释器
-using block_ptr = std::shared_ptr<vsblock>;
+using block_ptr = std::shared_ptr<vsblock_static>;
 class vsEvaluator
 {
 public:
@@ -134,7 +56,7 @@ protected:
 	
 	vec_command_t* _instruct_ptr;						// 指令数组
 	block_ptr _block_ptr;								// block指针, 指向当前的block, block在vm中固定
-	std::vector<_StackFrame> _stk_frame;				// 栈帧
+	std::vector<RunTimeStackFrame_ptr> _stk_frame;		// 栈帧指针
 
 	// std::vector<unsigned int> blk_stk;				// 保存所在语句块数据栈大小恢复值
 
@@ -158,11 +80,10 @@ protected:
 
 protected:
 	// 创建并压入栈帧
-	void _push_frame(int paras_count) throw(stack_overflow_exception);
+	void _push_and_setting_frame(block_ptr retblock, block_ptr curblock, int paras_count) throw(stack_overflow_exception);
 
 	// 弹出局部变量
 	void _pop_frame();
-
 public:
 	vsEvaluator(vsVirtualMachine* vm)
 		:_vm(vm), _stop_val(0), _stop(false), _flag_has_instruct(false) { }
@@ -222,7 +143,7 @@ public:
 	bool isstop() { return _stop; }
 
 	// 获取当前栈
-	inline _StackFrame& current_stk_frame() {
+	inline RunTimeStackFrame_ptr current_stk_frame() {
 		assert(!_stk_frame.empty());
 		return _stk_frame.back();
 	}
@@ -230,7 +151,7 @@ public:
 	// 交换顶层两个元素
 	inline void reverse_top() {
 		assert(!_stk_frame.empty());
-		auto& stk = current_stk_frame().stk;
+		auto& stk = current_stk_frame()->stk;
 
 		assert(!stk.empty());
 		data_ptr d1 = stk.back();
@@ -246,7 +167,7 @@ public:
 	// 弹出顶层元素
 	inline data_ptr pop() {
 		assert(!_stk_frame.empty());
-		auto& stk = current_stk_frame().stk;
+		auto& stk = current_stk_frame()->stk;
 
 		assert(!stk.empty());
 		auto d = stk.back();
@@ -257,7 +178,7 @@ public:
 	// 返回顶层元素
 	inline data_ptr top() {
 		assert(!_stk_frame.empty());
-		auto& stk = current_stk_frame().stk;
+		auto& stk = current_stk_frame()->stk;
 
 		assert(!stk.empty());
 		data_ptr d = stk.back();
@@ -266,9 +187,15 @@ public:
 
 	// 压入元素
 	void push(data_ptr d){
+		// 说明在没有push 栈帧的时候就尝试往其中放入数据
 		assert(!_stk_frame.empty());
-		auto& stk = current_stk_frame().stk;
+		auto& stk = current_stk_frame()->stk;
 		stk.push_back(d);
+	}
+
+	// 返回虚拟机指针
+	vsVirtualMachine* getVM() {
+		return _vm;
 	}
 };
 

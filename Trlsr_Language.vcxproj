@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClInclude Include="Compiler.h" />
     <ClInclude Include="vscommand.h" />
+    <ClInclude Include="vsFrame.h" />
     <ClInclude Include="vsObject.h" />
     <ClInclude Include="vsoperator.h" />
     <ClInclude Include="vsVirtualMachine.h" />
@@ -170,6 +171,7 @@
   <ItemGroup>
     <ClCompile Include="Compiler.cpp" />
     <ClCompile Include="vscommand.cpp" />
+    <ClCompile Include="vsFrame.cpp" />
     <ClCompile Include="vsObject.cpp" />
     <ClCompile Include="vsoperator.cpp" />
     <ClCompile Include="vsVirtualMachine.cpp" />

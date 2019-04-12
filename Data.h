@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#define CHECK_Data false
-
 enum class DataType :int {
 	// 空, enum默认构造为NON
 	NON,
@@ -16,34 +14,41 @@ enum class DataType :int {
 	// block的索引类型
 	BLK_INDEX,
 	// 参数类型
-	PARA_INDEX
+	PARA_INDEX,
+	// 函数类型
+	FUNCTION
 };
 
+// 数据对象基类
 class vsData {
 protected:
 	DataType _type;
 public:
 	vsData(DataType type) :_type(type) {}
 
+	virtual std::shared_ptr<vsData> cp(std::shared_ptr<vsData> d) = 0;
+
 	// 比较的方法
+	virtual bool eq(std::shared_ptr<vsData> d) = 0;
 
-	virtual bool operator==(const vsData& d) = 0;
+	virtual bool l(std::shared_ptr<vsData> d) = 0;
 
-	virtual bool operator < (const vsData& d) = 0;
+	virtual bool g(std::shared_ptr<vsData> d) = 0;
 
-	virtual bool operator > (const vsData& d) = 0;
+	// 运算
+	virtual std::shared_ptr<vsData> add(std::shared_ptr<vsData> d) = 0;
 
 	// 回显用函数
 	virtual std::string toEchoString() const = 0;
 
 	// 返回转换的字符串(支持数字转换为字符串)
-	virtual std::string toString() const = 0; 
-
-	// 返回转换的bool型(支持数字, 字符串转换bool)
-	virtual bool toBool() const = 0; 
+	virtual std::string toString() const = 0;
 
 	// 返回转换的数字(支持字符串转换为数字)
 	virtual long long toNumber() const = 0;
+
+	// 返回转换的bool型(支持数字, 字符串转换bool)
+	virtual bool toBool() const = 0; 
 
 	// 返回地址(只能是地址类型)
 	virtual unsigned int toAddr() const = 0; 
@@ -76,14 +81,27 @@ public:
 			return "BLK_INDEX";
 		case DataType::PARA_INDEX:
 			return "PARA_INDEX";
+		case DataType::FUNCTION:
+			return "FUNCTION";
 		default:
-			assert(false);
+			assert(false); // 说明存在还没有注册的名称
 			return "ERROR";
 		}
 	}
 
-}; 
-using data_ptr = std::shared_ptr<vsData>;
+};
+
+// 可执行对象接口
+class IEvaluable: public vsData {
+public:
+	IEvaluable() : vsData(DataType::FUNCTION) {}
+
+	// 执行(计算对象, 函数参数个数)
+	virtual int eval(vsEvaluator& evalor, int argc) = 0;
+
+	// 获取当前运行上下文
+	virtual RunTimeStackFrame_ptr get_runtime_ptr() = 0;
+};
 
 class NumData : public vsData, public std::enable_shared_from_this<NumData> {
 protected:
@@ -92,98 +110,36 @@ protected:
 public:
 	NumData():vsData(DataType::NON), value(0) { }
 
-	NumData(DataType type, int data) : vsData(type), value(data) { }
+	NumData(DataType type, size_t data) : vsData(type), value(data) { }
 
 	NumData(const vsData& d) :vsData(d.getType()), value(d.toNumber()) { }
 
 	NumData(const NumData& d) :vsData(d.getType()), value(d.value) { }
 
-#if CHECK_Data
-	virtual ~Data()
-	{
-		std::cout << "~Data " << toEchoString() << std::endl;
-	}
-#endif
-
-	virtual void operator=(const NumData& d) {
-		value = d.value;
+	virtual data_ptr cp(data_ptr d) override {
+		_type = DataType::NUMBER;
+		value = d->toNumber();
+		return data_ptr(new NumData(_type, value));
 	}
 
 	// 比较
-	virtual bool operator==(const vsData& d) override {
-		bool ret = false;
-		switch (d.getType())
-		{
-		case DataType::STRING:
-			ret = value == d.toNumber(); // 与Number类型比较
-			break;
-		case DataType::NON:
-		case DataType::NUMBER:
-			ret = value == d.toNumber();
-			break;
-		case DataType::OPERA_ADDR:
-			ret = value == d.toAddr();
-			break;
-		case DataType::BLK_INDEX:
-		case DataType::ID_INDEX:
-		case DataType::PARA_INDEX:
-			ret = value == d.toIndex();
-			break;
-		default:
-			break;
-		}
-		return ret;
+	virtual bool eq(data_ptr d) override {
+		return value == d->toNumber();
 	}
 
-	virtual bool operator < (const vsData& d) override {
-		bool ret = false;
-		switch (d.getType())
-		{
-		case DataType::STRING:
-			ret = value < d.toNumber(); // 与Number类型比较
-			break;
-		case DataType::NON:
-		case DataType::NUMBER:
-			ret = value < d.toNumber();
-			break;
-		case DataType::OPERA_ADDR:
-			ret = value < d.toAddr();
-			break;
-		case DataType::BLK_INDEX:
-		case DataType::ID_INDEX:
-		case DataType::PARA_INDEX:
-			ret = value < d.toIndex();
-			break;
-		default:
-			break;
-		}
-		return ret;
+	virtual bool l(data_ptr d) override {
+		return value > d->toNumber();
 	}
 
-	virtual bool operator > (const vsData& d) override {
-		bool ret = false;
-		switch (d.getType())
-		{
-		case DataType::STRING:
-			ret = value > d.toNumber(); // 与Number类型比较
-			break;
-		case DataType::NON:
-		case DataType::NUMBER:
-			ret = value > d.toNumber();
-			break;
-		case DataType::OPERA_ADDR:
-			ret = value > d.toAddr();
-			break;
-		case DataType::BLK_INDEX:
-		case DataType::ID_INDEX:
-		case DataType::PARA_INDEX:
-			ret = value > d.toIndex();
-			break;
-		default:
-			break;
-		}
-		return ret;
+	virtual bool g(data_ptr d) override {
+		return value == d->toNumber();
 	}
+
+	// 运算
+	virtual data_ptr add(data_ptr d) override {
+		int v = value + d->toNumber();
+		return data_ptr(new NumData(_type, v)); // 返回NUMBER类型
+	};
 
 	// 回显用函数
 	virtual std::string toEchoString() const override {
@@ -203,14 +159,13 @@ public:
 		return ss.str();
 	}
 
-	// 返回转换的bool型(支持数字, 字符串转换bool)
-	virtual bool toBool() const override {
+	// 返回数字(不论什么类型都可以)
+	virtual long long toNumber() const override {
 		return value;
 	}
 
-	// 返回转换的数字(支持字符串转换为数字)
-	virtual long long toNumber() const override {
-		assert(_type == DataType::NUMBER);
+	// 返回转换的bool型(支持数字, 字符串转换bool)
+	virtual bool toBool() const override {
 		return value;
 	}
 
@@ -242,81 +197,30 @@ public:
 
 	StringData(const std::string data):vsData(DataType::STRING), value(data) { }
 
+	virtual data_ptr cp(data_ptr d) override {
+		_type = DataType::STRING;
+		value = d->toString();
+		return data_ptr(new StringData(value));
+	}
+
 	// 比较的方法: 将d转换为string进行比较
-	virtual bool operator==(const vsData& d) {
-		bool ret = false;
-		switch (d.getType())
-		{
-		case DataType::STRING:
-			ret = value == d.toString();
-			break;
-		case DataType::NON:
-		case DataType::NUMBER:
-			ret = value == d.toString();
-			break;
-		case DataType::OPERA_ADDR:
-			ret = value == d.toString();
-			break;
-		case DataType::BLK_INDEX:
-		case DataType::ID_INDEX:
-		case DataType::PARA_INDEX:
-			ret = value == d.toString();
-			break;
-		default:
-			break;
-		}
-		return ret;
+	virtual bool eq(data_ptr d) override  {
+		return value == d->toString();
 	}
 
-	virtual bool operator < (const vsData& d) {
-		bool ret = false;
-		switch (d.getType())
-		{
-		case DataType::STRING:
-			ret = value < d.toString();
-			break;
-		case DataType::NON:
-		case DataType::NUMBER:
-			ret = value < d.toString();
-			break;
-		case DataType::OPERA_ADDR:
-			ret = value < d.toString();
-			break;
-		case DataType::BLK_INDEX:
-		case DataType::ID_INDEX:
-		case DataType::PARA_INDEX:
-			ret = value < d.toString();
-			break;
-		default:
-			break;
-		}
-		return ret;
+	virtual bool l(data_ptr d) override {
+		return value < d->toString();
 	}
 
-	virtual bool operator > (const vsData& d) {
-		bool ret = false;
-		switch (d.getType())
-		{
-		case DataType::STRING:
-			ret = value > d.toString();
-			break;
-		case DataType::NON:
-		case DataType::NUMBER:
-			ret = value > d.toString();
-			break;
-		case DataType::OPERA_ADDR:
-			ret = value > d.toString();
-			break;
-		case DataType::BLK_INDEX:
-		case DataType::ID_INDEX:
-		case DataType::PARA_INDEX:
-			ret = value > d.toString();
-			break;
-		default:
-			break;
-		}
-		return ret;
+	virtual bool g(data_ptr d) override {
+		return value > d->toString();
 	}
+
+	// 运算
+	virtual data_ptr add(data_ptr d) override {
+		std::string v = value + d->toString();
+		return data_ptr(new StringData(v)); // 返回NUMBER类型
+	};
 
 	// 回显用函数
 	virtual std::string toEchoString() const {
@@ -359,6 +263,89 @@ public:
 		std::string sub = value.substr(index, 1);
 		return data_ptr(new StringData(sub));
 	}
+};
+
+class FunctionData: public IEvaluable {
+protected:
+	size_t block_id;							// block代码块地址
+	RunTimeStackFrame_ptr runtime_context_ptr;	// 上下文环境(运行时栈帧)
+public:
+	FunctionData(size_t block_id) : block_id(block_id) {}
+
+	virtual data_ptr cp(std::shared_ptr<vsData> d) override {
+		assert(d->getType() == DataType::FUNCTION);
+		block_id = d->toNumber();
+		return data_ptr(new FunctionData(block_id));
+	}
+
+	// 比较的方法
+	virtual bool eq(std::shared_ptr<vsData> d) override {
+		return (d->getType() == _type) && (d->toIndex() == block_id);
+	}
+
+	virtual bool l(std::shared_ptr<vsData> d) override {
+		return (d->getType() == _type) && (block_id < d->toIndex());
+	}
+
+	virtual bool g(std::shared_ptr<vsData> d) override {
+		return (d->getType() == _type) && (block_id > d->toIndex());
+	}
+
+	// 运算
+	virtual std::shared_ptr<vsData> add(std::shared_ptr<vsData> d) override {
+		return data_ptr(new NumData(DataType::NUMBER, block_id + d->toNumber()));
+	}
+
+	// 回显用函数
+	virtual std::string toEchoString() const override {
+		std::stringstream ss;
+		ss << block_id;
+		return ss.str();
+	}
+
+	// 返回转换的字符串(支持数字转换为字符串)
+	virtual std::string toString() const override {
+		assert(_type != DataType::OPERA_ADDR);
+		assert(_type != DataType::ID_INDEX);
+		assert(_type != DataType::BLK_INDEX);
+		assert(_type != DataType::PARA_INDEX);
+		std::stringstream ss;
+		ss << block_id;
+		return ss.str();
+	}
+
+	// 返回转换的数字(支持字符串转换为数字)
+	virtual long long toNumber() const override {
+		return block_id;
+	}
+
+	// 返回转换的bool型(支持数字, 字符串转换bool)
+	virtual bool toBool() const override {
+		return block_id != -1;
+	}
+
+	// 返回地址(只能是地址类型)
+	virtual unsigned int toAddr() const override {
+		assert(false);
+		return block_id;
+	}
+
+	// 返回索引(只能是索引类型)
+	virtual size_t toIndex() const override  {
+		return block_id;
+	}
+
+	// 查询成员
+	virtual std::shared_ptr<vsData> in(size_t index) override  {
+		return data_ptr(new FunctionData(index));
+	}
+
+public:
+	// 执行
+	virtual int eval(vsEvaluator& evalor, int argc) override;
+
+	// 获取当前运行上下文
+	virtual RunTimeStackFrame_ptr get_runtime_ptr() override;
 };
 
 namespace NULL_DATA {

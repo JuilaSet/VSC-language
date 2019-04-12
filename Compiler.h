@@ -1,8 +1,5 @@
 ﻿#pragma once
 
-#define CHECK_Compiler false
-#define CHECK_Compiler_alloc false
-
 // 空上下文
 #define EMPTY_CONTEXT \
 Context([](ContextStk& cstk, _command_set& _vec, Word& w, auto* compiler) {\
@@ -179,6 +176,9 @@ public:
 
 	// 初始化
 	void init() {
+#if CHECK_Compiler_Field
+		std::cout << __LINE__ << " 初始化临时作用域为false" << std::endl;
+#endif
 		this->_sub_strong_hold = false;
 		_next_form_map.clear();
 	}
@@ -280,6 +280,9 @@ public:
 		auto& map = temp_tool.next_form_paras_map();
 		_form_map.insert(map.begin(), map.end());
 		// ...
+
+		// 传递完后初始化
+		temp_tool.init();
 	}
 
 	// 查询形参地址
@@ -402,10 +405,25 @@ protected:
 
 	// 新建一个block
 	void new_block(Compile_result& result, size_t block_id) {
+#if CHECK_Compiler_Field_NEW_BLK
+		std::cout << "new_block" << std::endl;
+#endif
 		// 查看当前的ctool是否是strongField
 		auto stronghold = ctool().strong_hold();
-		block_ptr blk(new vsblock(block_id, stronghold));
+		block_ptr blk(new vsblock_static(block_id, stronghold));
 		result.add_block(blk);
+
+#if CHECK_Compiler_Field_NEW_BLK
+		std::cerr << __LINE__ << " BLOCK_Field: " << (stronghold ? "T" : "F") << std::endl;
+		// 检查所有的ctool
+		for (_compiler_tool& ct : ctool_stk) {
+			std::cout << "[";
+			std::cout << "cur _strong_hold: " << ct._strong_hold << std::endl;
+			std::cout << "temp _strong_hold: " << ct._temp_tool.subFieldStrongHold() << std::endl;
+			std::cout << "]";
+		}
+		std::cout << std::endl << std::endl;
+#endif
 	}
 
 	// 分配形参的地址给下一层
@@ -517,29 +535,77 @@ public:
 
 	// 变量作用域相关
 	void localBegin() {
+#if CHECK_Compiler_Field
+		std::cout << "localBegin" << std::endl;
+#endif
 		wt_map_list.push_back(word_type_map());
 		li_map_list.push_back(local_index_map());
 
 		// 新建一个ctool
 		_compiler_tool _t_ctool;
-		// 传递当前信息
+		// 传递当前信息(第一次不传递)
 		if (!ctool_stk.empty()) {
 			auto& _temp_tool_ref = ctool().get_temp_tool_ref();
 			_t_ctool.pass_temp_message(_temp_tool_ref);
-			// 传递完后初始化
-			_temp_tool_ref.init();
 		}
 		ctool_stk.push_back(_t_ctool);
+#if CHECK_Compiler_Field
+		std::cout << __LINE__ << " 传递当前信息" << std::endl;
+		for (_compiler_tool& ct : ctool_stk) {
+			std::cout << "[";
+			std::cout << "cur _strong_hold: " << ct._strong_hold << std::endl;
+			std::cout << "temp _strong_hold: " << ct._temp_tool.subFieldStrongHold() << std::endl;
+			std::cout << "]";
+		}
+		std::cout << std::endl << std::endl;
+#endif
 	}
 
 	void localEnd() {
 		wt_map_list.pop_back();
 		li_map_list.pop_back();
 		ctool_stk.pop_back();
+#if CHECK_Compiler_Field
+		std::cout << __LINE__ << " 退出作用域" << std::endl;
+		for (_compiler_tool& ct : ctool_stk) {
+			std::cout << "[";
+			std::cout << "cur _strong_hold: " << ct._strong_hold << std::endl;
+			std::cout << "temp _strong_hold: " << ct._temp_tool.subFieldStrongHold() << std::endl;
+			std::cout << "]";
+		}
+		std::cout << std::endl << std::endl;
+#endif
 	}
 
 	// 设置当前的作用域的子作用域的属性, 属性将会传递给下一个开辟的block
-	void setSubFieldStrongHold(bool b) { ctool().get_temp_tool_ref().setSubFieldStrongHold(b); }
+	void setSubFieldStrongHold() { 
+		ctool().get_temp_tool_ref().setSubFieldStrongHold(true); 
+#if CHECK_Compiler_Field
+		std::cout << __LINE__ << " 前的作用域的子作用域为强作用域" << std::endl;
+		for (_compiler_tool& ct : ctool_stk) {
+			std::cout << "[";
+			std::cout << "cur _strong_hold: " << ct._strong_hold << std::endl;
+			std::cout << "temp _strong_hold: " << ct._temp_tool.subFieldStrongHold() << std::endl;
+			std::cout << "]";
+		}
+		std::cout << std::endl << std::endl;
+#endif
+	}
+
+	// 
+	void setSubFieldWeakHold() {
+		ctool().get_temp_tool_ref().setSubFieldStrongHold(false);
+#if CHECK_Compiler_Field
+		std::cout << __LINE__ << " 前的作用域的子作用域为弱作用域" << std::endl;
+		for (_compiler_tool& ct : ctool_stk) {
+			std::cout << "[";
+			std::cout << "cur _strong_hold: " << ct._strong_hold << std::endl;
+			std::cout << "temp _strong_hold: " << ct._temp_tool.subFieldStrongHold() << std::endl;
+			std::cout << "]";
+		}
+		std::cout << std::endl << std::endl;
+#endif
+	}
 
 	// 插入局部变量记录
 	int insert_local(Word& w, WordType type) {

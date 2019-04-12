@@ -67,12 +67,15 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 				// push 要跳转的地址
 				auto& comm = result.refCommandVector(cur_block_id);
 				comm.push_back(CommandHelper::getPushOpera(
-						data_ptr(new NumData(DataType::BLK_INDEX, block_id))));
+						data_ptr(new FunctionData(block_id))));
 
 				assert(ctool_stk.size() > 1);
 				if (!(ctool_stk.rbegin() + 1)->is_def_blk()) {
+					comm.push_back(COMMAND(CALL_BLK_BEGIN));
 					// 地址传参
 					comm.push_back(COMMAND(PARA_PASS));
+					// 告知传参个数
+					comm.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::NUMBER, 0))));
 					// 生成跳转到block指令
 					comm.push_back(COMMAND(CALL_BLK));
 				}
