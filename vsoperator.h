@@ -36,6 +36,7 @@ enum class OPCODE :int {
 	CAST_NUMBER,	// 转换为number型
 	CAST_STRING,	// 转换为字符串
 	CAST_BOOL,		// 转换为bool型
+	TYPENAME,		// 获取typename
 	REVERSE_TOP,	// 将栈顶两个数据交换
 
 	// 比较
@@ -63,6 +64,7 @@ enum class OPCODE :int {
 	CALL_BLK,	// 跳转到指定的block处
 	RET,		// 跳转到栈顶地址位置, 不自动-1
 	BREAK,		// 跳出该block
+	ENCLOSED,		// 形成闭包
 
 	// 特殊立即数
 	TIME_BEGIN,		// 当前时间
@@ -125,6 +127,8 @@ public:
 
 	static void CAST_BOOL(vsEval_ptr eval);
 
+	static void TYPENAME(vsEval_ptr eval);
+
 	static void CMP(vsEval_ptr eval);
 
 	static void TEST(vsEval_ptr eval);
@@ -178,6 +182,9 @@ public:
 
 	// 从block中返回
 	static void BREAK(vsEval_ptr eval);
+
+	// 将当前的上下文传入临时栈帧
+	static void ENCLOSED(vsEval_ptr eval);
 
 	// 开始传参
 	static void CALL_BLK_BEGIN(vsEval_ptr eval);

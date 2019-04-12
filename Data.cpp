@@ -13,13 +13,5 @@ int FunctionData::eval(vsEvaluator& evalor, int argc) {
 #endif
 
 	evalor.load_block(block_ptr, argc);
-
-	// 
-	runtime_context_ptr = evalor.current_stk_frame();
 	return 0;
-}
-
-// 获取当前运行上下文
-RunTimeStackFrame_ptr FunctionData::get_runtime_ptr() {
-	return runtime_context_ptr;
 }

@@ -235,6 +235,22 @@ void OPERATOR::CAST_BOOL(vsEval_ptr eval) {
 #endif
 }
 
+void OPERATOR::TYPENAME(vsEval_ptr eval) {
+#if CHECK_Eval
+	std::cerr << __LINE__ << "\tOPCODE::TYPENAME ";
+#endif
+	auto& stk = eval->current_stk_frame()->stk;
+
+	assert(!stk.empty());
+	data_ptr d = eval->pop();
+	assert(d->getType() != DataType::OPERA_ADDR);
+	auto name = d->getTypeName();
+	eval->push(data_ptr(new StringData(name)));
+#if CHECK_Eval
+	std::cerr << name << std::endl;
+#endif
+}
+
 void OPERATOR::CMP(vsEval_ptr eval)
 {
 #if CHECK_Eval 
@@ -719,6 +735,24 @@ void OPERATOR::BREAK(vsEval_ptr eval) {
 	eval->exit_block();
 }
 
+void OPERATOR::ENCLOSED(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::ENCLOSED " << std::endl;
+#endif
+	assert(!eval->isGlobal());
+	auto frame = eval->current_stk_frame();
+
+	// 当前环境传递给function对象
+	assert(!frame->stk.empty());
+	auto function_obj = eval->top();
+
+	assert(function_obj->getType() == DataType::FUNCTION);
+	IEvaluable* evalable = reinterpret_cast<IEvaluable*>(&*function_obj);
+	evalable->set_runtime_ctx_ptr(frame);
+}
+
+
+// 分配临时实参列表, 为接下来传递参数做准备
 void OPERATOR::CALL_BLK_BEGIN(vsEval_ptr eval) {
 	// 注意: call Block的时候还是在栈外面
 #if CHECK_Eval 
@@ -762,7 +796,7 @@ void OPERATOR::PARA_PASS(vsEval_ptr eval) {
 
 	data_ptr data = eval->pop();
 
-	// 将实参PUSH到当前栈帧的实参列表中, 会在push_frame中传递信息给新建的frame
+	// 将实参PUSH到当前栈帧的临时实参列表中, 会在push_frame中传递信息给新建的frame
 	assert(!eval->_stk_frame.empty());
 	eval->para_pass_data(data);
 

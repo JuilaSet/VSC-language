@@ -1,21 +1,23 @@
 [
-	def C lambda msg [
-		def this str; msg;
+	def a enclosed [
+		def x 100;
+		return [
+			return enclosed [
+				echo x; // 应该是未定义
+			];;
+		];;
 	];;
-	
-	def objc new C <abc>;;
-	def in objc k; c;
-	echo in objc str;;
+	call call call a;;;
 ]
 
 /*
-python对应代码: 
+js 对应代码: 
 
-def twice(function, x):
-    return function(function(x))
- 
-def f(x):
-    return x + 3
- 
-print(twice(f, 7)) # 13
+var a = ()=>{
+	var x=100;
+	return ()=>{
+		console.log(x);
+	}
+}
+a()();
 */

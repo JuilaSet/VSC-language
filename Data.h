@@ -93,14 +93,23 @@ public:
 
 // 可执行对象接口
 class IEvaluable: public vsData {
+protected:
+	RunTimeStackFrame_ptr runtime_context_ptr;	// 上下文环境(运行时栈帧)
 public:
 	IEvaluable() : vsData(DataType::FUNCTION) {}
 
 	// 执行(计算对象, 函数参数个数)
 	virtual int eval(vsEvaluator& evalor, int argc) = 0;
 
-	// 获取当前运行上下文
-	virtual RunTimeStackFrame_ptr get_runtime_ptr() = 0;
+	// 设置当前上下文
+	void set_runtime_ctx_ptr(RunTimeStackFrame_ptr ptr) {
+		runtime_context_ptr = ptr;
+	}
+
+	// 获取外部运行上下文
+	RunTimeStackFrame_ptr get_runtime_ctx_ptr() {
+		return runtime_context_ptr;
+	}
 };
 
 class NumData : public vsData, public std::enable_shared_from_this<NumData> {
@@ -268,7 +277,6 @@ public:
 class FunctionData: public IEvaluable {
 protected:
 	size_t block_id;							// block代码块地址
-	RunTimeStackFrame_ptr runtime_context_ptr;	// 上下文环境(运行时栈帧)
 public:
 	FunctionData(size_t block_id) : block_id(block_id) {}
 
@@ -343,9 +351,6 @@ public:
 public:
 	// 执行
 	virtual int eval(vsEvaluator& evalor, int argc) override;
-
-	// 获取当前运行上下文
-	virtual RunTimeStackFrame_ptr get_runtime_ptr() override;
 };
 
 namespace NULL_DATA {

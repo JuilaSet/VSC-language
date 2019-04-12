@@ -79,6 +79,12 @@ protected:
 	bool _flag_has_instruct;
 
 protected:
+	// 根据index获取data对象
+	data_ptr _find_data(int index);
+
+	// 根据index获取para实参对象
+	data_ptr _find_para(int index);
+
 	// 创建并压入栈帧
 	void _push_and_setting_frame(block_ptr retblock, block_ptr curblock, int paras_count) throw(stack_overflow_exception);
 
@@ -92,6 +98,11 @@ public:
 		:_vm(vm), _instruct_ptr(ptr), _stop(false), _stop_val(0), _flag_has_instruct(true) { }
 
 	~vsEvaluator();
+
+	// 是否是最外层
+	bool isGlobal() {
+		return (_stk_frame.size() == 0);
+	}
 
 	// 加载block, 在调用call_blk时调用
 	void load_block(block_ptr block, int paras_count);

@@ -20,7 +20,7 @@ void regist_keywords_contents(Context_helper& helper) {
 		{
 			Context([=](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				return _command_set{  };
-			}, Context_Type::ALWAYS), 
+			}, Context_Type::NORMAL), 
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				compiler->def_paras_end();
 				compiler->enable_gene_callblk();
@@ -29,6 +29,26 @@ void regist_keywords_contents(Context_helper& helper) {
 			}, Context_Type::END)
 		})
 	); 
+
+	helper.regist_context(Word(WordType::CONTROLLER, "enclosed").serialize(),
+		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, auto* compiler) {
+		compiler->def_paras_begin();
+		compiler->dont_gene_callblk();
+		compiler->setSubFieldWeakHold();
+		return _command_set{ };
+	},
+		{
+			Context([=](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				return _command_set{ };
+			}, Context_Type::NORMAL),
+			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				compiler->def_paras_end();
+				compiler->enable_gene_callblk();
+				compiler->setSubFieldWeakHold();
+				return _command_set{ COMMAND(ENCLOSED) };
+			}, Context_Type::END)
+		})
+	);
 
 	helper.regist_context(Word(WordType::CONTROLLER, "call").serialize(),
 		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
@@ -399,6 +419,21 @@ void regist_keywords_contents(Context_helper& helper) {
 			})
 	);
 
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "typename").serialize(),
+		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, auto* compiler) {
+		helper.push_command_index(_vec.size());
+			return _command_set{ };
+		},
+		{
+			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				return _command_set{ COMMAND(TYPENAME) };
+			}, Context_Type::NORMAL, "typename_op1"),
+			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				return _command_set{ };
+			}, Context_Type::END, "typename_end")
+		})
+	);
+
 	/*
 
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "sub").serialize(),
@@ -560,10 +595,11 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_OPERATO_WORDS(helper, "eq");
 	REGIST_OPERATO_WORDS(helper, "g");
 	REGIST_OPERATO_WORDS(helper, "l");
-
+	REGIST_OPERATO_WORDS(helper, "typename");
+	
 	REGIST_CONTROLLER_WORDS(helper, "call");
 	REGIST_CONTROLLER_WORDS(helper, "lambda");
-//	REGIST_CONTROLLER_WORDS(helper, "prcd");
+	REGIST_CONTROLLER_WORDS(helper, "enclosed");
 	REGIST_CONTROLLER_WORDS(helper, "return");
 	REGIST_CONTROLLER_WORDS(helper, "break");
 
@@ -574,7 +610,6 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_CONTROLLER_WORDS(helper, "assign");
 	REGIST_CONTROLLER_WORDS(helper, "cp");
 	REGIST_CONTROLLER_WORDS(helper, "ignore");
-	
 	REGIST_CONTROLLER_WORDS(helper, "while");
 //	REGIST_CONTROLLER_WORDS(helper, "rept");
 	REGIST_CONTROLLER_WORDS(helper, "if");
@@ -1207,8 +1242,11 @@ void test_input_cli(){
 	regist_words(word_type_helper);
 
 	// 初始化scanner
+#if MODE_CIL
 	Lexer lex(new CLIInput("luo ->"));
-	//Lexer lex(new FileInput("in.tr"));
+#else
+	Lexer lex(new FileInput("in.tr"));
+#endif
 
 	// 注册语法规则
 	Parser p(&lex);
@@ -1221,7 +1259,9 @@ void test_input_cli(){
 	// 虚拟机
 	vsVirtualMachine vm(0);
 
+#if MODE_CIL
 	while (1) 
+#endif
 	{
 		p.clear_word_vec();
 
@@ -1252,7 +1292,9 @@ void test_input_cli(){
 				// 执行代码
 				vm.init(cresult, 1);
 				vm.run();
+#if MODE_CIL
 				if(vm.get_eval_ret_value() == -1)break;
+#endif
 			}
 		}
 		catch (Context_found_error e) {

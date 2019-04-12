@@ -97,6 +97,99 @@ void vsEvaluator::_pop_frame() {
 #endif
 }
 
+// 根据index获取data对象
+data_ptr vsEvaluator::_find_data(int index) {
+	data_ptr ret;
+	bool flag_found = false;
+
+	// 查看是否是局部变量
+	auto frame = current_stk_frame();
+	auto& var_table = frame->local_var_table;
+	if (var_table.size() > index) {
+		ret = var_table[index];
+		flag_found = true;
+	}
+	
+	// 查看是否是该函数的参数
+//	if (!flag_found) {
+//		auto data_p = _find_para(index);
+//		if (data_p != nullptr) {
+//			ret = data_p;
+//			flag_found = true;
+//		}
+//	}
+
+	// 查看作用域链
+	if (!flag_found) {
+		auto runtime_context_ptr = frame->get_current_function_context();
+		while (runtime_context_ptr != nullptr) {
+			// 查看外部环境的局部变量表
+			auto& table = runtime_context_ptr->local_var_table;
+			auto& _act_para_list = frame->paras_info.act_para_list;
+			if (table.size() > index) {
+				ret = table[index];
+				flag_found = true;
+				break;
+			}
+			// 查看是否是闭包的外部实参
+//			else if (_act_para_list.size() > index) {
+//				ret = _act_para_list[index];
+//				flag_found = true;
+//				break;
+//			}
+			// 找到强作用域为止
+			else if (runtime_context_ptr->_strong_hold) {
+#if CHECK_Eval
+				std::cerr << __LINE__ << "\tNEW STYLE DRF FAILED" << std::endl;
+#endif
+				break;
+			}
+			// 继续
+			runtime_context_ptr = runtime_context_ptr->get_current_function_context();
+		}
+	}
+
+	// 查看是否是外部作用域变量
+	if (!flag_found) {
+		auto rbegin = _stk_frame.rbegin();
+		auto rend = _stk_frame.rend();
+		for (auto it = rbegin; it != rend; ++it) {
+			auto& frame = *it;
+			auto& var_table = frame->local_var_table;
+			// 存在就返回这个data
+			if (var_table.size() > index) {
+				ret = var_table[index];
+				flag_found = true;
+				break;
+			}
+			// 如果当前是强作用域， 就不往上寻找
+			else if (frame->_strong_hold) {
+#if CHECK_Eval
+				std::cerr << __LINE__ << "\tNEW STYLE DRF FAILED" << std::endl;
+#endif
+				break;
+		}
+	}
+	}
+
+	// 不存在就返回NULL_DATA
+	return (flag_found ? ret : nullptr);
+}
+
+// 根据index获取para实参对象
+data_ptr vsEvaluator::_find_para(int index) {
+	// 只找寻一层
+	auto& frame = _stk_frame.back();
+	auto& _act_para_list = frame->paras_info.act_para_list;
+	// 存在就返回这个data
+	if (_act_para_list.size() > index) {
+		return _act_para_list[index];
+	}
+	else {
+		return nullptr;
+	}
+}
+
 // new def
 void vsEvaluator::new_regist_identity(size_t index, data_ptr d) {
 	// 从当前栈开始
@@ -118,61 +211,31 @@ void vsEvaluator::new_regist_identity(size_t index, data_ptr d) {
 bool vsEvaluator::new_set_data(size_t index, data_ptr d, bool isCopyMode) {
 	// 从当前栈开始一一搜索
 	assert(!_stk_frame.empty());
-	auto rbegin = _stk_frame.rbegin();
-	auto rend = _stk_frame.rend();
-	for (auto it = rbegin; it != rend; ++it) {
-		auto& frame = *it;
-		auto& var_table = frame->local_var_table;
-		// 找到后对其赋值， 返回true并退出
-		if (var_table.size() > index) {
-			// 是否是copy
-			if(isCopyMode)
-				var_table[index]->operator= (*d);
-			else
-				var_table[index] = data_ptr(d);
-			return true;
-		}
-		// 如果当前是强作用域， 就不往上寻找
-		else if (frame->_strong_hold) {
-			goto END;
-		}
-	}
-END:
+	auto data = _find_data(index);
+	if (data == nullptr) {
 #if CHECK_Eval
-	std::cerr << __LINE__ << "\tNEW STYLE ASSIGN FAILED" << std::endl;
+		std::cerr << __LINE__ << "\tNEW STYLE ASSIGN FAILED" << std::endl;
 #endif
-	// 如果失败返回false
-	return false;
+		return false;
+	}
+	// 是否是copy
+	if (isCopyMode)
+		data->cp(d);
+	else
+		data = data_ptr(d);
+	return true;
 }
 
 // new drf
 data_ptr vsEvaluator::new_get_data(size_t index) {
-	// 从当前栈开始一一搜索
 	assert(!_stk_frame.empty());
-	auto rbegin = _stk_frame.rbegin();
-	auto rend = _stk_frame.rend();
-	for (auto it = rbegin; it != rend; ++it) {
-		auto& frame = *it;
-		auto& var_table = frame->local_var_table;
-		// 存在就返回这个data
-		if (var_table.size() > index) {
-			return var_table[index];
-		}
-		// 如果当前是强作用域， 就不往上寻找
-		else if (frame->_strong_hold) {
-			break;
-		}
+	auto data = _find_data(index);
+	if (data != nullptr) {
+		return data;
 	}
-
-	// 如果有闭包, 就通过作用域链来寻址
-	auto cur_frame = rbegin;
-	auto runtime_context_ptr = (*cur_frame)->get_current_function_context();
-
-#if CHECK_Eval
-	std::cerr << __LINE__ << "\tNEW STYLE DRF FAILED" << std::endl;
-#endif
-	// 不存在就返回null
-	return null_data;
+	else {
+		return null_data;
+	}
 }
 
 // para pass
@@ -187,22 +250,20 @@ void vsEvaluator::para_pass_data(data_ptr data) {
 bool vsEvaluator::para_assign_data(size_t index, data_ptr data, bool isCopyMode) {
 	// 只找寻一层
 	assert(!_stk_frame.empty());
-	auto& frame = _stk_frame.back();
-	auto& _act_para_list = frame->paras_info.act_para_list;
-	// 存在就对这个data赋值
-	if (_act_para_list.size() > index) {
-		// 是否是copy
-		if (isCopyMode)
-			_act_para_list[index]->operator= (*data);
-		else
-			_act_para_list[index] = data;
-		return true;
-	}
+	auto p_data = _find_para(index);
+	if (p_data == nullptr) {
 #if CHECK_Eval
-	std::cerr << __LINE__ << "\tPARA ASSIGN FAILED" << std::endl;
+		std::cerr << __LINE__ << "\tPARA ASSIGN FAILED" << std::endl;
 #endif
-	// 不存在
-	return false;
+		// 不存在
+		return false;
+	}
+	// 是否是copy
+	if (isCopyMode)
+		p_data->cp(data);
+	else
+		p_data = data;
+	return true;
 }
 
 // para drf
@@ -219,19 +280,16 @@ data_ptr vsEvaluator::para_get_data(size_t index) {
 		}
 	}*/
 	
-	// 只找寻一层
 	assert(!_stk_frame.empty());
-	auto& frame = _stk_frame.back();
-	auto& _act_para_list = frame->paras_info.act_para_list;
-	// 存在就返回这个data
-	if (_act_para_list.size() > index) {
-		return _act_para_list[index];
-	}
+	auto p_data = _find_para(index);
+	if (p_data == nullptr) {
 #if CHECK_Eval
-	std::cerr << __LINE__ << "\tPARA DRF FAILED" << std::endl;
+		std::cerr << __LINE__ << "\tPARA DRF FAILED" << std::endl;
 #endif
-	// 不存在就返回null
-	return null_data;
+		// 不存在就返回null
+		return null_data;
+	}
+	return p_data;
 }
 
 int vsEvaluator::step() {

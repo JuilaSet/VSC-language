@@ -9,6 +9,8 @@
 #ifndef PCH_H
 #define PCH_H
 
+#define MODE_CIL false
+
 #define CHECK_Data false
 
 #define CHECK_Compiler false
@@ -16,8 +18,8 @@
 #define CHECK_Compiler_Field false
 #define CHECK_Compiler_Field_NEW_BLK false
 
-#define CHECK_Eval true
-#define CHECK_Eval_command true
+#define CHECK_Eval false
+#define CHECK_Eval_command false
 
 // 最大栈帧数, 超过会触发栈溢出异常
 #define MAX_STACK_SIZE 1024
@@ -61,11 +63,14 @@ class vsData;
 class Command;
 class vsEvaluator;
 class vsVirtualMachine;
+struct _StackFrame;
 using vec_command_t = std::vector<Command>;
 using data_ptr = std::shared_ptr<vsData>;
 using evalable_ptr = std::shared_ptr<IEvaluable>;
 using data_list_t = std::map<std::string, data_ptr>;
 using new_data_list_t = std::vector<data_ptr>;
+using RunTimeStackFrame = _StackFrame;
+using RunTimeStackFrame_ptr = std::shared_ptr<_StackFrame>;
 
 #include "Token.h"
 #include "vsFrame.h"

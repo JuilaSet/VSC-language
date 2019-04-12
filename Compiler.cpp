@@ -64,7 +64,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 				assert(!_vsblock_index_vec.empty()); // 这里出错, 说明result的block_map与compiler的_vsblock_index_vec不对应
 				auto cur_block_id = _cur_block_id();
 
-				// push 要跳转的地址
+				// push 函数对象(保存了要跳转的地址)
 				auto& comm = result.refCommandVector(cur_block_id);
 				comm.push_back(CommandHelper::getPushOpera(
 						data_ptr(new FunctionData(block_id))));

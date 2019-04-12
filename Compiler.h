@@ -249,7 +249,7 @@ public:
 	bool is_def_paras() {
 		return _def_para;
 	}
-
+	
 	// 翻转代码
 	void reserve(std::vector<Command>& commdVec, int size) {
 		std::reverse(commdVec.end() - size, commdVec.end());

@@ -50,6 +50,7 @@ struct _StackFrame {
 	new_data_list_t local_var_table; // 局部变量表, 根据int做随机访问, 每次有新的标识符就向上增加
 	std::vector<data_ptr> stk;		 // 操作数栈
 
+	int _paras_count;				 // 实参个数
 	_return_info ret;				 // 返回信息
 	bool _strong_hold;				 // 当前作用域是否是强作用域
 
@@ -65,14 +66,12 @@ struct _StackFrame {
 
 	// 传递信息
 	void pass_message(_tempStackFrame& tframe, int paras_count) {
-		// 根据当前的传递的参数个数
+		_paras_count = paras_count;
 		paras_info = tframe.backParasInfo();
 		// ...
 	}
 
-	// 当前运行的帧的上下文(保存了外部帧)
+	// 得到当前运行的帧的上下文(保存了外部帧)
 	std::shared_ptr<_StackFrame> get_current_function_context();
 };
-using RunTimeStackFrame = _StackFrame;
-using RunTimeStackFrame_ptr = std::shared_ptr<_StackFrame>;
 
