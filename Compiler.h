@@ -190,6 +190,8 @@ class _compiler_tool {
 protected:
 	int blk_op_count;				// 用于判断何时在一个block中清除无用数据
 
+	local_index_map _li_map_list;	// 存放标识符到局部变量表的索引映射
+
 	std::vector<Context> tempStk;	// 临时栈, tempSTK用于在一个子句结束生成后弹出一个上下文并生成代码
 
 	std::vector<Context> _context_stk;	// 上下文栈
@@ -394,7 +396,6 @@ public:
 
 protected:
 	std::vector<word_type_map> wt_map_list;		// 存放变量类型
-	std::vector<local_index_map> li_map_list;	// 存放标识符到局部变量表的索引映射
 	std::vector<_compiler_tool> ctool_stk;		// 编译工具栈， 进入时block入栈, 只对尾部元素操作, 退出block时出栈
 	
 	size_t _block_index = 0;					// 分配block的id用的
@@ -433,7 +434,7 @@ protected:
 
 	// 自动分配变量表的下标(表示符的名称 -> 下标)
 	int _auto_alloc_local_index(Word& w) {
-		auto& map = li_map_list.back();
+		auto& map = ctool()._li_map_list;
 		auto serialized_str = w.serialize();
 
 		// 查看是否已经分配过
@@ -539,7 +540,6 @@ public:
 		std::cout << "localBegin" << std::endl;
 #endif
 		wt_map_list.push_back(word_type_map());
-		li_map_list.push_back(local_index_map());
 
 		// 新建一个ctool
 		_compiler_tool _t_ctool;
@@ -563,7 +563,6 @@ public:
 
 	void localEnd() {
 		wt_map_list.pop_back();
-		li_map_list.pop_back();
 		ctool_stk.pop_back();
 #if CHECK_Compiler_Field
 		std::cout << __LINE__ << " 退出作用域" << std::endl;
@@ -618,12 +617,14 @@ public:
 
 	// 查看word是否被分配过局部变量下标, 否返回-1, 是返回下标大小
 	int get_alloced_index(Word& w) {
-		auto rbegin = li_map_list.rbegin();
-		auto rend = li_map_list.rend();
+		//  从ctool里面查找
+		auto rbegin = ctool_stk.rbegin();
+		auto rend = ctool_stk.rend();
 		auto serialized_str = w.serialize();
 		for (auto it = rbegin;it != rend; ++it) {
-			auto fit = it->find(serialized_str);
-			if (fit != it->end()) {
+			auto& map = it->_li_map_list;
+			auto fit = map.find(serialized_str);
+			if (fit != map.end()) {
 				// 存在这个下标
 				size_t index = fit->second;
 #if CHECK_Compiler_alloc
@@ -632,7 +633,7 @@ public:
 				return index;
 			}
 			// 强作用域下不会向上查询
-			else if(_cur_block_ptr()->strong_hold()){
+			else if(it->strong_hold()){
 				return -1;
 			}
 		}
@@ -641,7 +642,7 @@ public:
 
 	// 查看word是否被分配过形参变量下标, 否返回-1, 是返回下标大小
 	int get_form_para_alloced_index(Word& w) {
-		/*auto rbegin = ctool_stk.rbegin();
+		auto rbegin = ctool_stk.rbegin();
 		auto rend = ctool_stk.rend();
 		for (auto it = rbegin; it != rend; ++it) {
 			auto find_index = it->indexof_form_para(w);
@@ -652,13 +653,10 @@ public:
 #endif
 				return find_index;
 			}
-			// 继续向上查询
-		}*/
-
-		// 只找寻一层
-		auto find_index = ctool().indexof_form_para(w);
-		if (find_index != -1) {
-			return find_index;
+			// 强作用域下不会向上查询
+			else if (it->strong_hold()) {
+				return -1;
+			}
 		}
 		return -1;
 	}

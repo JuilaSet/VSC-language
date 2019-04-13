@@ -75,7 +75,6 @@ using RunTimeStackFrame_ptr = std::shared_ptr<_StackFrame>;
 #include "Token.h"
 #include "vsFrame.h"
 #include "Data.h"
-#include "vsObject.h"
 
 #include "Input.h"
 #include "Lexer.h"

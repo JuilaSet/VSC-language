@@ -1,13 +1,5 @@
 [
-	def a enclosed [
-		def x 100;
-		return [
-			return enclosed [
-				echo x; // 应该是未定义
-			];;
-		];;
-	];;
-	call call call a;;;
+	
 ]
 
 /*
