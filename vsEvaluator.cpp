@@ -6,7 +6,7 @@
 // 在此之前要使用push_next_temp_paras_info(), 防止exit_block的时候出错
 void vsEvaluator::load_block(block_ptr block, int paras_count)
 {
-	// 设置并传递栈帧 []][
+	// 设置并传递栈帧
 	_push_and_setting_frame(this->_block_ptr, block, paras_count);
 	
 	// 这里之后是内层
@@ -16,7 +16,6 @@ void vsEvaluator::load_block(block_ptr block, int paras_count)
 	this->_instruct_ptr = &block->instruct();
 	this->_block_ptr = block;
 	ipc = -1; // 跳转后变成0
-
 }
 
 void vsEvaluator::exit_block()
@@ -77,7 +76,11 @@ void vsEvaluator::_push_and_setting_frame(block_ptr retblock, block_ptr curblock
 		// 传递信息
 		auto& _temp_stkframe = current_stk_frame()->temp_stkframe;
 		stkframe->pass_message(_temp_stkframe, paras_count); // 其中会初始化temp_stkframe
+
+		// 形参结合
+		stkframe->pass_paras(curblock);
 	}
+	
 	// push栈帧
 	_stk_frame.emplace_back(stkframe);
 
@@ -98,15 +101,16 @@ void vsEvaluator::_pop_frame() {
 }
 
 // 根据index获取data对象
-data_ptr vsEvaluator::_find_data(int index, new_data_list_t*& table_ret) {
+data_ptr vsEvaluator::_find_data(std::string index, data_list_t*& table_ret) {
 	data_ptr ret;
 	bool flag_found = false;
 
 	// 查看是否是局部变量
 	auto frame = current_stk_frame();
 	auto& var_table = frame->local_var_table;
-	if (var_table.size() > index) {
-		ret = var_table[index];
+	auto fit = var_table.find(index);
+	if (fit != var_table.end()) {
+		ret = fit->second;
 		table_ret = &var_table;
 		flag_found = true;
 	}
@@ -118,8 +122,9 @@ data_ptr vsEvaluator::_find_data(int index, new_data_list_t*& table_ret) {
 			// 查看外部环境的局部变量表
 			auto& table = runtime_context_ptr->local_var_table;
 			auto& _act_para_list = frame->paras_info.act_para_list;
-			if (table.size() > index) {
-				ret = table[index];
+			auto fit = table.find(index);
+			if (fit != var_table.end()) {
+				ret = fit->second;
 				table_ret = &table;
 				flag_found = true;
 				break;
@@ -143,9 +148,9 @@ data_ptr vsEvaluator::_find_data(int index, new_data_list_t*& table_ret) {
 		for (auto it = rbegin; it != rend; ++it) {
 			auto& frame = *it;
 			auto& var_table = frame->local_var_table;
-			// 存在就返回这个data
-			if (var_table.size() > index) {
-				ret = var_table[index];
+			auto fit = var_table.find(index);
+			if (fit != var_table.end()) {
+				ret = fit->second;
 				table_ret = &var_table;
 				flag_found = true;
 				break;
@@ -164,15 +169,16 @@ data_ptr vsEvaluator::_find_data(int index, new_data_list_t*& table_ret) {
 }
 
 // 根据index获取para实参对象
-data_ptr vsEvaluator::_find_para(int index, act_paras_vec*& act_paras_table_ret) {
+data_ptr vsEvaluator::_find_para(std::string index, act_paras_list_t*& act_paras_table_ret) {
 	// 查看是否是该函数的参数
 	bool flag_found = false;
 	data_ptr ret = nullptr;
 	auto& frame = _stk_frame.back();
 	auto& _act_para_list = frame->paras_info.act_para_list;
 	// 存在就返回这个data
-	if (_act_para_list.size() > index) {
-		ret = _act_para_list[index];
+	auto fit = _act_para_list.find(index);
+	if (fit != _act_para_list.end()) {
+		ret = fit->second;
 		act_paras_table_ret = &_act_para_list;
 		flag_found = true;
 	}
@@ -182,8 +188,9 @@ data_ptr vsEvaluator::_find_para(int index, act_paras_vec*& act_paras_table_ret)
 		auto runtime_context_ptr = frame->get_current_function_context();
 		while (runtime_context_ptr != nullptr) {
 			auto& _act_para_list = runtime_context_ptr->paras_info.act_para_list;
-			if (_act_para_list.size() > index) {
-				ret = _act_para_list[index];
+			auto fit = _act_para_list.find(index);
+			if (fit != _act_para_list.end()) {
+				ret = fit->second;
 				act_paras_table_ret = &_act_para_list;
 				flag_found = true;
 				break;
@@ -191,7 +198,7 @@ data_ptr vsEvaluator::_find_para(int index, act_paras_vec*& act_paras_table_ret)
 			// 找到强作用域为止
 			else if (runtime_context_ptr->_strong_hold) {
 #if CHECK_Eval
-				std::cerr << __LINE__ << "\tNEW STYLE DRF FAILED" << std::endl;
+				std::cerr << __LINE__ << "\tPARA DRF FAILED" << std::endl;
 #endif
 				break;
 			}
@@ -204,27 +211,28 @@ data_ptr vsEvaluator::_find_para(int index, act_paras_vec*& act_paras_table_ret)
 }
 
 // new def
-void vsEvaluator::new_regist_identity(size_t index, data_ptr d) {
+void vsEvaluator::new_regist_identity(std::string index, data_ptr d) {
 	// 从当前栈开始
 	assert(!_stk_frame.empty());
 	auto frame = current_stk_frame();
 	auto& var_table = frame->local_var_table;
 
 	// 检查是否存在这个index
-	if (var_table.size() > index) {
+	auto fit = var_table.find(index);
+	if (fit != var_table.end()) {
 		var_table[index] = data_ptr(d);
 	}
 	else {
-		assert(var_table.size() == index);
-		var_table.emplace_back(d);
+		auto pair = std::make_pair(index, d);
+		var_table.insert(pair);
 	}
 }
 
 // new assign
-bool vsEvaluator::new_set_data(size_t index, data_ptr d, bool isCopyMode) {
+bool vsEvaluator::new_set_data(std::string index, data_ptr d, bool isCopyMode) {
 	// 从当前栈开始一一搜索
 	assert(!_stk_frame.empty());
-	new_data_list_t* table_ret = nullptr;
+	data_list_t* table_ret = nullptr;
 	auto data = _find_data(index, table_ret);
 	if (data == nullptr) {
 #if CHECK_Eval
@@ -241,9 +249,9 @@ bool vsEvaluator::new_set_data(size_t index, data_ptr d, bool isCopyMode) {
 }
 
 // new drf (返回data的句柄)
-data_ptr vsEvaluator::new_get_data(size_t index) {
+data_ptr vsEvaluator::new_get_data(std::string index) {
 	assert(!_stk_frame.empty());
-	new_data_list_t* table_ret = nullptr;
+	data_list_t* table_ret = nullptr;
 	auto data = _find_data(index, table_ret);
 	if (data != nullptr) {
 		return data;
@@ -258,14 +266,14 @@ void vsEvaluator::para_pass_data(data_ptr data) {
 	auto frame = current_stk_frame();
 	// 传递给临时参数表, 会在push_frame中传递信息给新建的frame
 	assert(!frame->temp_stkframe.next_paras_info.empty());
-	frame->temp_stkframe.backParasInfo().act_para_list.push_back(data);
+	frame->temp_stkframe.backParasInfo().pass_paras_list.push_back(data);
 }
 
 // para assign
-bool vsEvaluator::para_assign_data(size_t index, data_ptr data, bool isCopyMode) {
+bool vsEvaluator::para_assign_data(std::string index, data_ptr data, bool isCopyMode) {
 	// 只找寻一层
 	assert(!_stk_frame.empty());
-	act_paras_vec* act_paras_table_ret = nullptr;
+	act_paras_list_t* act_paras_table_ret = nullptr;
 	auto p_data = _find_para(index, act_paras_table_ret);
 	if (p_data == nullptr) {
 #if CHECK_Eval
@@ -283,13 +291,13 @@ bool vsEvaluator::para_assign_data(size_t index, data_ptr data, bool isCopyMode)
 }
 
 // para drf
-data_ptr vsEvaluator::para_get_data(size_t index) {
+data_ptr vsEvaluator::para_get_data(std::string index) {
 	assert(!_stk_frame.empty());
-	act_paras_vec* act_paras_table_ret = nullptr;
+	act_paras_list_t* act_paras_table_ret = nullptr;
 	auto p_data = _find_para(index, act_paras_table_ret);
 	if (p_data == nullptr) {
 #if CHECK_Eval
-		std::cerr << __LINE__ << "\tPARA DRF FAILED" << std::endl;
+		std::cerr << std::endl <<  __LINE__ << "\tPARA DRF FAILED" << std::endl;
 #endif
 		// 不存在就返回null
 		return null_data;
@@ -320,9 +328,8 @@ int vsEvaluator::step() {
 			// 遍历每一个栈帧的局部变量表
 			std::cerr << std::endl << "identifier >";
 			auto& table = frame->local_var_table;
-			auto size = table.size();
-			for (int i = 0; i < size; ++i) {
-				std::cout << i << '=' << table[i]->toEchoString() << ',' << std::ends;
+			for (auto& it : table) {
+				std::cout << it.first << '=' << it.second->toEchoString() << ',' << std::ends;
 			}
 			std::cerr << "] " << std::endl;
 		}
@@ -356,17 +363,15 @@ int vsEvaluator::eval() {
 			// 遍历每一个栈帧的局部变量表
 			std::cerr << std::endl << "identifier >";
 			auto& table = frame->local_var_table;
-			auto size = table.size();
-			for (int i = 0; i < size; ++i) {
-				std::cout << i << '=' << table[i]->toEchoString() << ',' << std::ends;
+			for (auto& it : table) {
+				std::cout << it.first << '=' << it.second->toEchoString() << ',' << std::ends;
 			}
 			
 			// 遍历每一个栈帧的参数列表
 			std::cerr << std::endl << "paras >";
 			auto& list = frame->paras_info.act_para_list;
-			auto size_list = list.size();
-			for (int i = 0; i < size_list; ++i) {
-				std::cout << i << '=' << list[i]->toEchoString() << ',' << std::ends;
+			for (auto& it : list) {
+				std::cout << it.first << '=' << it.second->toEchoString() << ',' << std::ends;
 			}
 
 			// 是否是强作用域

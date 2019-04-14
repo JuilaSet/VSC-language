@@ -80,10 +80,10 @@ protected:
 
 protected:
 	// 根据index获取data对象
-	data_ptr _find_data(int index, new_data_list_t*& table_ret);
+	data_ptr _find_data(std::string index, data_list_t*& table_ret);
 
 	// 根据index获取para实参对象
-	data_ptr _find_para(int index, act_paras_vec*& act_paras_table_ret);
+	data_ptr _find_para(std::string index, act_paras_list_t*& act_paras_table_ret);
 
 	// 创建并压入栈帧
 	void _push_and_setting_frame(block_ptr retblock, block_ptr curblock, int paras_count) throw(stack_overflow_exception);
@@ -124,22 +124,22 @@ public:
 	}		
 
 	// new def
-	void new_regist_identity(size_t index, data_ptr d);
+	void new_regist_identity(std::string index, data_ptr d);
 
 	// new assign
-	bool new_set_data(size_t index, data_ptr d, bool isCopyMode = false);
+	bool new_set_data(std::string index, data_ptr d, bool isCopyMode = false);
 	
 	// new drf
-	data_ptr new_get_data(size_t index);
+	data_ptr new_get_data(std::string index);
 
 	// para pass(传递参数给函数)
 	void para_pass_data(data_ptr data);
 
 	// para assign(给参数赋值)
-	bool para_assign_data(size_t index, data_ptr data, bool isCopyMode = false);
+	bool para_assign_data(std::string index, data_ptr data, bool isCopyMode = false);
 
 	// para drf(对参数解引用)
-	data_ptr para_get_data(size_t index);
+	data_ptr para_get_data(std::string index);
 
 	// 单步执行
 	virtual int step();

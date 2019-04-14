@@ -18,9 +18,10 @@ void regist_keywords_contents(Context_helper& helper) {
 			return _command_set{ };
 		},
 		{
+			// ALWAYS实现了不定参数
 			Context([=](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				return _command_set{  };
-			}, Context_Type::NORMAL), 
+			}, Context_Type::ALWAYS),
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				compiler->def_paras_end();
 				compiler->enable_gene_callblk();
@@ -38,9 +39,10 @@ void regist_keywords_contents(Context_helper& helper) {
 		return _command_set{ };
 	},
 		{
+			// ALWAYS实现了不定参数
 			Context([=](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				return _command_set{ };
-			}, Context_Type::NORMAL),
+			}, Context_Type::ALWAYS),
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				compiler->def_paras_end();
 				compiler->enable_gene_callblk();
@@ -68,7 +70,7 @@ void regist_keywords_contents(Context_helper& helper) {
 				auto count = compiler->paras();
 				compiler->paras_end();
 				return _command_set{
-						CommandHelper::getPushOpera(data_ptr(new NumData(DataType::NUMBER, count))),
+						CommandHelper::getPushOpera(data_ptr(new NumData(count))),
 						COMMAND(CALL_BLK)
 				};
 			}, Context_Type::END)
@@ -131,9 +133,9 @@ void regist_keywords_contents(Context_helper& helper) {
 					compiler->out_def();
 					compiler->dont_gene_callblk();
 					// 获取分配的下标
-					int index = compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
+					compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
 					commandVec.pop_back(); // 将之前的 push 立即数指令弹出
-					commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index))));
+					commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
 					compiler->setSubFieldStrongHold();
 					return _command_set{};
 				}, Context_Type::NORMAL, "def_op1"),
@@ -162,14 +164,12 @@ void regist_keywords_contents(Context_helper& helper) {
 					commandVec.pop_back();
 					compiler->out_def();
 					// 获取分配的下标
-					int index = compiler->get_alloced_index(w);
-					int index_p = compiler->get_form_para_alloced_index(w);
-					if (index != -1) {
-						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index))));
+					if (compiler->has_local(w)) {
+						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
 					}
-					else if (index_p != -1) {
+					else if (compiler->has_para(w)) {
 						// 对形参赋值
-						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::PARA_INDEX, index_p))));
+						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
 					}
 					else {
 						throw undefined_exception(w.getString());
@@ -200,14 +200,12 @@ void regist_keywords_contents(Context_helper& helper) {
 					commandVec.pop_back();
 					compiler->out_def();
 					// 获取分配的下标
-					int index = compiler->get_alloced_index(w);
-					int index_p = compiler->get_form_para_alloced_index(w);
-					if (index != -1) {
-						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index))));
+					if (compiler->has_local(w)) {
+						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
 					}
-					else if (index_p != -1) {
+					else if (compiler->has_para(w)) {
 						// 对形参赋值
-						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::PARA_INDEX, index_p))));
+						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
 					}
 					else {
 						throw undefined_exception(w.getString());
@@ -291,7 +289,7 @@ void regist_keywords_contents(Context_helper& helper) {
 			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 				int last_index = helper.pop_command_index();
 				int addr = _vec.size();
-				_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new NumData(DataType::OPERA_ADDR, addr)));
+				_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new AddrData(addr)));
 				return _command_set{ };
 			}, Context_Type::END)
 		})
@@ -313,7 +311,7 @@ void regist_keywords_contents(Context_helper& helper) {
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 					int last_index = helper.pop_command_index();
 					int addr = _vec.size();
-					_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new NumData(DataType::OPERA_ADDR, addr)));
+					_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new AddrData(addr)));
 					return _command_set{ };
 				}, Context_Type::END, "if_end")
 			})
@@ -339,9 +337,9 @@ void regist_keywords_contents(Context_helper& helper) {
 					int last_index = helper.pop_command_index();
 					int head_index = helper.pop_command_index();
 					int addr = _vec.size();
-					_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new NumData(DataType::OPERA_ADDR, addr + 2)));
+					_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new AddrData(addr + 2)));
 					return _command_set{
-						CommandHelper::getPushOpera(data_ptr(new NumData(DataType::OPERA_ADDR, head_index))),
+						CommandHelper::getPushOpera(data_ptr(new AddrData(head_index))),
 						COMMAND(JMP)
 					};
 				}, Context_Type::END)

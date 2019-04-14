@@ -24,7 +24,7 @@ class vsData {
 protected:
 	DataType _type;
 public:
-	vsData(DataType type) :_type(type) {}
+	vsData(DataType type): _type(type) {}
 
 	virtual std::shared_ptr<vsData> cp(std::shared_ptr<vsData> d) = 0;
 
@@ -112,14 +112,14 @@ public:
 	}
 };
 
-class NumData : public vsData, public std::enable_shared_from_this<NumData> {
+class NumData : public vsData {
 protected:
 	size_t value;
 
 public:
 	NumData():vsData(DataType::NON), value(0) { }
 
-	NumData(DataType type, size_t data) : vsData(type), value(data) { }
+	NumData(size_t data) : vsData(DataType::NUMBER), value(data) { }
 
 	NumData(const vsData& d) :vsData(d.getType()), value(d.toNumber()) { }
 
@@ -128,7 +128,7 @@ public:
 	virtual data_ptr cp(data_ptr d) override {
 		_type = DataType::NUMBER;
 		value = d->toNumber();
-		return data_ptr(new NumData(_type, value));
+		return data_ptr(new NumData(value));
 	}
 
 	// 比较
@@ -147,7 +147,7 @@ public:
 	// 运算
 	virtual data_ptr add(data_ptr d) override {
 		int v = value + d->toNumber();
-		return data_ptr(new NumData(_type, v)); // 返回NUMBER类型
+		return data_ptr(new NumData(v)); // 返回NUMBER类型
 	};
 
 	// 回显用函数
@@ -192,8 +192,165 @@ public:
 	
 	// 查询成员(之后的成员全为0)
 	virtual data_ptr in(size_t index) override {
-		return data_ptr(new NumData(DataType::NUMBER, 0));
+		return data_ptr(new NumData(0));
 	};
+};
+
+class AddrData : public vsData {
+protected:
+	size_t value;
+
+public:
+	AddrData() :vsData(DataType::NON), value(0) { }
+
+	AddrData(size_t data) : vsData(DataType::OPERA_ADDR), value(data) { }
+
+	AddrData(const vsData& d) :vsData(d.getType()), value(d.toNumber()) { }
+
+	AddrData(const AddrData& d) :vsData(d.getType()), value(d.value) { }
+
+	virtual data_ptr cp(data_ptr d) override {
+		_type = d->getType();
+		assert(_type == DataType::OPERA_ADDR);
+		value = d->toAddr();
+		return data_ptr(new AddrData(value));
+	}
+
+	// 比较
+	virtual bool eq(data_ptr d) override {
+		return value == d->toNumber();
+	}
+
+	virtual bool l(data_ptr d) override {
+		return value > d->toNumber();
+	}
+
+	virtual bool g(data_ptr d) override {
+		return value == d->toNumber();
+	}
+
+	// 运算
+	virtual data_ptr add(data_ptr d) override {
+		int v = value + d->toNumber();
+		return data_ptr(new NumData(v)); // 返回NUMBER类型
+	};
+
+	// 回显用函数
+	virtual std::string toEchoString() const override {
+		std::stringstream ss;
+		ss << value;
+		return ss.str();
+	}
+
+	// 返回转换的字符串(支持数字转换为字符串)
+	virtual std::string toString() const override {
+		std::stringstream ss;
+		ss << value;
+		return ss.str();
+	}
+
+	// 返回数字(不论什么类型都可以)
+	virtual long long toNumber() const override {
+		return value;
+	}
+
+	// 返回转换的bool型(支持数字, 字符串转换bool)
+	virtual bool toBool() const override {
+		return value;
+	}
+
+	// 返回地址(只能是地址类型)
+	virtual unsigned int toAddr() const override {
+		assert(_type == DataType::OPERA_ADDR);
+		return value;
+	}
+
+	// 返回索引(只能是索引类型)
+	virtual size_t toIndex() const override {
+		assert(_type == DataType::ID_INDEX || _type == DataType::BLK_INDEX || _type == DataType::PARA_INDEX);
+		return value;
+	}
+
+	// 查询成员(之后的成员全为0)
+	virtual data_ptr in(size_t index) override {
+		assert(false);
+		return nullptr;
+	};
+};
+
+class IndexData : public vsData {
+protected:
+	std::string index;
+public:
+	IndexData(DataType type, std::string index) :vsData(type), index(index) { }
+
+	IndexData(const vsData& d) :vsData(d.getType()), index(d.toString()) { }
+
+	virtual data_ptr cp(data_ptr d) override {
+		_type = d->getType();
+		index = d->toString();
+		return data_ptr(new IndexData(_type, index));
+	}
+
+	// 比较的方法: 将d转换为string进行比较
+	virtual bool eq(data_ptr d) override {
+		return index == d->toString();
+	}
+
+	virtual bool l(data_ptr d) override {
+		return index < d->toString();
+	}
+
+	virtual bool g(data_ptr d) override {
+		return index > d->toString();
+	}
+
+	// 运算
+	virtual data_ptr add(data_ptr d) override {
+		std::string v = index + d->toString();
+		return data_ptr(new IndexData(_type, v));
+	};
+
+	// 回显用函数
+	virtual std::string toEchoString() const {
+		return index;
+	}
+
+	// 返回转换的字符串(支持数字转换为字符串)
+	virtual std::string toString() const {
+		return index;
+	}
+
+	// 返回转换的bool型(支持数字, 字符串转换bool)
+	virtual bool toBool() const {
+		return index != "";
+	}
+
+	// 返回转换的数字(支持字符串转换为数字)
+	virtual long long toNumber() const {
+		std::stringstream ss;
+		ss << index;
+		long long n;
+		ss >> n;
+		return n;
+	}
+
+	// 返回地址(只能是地址类型)
+	virtual unsigned int toAddr() const {
+		assert(false); // 不能返回地址
+		return toNumber();
+	}
+
+	// 返回索引(只能是索引类型)
+	virtual size_t toIndex() const {
+		return toNumber();
+	}
+
+	// 返回索引
+	virtual data_ptr in(size_t p_index) override {
+		assert(false);
+		return nullptr;
+	}
 };
 
 class StringData : public vsData {
@@ -287,6 +444,8 @@ public:
 	}
 
 	// 比较的方法
+
+	// 等于(指向同一个代码块)
 	virtual bool eq(std::shared_ptr<vsData> d) override {
 		return (d->getType() == _type) && (d->toIndex() == block_id);
 	}
@@ -301,7 +460,7 @@ public:
 
 	// 运算
 	virtual std::shared_ptr<vsData> add(std::shared_ptr<vsData> d) override {
-		return data_ptr(new NumData(DataType::NUMBER, block_id + d->toNumber()));
+		return data_ptr(new NumData(block_id + d->toNumber()));
 	}
 
 	// 回显用函数

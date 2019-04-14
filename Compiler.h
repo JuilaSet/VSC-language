@@ -136,42 +136,42 @@ void show_cstk(const std::string& tag, std::vector<Context>& stk);
 #if CHECK_Eval_command
 void show_comms(const std::vector<Command>& commdVec);
 #endif
-using index_t = long int;
-using word_type_map = std::map<std::string, WordType>;
-using local_index_map = std::map<std::string, int>;
-using form_paras_map = std::map<std::string, int>;	// 存放标识符到形参表的索引映射
 
 // 临时状态信息
 class _temp_compiler_tool {
 	bool _sub_strong_hold = false;	// 下一个作用域是否是强作用域
-	form_paras_map _next_form_map;	// 当前作用域的形式参数映射(参数名 -> 参数地址)
+	form_paras_set _next_form_map;	// 当前作用域的形式参数名
+	form_paras_vec _next_form_vec;	// 形参列表
 public:
 	// 设置作用域
 	void setSubFieldStrongHold(bool b) { _sub_strong_hold = b; }
 	bool subFieldStrongHold() const { return _sub_strong_hold; }
 
-	// 返回map引用
-	form_paras_map& next_form_paras_map() {
+	// 返回set引用
+	form_paras_set& next_form_paras_set() {
 		return _next_form_map;
 	}
 
+	// 返回vec引用
+	form_paras_vec& next_form_paras_vec() {
+		return _next_form_vec;
+	}
+
 	// 添加形参
-	int add_para(Word& w) {
-		int index = _next_form_map.size();
-		auto pair = std::make_pair(w.serialize(), index + 1); // 从1开始，0保留给函数自己用
-		_next_form_map.insert(pair);
-		return index;
+	void push_para(Word& w) {
+		std::string index = w.getString();
+		_next_form_vec.push_back(index);
+		_next_form_map.insert(index);
 	}
 
 	// 查询形参地址
-	int indexof(Word& w) {
+	bool hasIndexOf(Word& w) {
 		// 查询
-		auto it = _next_form_map.find(w.serialize());
+		auto it = _next_form_map.find(w.getString());
 		if (it != _next_form_map.end()) {
-			return it->second;
+			return true;
 		}
-		// 失败返回-1
-		return -1;
+		return false;
 	}
 
 	// 初始化
@@ -189,16 +189,18 @@ class _compiler_tool {
 	friend class S_Expr_Compiler;
 protected:
 	int blk_op_count;				// 用于判断何时在一个block中清除无用数据
+	 
+	local_index_set _li_set_list;	// 存放标识符到局部变量表的索引映射
 
-	local_index_map _li_map_list;	// 存放标识符到局部变量表的索引映射
+	form_paras_set _form_set;		// 当前作用域的形式参数名
+
+	form_paras_vec _form_vec;		// 当前作用域的形式参数列表
+
+	std::vector<int> paras_count;	// 指令参数计数栈: 查看操作符参数与上下文结束符是否相符
 
 	std::vector<Context> tempStk;	// 临时栈, tempSTK用于在一个子句结束生成后弹出一个上下文并生成代码
 
 	std::vector<Context> _context_stk;	// 上下文栈
-
-	std::vector<int> paras_count;	// 指令参数计数栈: 查看操作符参数与上下文结束符是否相符
-
-	form_paras_map _form_map;		// 当前作用域的形式参数映射(参数名 -> 参数地址)
 
 	int def_stk = 0;				// 判断是否在"定义或赋值语句"的第一个参数中
 
@@ -278,24 +280,26 @@ public:
 	// 将临时信息传递给自己, 应该在每一次新建ctool的时候传递
 	void pass_temp_message(_temp_compiler_tool& temp_tool) {
 		_strong_hold = temp_tool.subFieldStrongHold();
-		// 复制形参下标
-		auto& map = temp_tool.next_form_paras_map();
-		_form_map.insert(map.begin(), map.end());
+		// 复制形参
+		auto& set = temp_tool.next_form_paras_set();
+		_form_set.insert(set.begin(), set.end());
+
+		auto& vec = temp_tool.next_form_paras_vec();
+		_form_vec = vec;
 		// ...
 
 		// 传递完后初始化
 		temp_tool.init();
 	}
 
-	// 查询形参地址
-	int indexof_form_para(Word& w) {
+	// 是否存在形参
+	bool has_indexof_form_para(Word& w) {
 		// 查询
-		auto it = _form_map.find(w.serialize());
-		if (it != _form_map.end()) {
-			return it->second;
+		auto it = _form_set.find(w.getString());
+		if (it != _form_set.end()) {
+			return true;
 		}
-		// 失败返回-1
-		return -1;
+		return false;
 	}
 
 	// 初始化
@@ -412,8 +416,12 @@ protected:
 		// 查看当前的ctool是否是strongField
 		auto stronghold = ctool().strong_hold();
 		block_ptr blk(new vsblock_static(block_id, stronghold));
-		result.add_block(blk);
 
+		// 传递当前的形参列表
+		auto& form_vec = ctool()._form_vec;
+		blk->set_from_paras_list(form_vec);
+		
+		result.add_block(blk);
 #if CHECK_Compiler_Field_NEW_BLK
 		std::cerr << __LINE__ << " BLOCK_Field: " << (stronghold ? "T" : "F") << std::endl;
 		// 检查所有的ctool
@@ -427,31 +435,28 @@ protected:
 #endif
 	}
 
-	// 分配形参的地址给下一层
-	int _auto_allc_form_para_index(Word& w) {
-		return ctool()._temp_tool.add_para(w);
+	// 添加形参
+	void add_form_para(Word& w) {
+		ctool()._temp_tool.push_para(w);
 	}
 
-	// 自动分配变量表的下标(表示符的名称 -> 下标)
-	int _auto_alloc_local_index(Word& w) {
-		auto& map = ctool()._li_map_list;
-		auto serialized_str = w.serialize();
+	// 添加变量
+	bool add_local(Word& w) {
+		auto& set = ctool()._li_set_list;
+		auto index = w.getString();
 
 		// 查看是否已经分配过
-		auto it = map.find(serialized_str);
-		if (it == map.end()) {
-			auto index = map.size();
-			auto pair = std::make_pair(serialized_str, index); // 从0开始
-			map.insert(pair); // 不覆盖原有的map
+		auto it = set.find(index);
+		if (it == set.end()) {
+			set.insert(index); // 不覆盖原有的map
 #if CHECK_Compiler_alloc
 			std::cout << "alloc " << serialized_str << " -> " << index << std::endl;
 #endif
-			assert(max_slot_size >= index);
-			return index;
+			return true;
 		}
 		else {
 			// 如果有, 就返回它原来的值
-			return it->second;
+			return false;
 		}
 	}
 
@@ -612,53 +617,49 @@ public:
 			std::make_pair(w.serialize(), type)
 		);
 		// 分配局部变量表的下标
-		return _auto_alloc_local_index(w);
+		return add_local(w);
+	}
+	
+	// 设置形参, 写入临时ctool属性中
+	void insert_form_para(Word& w) {
+		ctool().get_temp_tool_ref().push_para(w);
 	}
 
-	// 查看word是否被分配过局部变量下标, 否返回-1, 是返回下标大小
-	int get_alloced_index(Word& w) {
+	// 查看word是否是局部变量
+	bool has_local(Word& w) {
 		//  从ctool里面查找
 		auto rbegin = ctool_stk.rbegin();
 		auto rend = ctool_stk.rend();
-		auto serialized_str = w.serialize();
+		auto index = w.getString();
 		for (auto it = rbegin;it != rend; ++it) {
-			auto& map = it->_li_map_list;
-			auto fit = map.find(serialized_str);
-			if (fit != map.end()) {
-				// 存在这个下标
-				size_t index = fit->second;
-#if CHECK_Compiler_alloc
-				std::cerr << "ALLOC index = " << index << std::endl;
-#endif
-				return index;
+			auto& set = it->_li_set_list;
+			auto fit = set.find(index);
+			if (fit != set.end()) {
+				return true;
 			}
 			// 强作用域下不会向上查询
 			else if(it->strong_hold()){
-				return -1;
+				return false;
 			}
 		}
-		return -1;
+		return false;
 	}
 
-	// 查看word是否被分配过形参变量下标, 否返回-1, 是返回下标大小
-	int get_form_para_alloced_index(Word& w) {
+	// 查看word是否是形参变量
+	bool has_para(Word& w) {
 		auto rbegin = ctool_stk.rbegin();
 		auto rend = ctool_stk.rend();
 		for (auto it = rbegin; it != rend; ++it) {
-			auto find_index = it->indexof_form_para(w);
-			if (find_index != -1) {
-				// 存在这个下标
-#if CHECK_Compiler_alloc
-				std::cerr << "ALLOC index = " << find_index << std::endl;
-#endif
-				return find_index;
+			auto fit = it->has_indexof_form_para(w);
+			if (fit != -1) {
+				return true;
 			}
 			// 强作用域下不会向上查询
 			else if (it->strong_hold()) {
-				return -1;
+				return false;
 			}
 		}
-		return -1;
+		return false;
 	}
 
 	// 判断单词的类型

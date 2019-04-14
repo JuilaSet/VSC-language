@@ -20,9 +20,8 @@ protected:
 
 	size_t _id;						// 分配的地址 _id
 	size_t _instruct_length;		// 停止地址(block的地址长度)
-
+	form_paras_list_t form_paras_list; // 形参列表
 	bool _strong_hold;				// 是否是强作用域
-//	std::vector<data_ptr> _paras_vec;	// 默认参数
 public:
 	size_t id() const {
 		return _id;
@@ -47,6 +46,16 @@ public:
 
 	inline bool strong_hold() { return _strong_hold; }
 	
+	// 塞入形参索引
+	inline void set_from_paras_list(form_paras_vec& list) {
+		form_paras_list = list;
+	}
+
+	// 取得索引
+	inline form_paras_list_t& get_form_paras_list_ref() {
+		return form_paras_list;
+	}
+
 	//
 	// 参数相关
 	//
@@ -64,5 +73,3 @@ public:
 
 	virtual ~vsblock_static() { }
 };
-
-using block_ptr = std::shared_ptr<vsblock_static>;

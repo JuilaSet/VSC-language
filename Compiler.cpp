@@ -75,13 +75,13 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 					// 地址传参
 					comm.push_back(COMMAND(PARA_PASS));
 					// 告知传参个数
-					comm.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::NUMBER, 0))));
+					comm.push_back(CommandHelper::getPushOpera(data_ptr(new NumData(0))));
 					// 生成跳转到block指令
 					comm.push_back(COMMAND(CALL_BLK));
 				}
 			}
 			
-			// 创建一个block对象, 给予_id
+			// 创建一个block对象, 给予_id, 设置形参列表
 			new_block(result, block_id);
 
 			// block id入栈
@@ -277,21 +277,19 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 #endif
 					// 如果 IDENTIFIER_ENABLED 是定义形参
 					if (ctool().is_def_paras()) {
-						// 为其分配形参下标, 写入临时ctool属性中
-						_auto_allc_form_para_index(word);
+						// 设置形参, 写入临时ctool属性中
+						insert_form_para(word);
 					}
 					else {
 						// 寻找局部变量下标, 局部变量会覆盖函数的形参, 使其不可见
-						int index = get_alloced_index(word);
-						if (index != -1) {
-							result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index))));
+						if (has_local(word)) {
+							result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, word.getString()))));
 							result.refCommandVector(block_id).push_back(COMMAND(NEW_DRF));
 						} 
 						else {
 							// 寻找函数参数下标
-							int index_p = get_form_para_alloced_index(word);
-							if (index_p != -1) {
-								result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(data_ptr(new NumData(DataType::ID_INDEX, index_p))));
+							if (has_para(word)) {
+								result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::PARA_INDEX, word.getString()))));
 								result.refCommandVector(block_id).push_back(COMMAND(PARA_DRF));
 							}
 							else {

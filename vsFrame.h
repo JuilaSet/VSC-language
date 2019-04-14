@@ -7,13 +7,14 @@ struct _return_info {
 };
 
 // 参数信息, 不要存放指针防止潜复制问题
-using act_paras_vec = std::vector<data_ptr>;
 struct _StackFrameParasInfo {
-	act_paras_vec act_para_list;	// 实参表
+	act_paras_list_t act_para_list;		// 实参结合表<id -> data_ptr>
+	pass_paras_list_t pass_paras_list;	// 实参列表
 
 	// 初始化
 	void init() {
 		act_para_list.clear();
+		pass_paras_list.clear();
 	}
 };
 
@@ -47,7 +48,8 @@ struct _StackFrame {
 	_tempStackFrame temp_stkframe;	 // 将要传递给下一帧的信息
 
 	_StackFrameParasInfo paras_info; // 参数信息
-	new_data_list_t local_var_table; // 局部变量表, 根据int做随机访问, 每次有新的标识符就向上增加
+//	new_data_list_t local_var_table; // 局部变量表, 根据int做随机访问, 每次有新的标识符就向上增加
+	data_list_t local_var_table;	 // 以字符串做索引的局部变量表
 	std::vector<data_ptr> stk;		 // 操作数栈
 
 	int _paras_count;				 // 实参个数
@@ -63,6 +65,9 @@ struct _StackFrame {
 	void pop_next_temp_paras_info() {
 		temp_stkframe.pop_next_paras_info();
 	}
+
+	// 形参结合
+	void pass_paras(block_ptr innerblock);
 
 	// 传递信息
 	void pass_message(_tempStackFrame& tframe, int paras_count) {

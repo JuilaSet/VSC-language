@@ -140,7 +140,7 @@ public:
 			std::stringstream ss;
 			ss << _str_;
 			ss >> res;
-			return data_ptr(new NumData(DataType::NUMBER, res));
+			return data_ptr(new NumData(res));
 		}
 		else {
 			return data_ptr(new StringData(_str_));

@@ -37,7 +37,7 @@ void OPERATOR::PUSH_POS(vsEval_ptr eval)
 
 	unsigned int addr = eval->ipc;
 	assert(eval->_instruct_ptr->size() > addr);
-	eval->push(data_ptr(new NumData(DataType::OPERA_ADDR, addr)));
+	eval->push(data_ptr(new AddrData(addr)));
 }
 
 void OPERATOR::REVERSE_TOP(vsEval_ptr eval) {
@@ -83,7 +83,7 @@ void OPERATOR::SUB(vsEval_ptr eval) {
 	assert(n2->getType() == DataType::NUMBER);
 	int a2 = n2->toNumber();
 	// newed
-	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, a2 - a1));
+	data_ptr d_temp = data_ptr(new NumData(a2 - a1));
 	eval->push(d_temp);
 #if CHECK_Eval 
 	std::cerr << a2 << " - " << a1 << " = " << d_temp->toNumber() << std::endl;
@@ -101,7 +101,7 @@ void OPERATOR::NOT(vsEval_ptr eval) {
 	assert(n1->getType() == DataType::NUMBER);
 	int a1 = n1->toNumber();
 
-	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, a1 == 0));
+	data_ptr d_temp = data_ptr(new NumData(a1 == 0));
 	eval->push(d_temp);
 #if CHECK_Eval 
 	std::cerr << a1 << " = " << d_temp->toNumber() << std::endl;
@@ -121,7 +121,7 @@ void OPERATOR::EQ(vsEval_ptr eval) {
 	data_ptr n2 = eval->pop();
 
 	// newed
-	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, n2->eq(n1)));
+	data_ptr d_temp = data_ptr(new NumData(n2->eq(n1)));
 	eval->push(d_temp);
 #if CHECK_Eval 
 	std::cerr << d_temp->toEchoString() << std::endl;
@@ -142,7 +142,7 @@ void OPERATOR::G(vsEval_ptr eval)
 	data_ptr n2 = eval->pop();
 
 	// newed
-	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, n1->g(n2)));
+	data_ptr d_temp = data_ptr(new NumData(n1->g(n2)));
 	eval->push(d_temp);
 #if CHECK_Eval
 	std::cerr << d_temp->toEchoString() << std::endl;
@@ -163,7 +163,7 @@ void OPERATOR::L(vsEval_ptr eval)
 	data_ptr n2 = eval->pop();
 
 	// newed
-	data_ptr d_temp = data_ptr(new NumData(DataType::NUMBER, n1->g(n2)));
+	data_ptr d_temp = data_ptr(new NumData(n1->g(n2)));
 	eval->push(d_temp);
 #if CHECK_Eval
 	std::cerr << d_temp->toEchoString() << std::endl;
@@ -196,7 +196,7 @@ void OPERATOR::CAST_NUMBER(vsEval_ptr eval)
 	assert(d->getType() != DataType::OPERA_ADDR);
 	int num = d->toNumber();
 	// newed
-	eval->push(data_ptr(new NumData(DataType::NUMBER, num)));
+	eval->push(data_ptr(new NumData(num)));
 #if CHECK_Eval 
 	std::cerr << num << std::endl;
 #endif
@@ -229,7 +229,7 @@ void OPERATOR::CAST_BOOL(vsEval_ptr eval) {
 	data_ptr d = eval->pop();
 	assert(d->getType() != DataType::OPERA_ADDR);
 	int b = d->toBool();
-	eval->push(data_ptr(new NumData(DataType::NUMBER, b)));
+	eval->push(data_ptr(new NumData(b)));
 #if CHECK_Eval
 	std::cerr << b << std::endl;
 #endif
@@ -502,7 +502,7 @@ void OPERATOR::ECX(vsEval_ptr eval) {
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::ECX " << std::endl;
 #endif
-	eval->push(data_ptr(new NumData(DataType::NUMBER, eval->ecx)));	// 计数器大小
+	eval->push(data_ptr(new NumData(eval->ecx)));	// 计数器大小
 }
 
 void OPERATOR::NUL(vsEval_ptr eval) {
@@ -607,7 +607,8 @@ void OPERATOR::NEW_DEF(vsEval_ptr eval)
 	assert(!stk.empty());
 	data_ptr id = eval->pop();
 	assert(id->getType() == DataType::ID_INDEX);
-	eval->new_regist_identity(id->toIndex(), d);
+//	eval->new_regist_identity(id->toIndex(), d);
+	eval->new_regist_identity(id->toString(), d);
 	// 返回定义的data
 	eval->push(d);
 #if CHECK_Eval 
@@ -630,18 +631,17 @@ void OPERATOR::NEW_ASSIGN(vsEval_ptr eval)
 	auto type = id->getType();
 	if (type == DataType::ID_INDEX) {
 		// 当做局部变量赋值
-		bool local_assign_success = eval->new_set_data(id->toIndex(), value);
+		bool local_assign_success = eval->new_set_data(id->toString(), value);
 		assert(local_assign_success);
 	}
 	else if (type == DataType::PARA_INDEX) {
 		// 当做参数变量赋值
-		bool paras_assign_success = eval->para_assign_data(id->toIndex(), value);
+		bool paras_assign_success = eval->para_assign_data(id->toString(), value);
 		assert(paras_assign_success);
 	}
 	else {
 		assert(false);
 	}
-
 	// 返回赋值的data
 	eval->push(value);
 #if CHECK_Eval 
@@ -658,7 +658,7 @@ void OPERATOR::NEW_DRF(vsEval_ptr eval)
 
 	assert(!stk.empty());
 	data_ptr d = eval->pop();
-	d = (eval)->new_get_data(d->toIndex());
+	d = (eval)->new_get_data(d->toString());
 #if CHECK_Eval 
 	std::cerr << d->toEchoString() << std::endl;
 #endif
@@ -682,12 +682,12 @@ void OPERATOR::CP(vsEval_ptr eval) {
 	auto type = id->getType();
 	if (type == DataType::ID_INDEX) {
 		// 当做局部变量赋值
-		bool local_assign_success = eval->new_set_data(id->toIndex(), value, true);
+		bool local_assign_success = eval->new_set_data(id->toString(), value, true);
 		assert(local_assign_success);
 	}
 	else if (type == DataType::PARA_INDEX) {
 		// 当做参数变量赋值
-		bool paras_assign_success = eval->para_assign_data(id->toIndex(), value, true);
+		bool paras_assign_success = eval->para_assign_data(id->toString(), value, true);
 		assert(paras_assign_success);
 	}
 	else {
@@ -751,7 +751,6 @@ void OPERATOR::ENCLOSED(vsEval_ptr eval) {
 	evalable->set_runtime_ctx_ptr(frame);
 }
 
-
 // 分配临时实参列表, 为接下来传递参数做准备
 void OPERATOR::CALL_BLK_BEGIN(vsEval_ptr eval) {
 	// 注意: call Block的时候还是在栈外面
@@ -779,11 +778,11 @@ void OPERATOR::CALL_BLK(vsEval_ptr eval)
 	auto count = eval->pop()->toNumber();
 
 	// call列表的第一个参数, 索引将要传递给下一次的参数
-	auto& act_list = frame->temp_stkframe.backParasInfo().act_para_list;
-	assert(!act_list.empty());
+	auto& pass_list = frame->temp_stkframe.backParasInfo().pass_paras_list;
+	assert(!pass_list.empty());
 
 	// 获取function对象, 设置运行时上下文
-	auto function_obj = act_list[0];
+	auto function_obj = pass_list[0];
 	assert(function_obj->getType() == DataType::FUNCTION);
 	reinterpret_cast<IEvaluable*>(&*function_obj)->eval(*eval, count);
 }
@@ -793,7 +792,9 @@ void OPERATOR::PARA_PASS(vsEval_ptr eval) {
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::PARA_PASS ";
 #endif
+	auto& stk = eval->current_stk_frame()->stk;
 
+	assert(!stk.empty());
 	data_ptr data = eval->pop();
 
 	// 将实参PUSH到当前栈帧的临时实参列表中, 会在push_frame中传递信息给新建的frame
@@ -818,7 +819,9 @@ void OPERATOR::PARA_DRF(vsEval_ptr eval) {
 	// 获取下标
 	assert(!stk.empty());
 	data_ptr index_d = eval->pop();
-	size_t index = index_d->toIndex();
+
+//	assert(index_d->getType() == DataType::PARA_INDEX);
+	auto index = index_d->toString();
 
 	// 从当前栈帧的实参列表中查找参数
 	data_ptr data = eval->para_get_data(index);

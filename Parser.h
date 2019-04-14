@@ -130,8 +130,6 @@ class TNode {
 	int _father;
 };
 
-using word_type_map = std::map<std::string, WordType>;
-
 // 语法分析器
 class Parser
 {

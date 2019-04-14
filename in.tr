@@ -1,15 +1,24 @@
 [
-	
+	def func lambda x [
+		return enclosed y [
+			echo x y;
+		];;
+	];;
+
+	call call func 123; <aa>;
 ]
 
 /*
 js 对应代码: 
 
 var a = ()=>{
-	var x=100;
-	return ()=>{
-		console.log(x);
+	var k = 10;
+	var x = ()=>{
+		return k;
 	}
+	k = 11;
+	return x;
 }
-a()();
+
+console.log(a()());
 */
