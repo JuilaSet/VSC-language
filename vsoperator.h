@@ -64,7 +64,7 @@ enum class OPCODE :int {
 	CALL_BLK,	// 跳转到指定的block处
 	RET,		// 跳转到栈顶地址位置, 不自动-1
 	BREAK,		// 跳出该block
-	ENCLOSED,		// 形成闭包
+	ENCLOSED,	// 形成闭包
 
 	// 特殊立即数
 	TIME_BEGIN,		// 当前时间
@@ -82,6 +82,7 @@ enum class OPCODE :int {
 	ASSIGN,		// 变量赋值
 	ADD,		// 栈前两个元素相加
 	SUB,		// 栈前两个元素相减
+	IN,			// 对容器进行索引
 
 	// 关系运算
 	NOT,		// 非
@@ -110,6 +111,8 @@ public:
 	static void ADD(vsEval_ptr eval);
 
 	static void SUB(vsEval_ptr eval);
+
+	static void IN(vsEval_ptr eval);
 
 	static void NOT(vsEval_ptr eval);
 

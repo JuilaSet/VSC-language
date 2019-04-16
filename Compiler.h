@@ -202,7 +202,7 @@ protected:
 
 	std::vector<Context> _context_stk;	// 上下文栈
 
-	int def_stk = 0;				// 判断是否在"定义或赋值语句"的第一个参数中
+	std::vector<int> def_stk;		// 判断是否在"定义或赋值语句"的第一个参数中(是否生成解引用代码)
 
 	int _def_para = 0;				// 判断是否是定义形参
 
@@ -214,16 +214,26 @@ protected:
 
 	_temp_compiler_tool _temp_tool; // 临时状态信息
 public:
+	_compiler_tool() :def_stk(1) {}
 
 	// 判断是否解引用
+	int& cur_def() {
+		return def_stk.back();
+	}
+	void save_def() {
+		def_stk.emplace_back(0);
+	}
+	void reserve_def() {
+		def_stk.pop_back();
+	}
 	void in_def() {
-		def_stk++;
+		++cur_def();
 	}
 	void out_def() {
-		def_stk--;
+		--cur_def();
 	}
 	bool is_in_def() {
-		return def_stk;
+		return cur_def();
 	}
 
 	// 参数计数
@@ -306,7 +316,7 @@ public:
 	void init() {
 		_context_stk.clear();
 		paras_count.clear();
-		def_stk = 0;
+		def_stk.clear();
 		_is_def_blk = false;
 		_def_para = 0;
 		word_stk.clear();
@@ -500,6 +510,8 @@ public:
 	}
 	
 	// 判断是否解引用
+	void save_def() { ctool().save_def(); }
+	void reserve_def() { ctool().reserve_def(); }
 	void in_def() { ctool().in_def(); }
 	void out_def() { ctool().out_def(); }
 
@@ -650,8 +662,8 @@ public:
 		auto rbegin = ctool_stk.rbegin();
 		auto rend = ctool_stk.rend();
 		for (auto it = rbegin; it != rend; ++it) {
-			auto fit = it->has_indexof_form_para(w);
-			if (fit != -1) {
+			auto found = it->has_indexof_form_para(w);
+			if (found) {
 				return true;
 			}
 			// 强作用域下不会向上查询

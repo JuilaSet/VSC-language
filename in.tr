@@ -1,24 +1,9 @@
 [
-	def func lambda x [
-		return enclosed y [
-			echo x y;
-		];;
+	def vec $vec;
+	def in vec 0; lambda [
+		echo 10;
 	];;
 
-	call call func 123; <aa>;
+	call in vec 0;;
+
 ]
-
-/*
-js 对应代码: 
-
-var a = ()=>{
-	var k = 10;
-	var x = ()=>{
-		return k;
-	}
-	k = 11;
-	return x;
-}
-
-console.log(a()());
-*/

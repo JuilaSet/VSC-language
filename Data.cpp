@@ -15,3 +15,96 @@ int FunctionData::eval(vsEvaluator& evalor, int argc) {
 	evalor.load_block(block_ptr, argc);
 	return 0;
 }
+
+// 构造函数
+ContainerLocationData::ContainerLocationData(container_ptr container_p, data_ptr location) 
+	: p_container(container_p), _location(location) {}
+
+// 更改对容器该位置的索引
+bool ContainerLocationData::container_assign(data_ptr value) {
+	return p_container->assign(_location, value);
+}
+
+// 复制到容器的该位置
+bool ContainerLocationData::container_cp(data_ptr value) {
+	return p_container->cp(_location, value);
+}
+
+std::shared_ptr<vsData> ContainerLocationData::cp(std::shared_ptr<vsData> d) {
+	p_container->cp(_location, d);
+	return data_ptr(p_container->find(_location));
+}
+
+// 返回找到的对象指针, 没有返回nullptr
+data_ptr ContainerLocationData::container_find() {
+	return p_container->find(_location);
+}
+
+// 比较的方法
+bool ContainerLocationData::eq(std::shared_ptr<vsData> d) {
+	return _location == d;	// 指针是否相同
+}
+
+bool ContainerLocationData::l(std::shared_ptr<vsData> d) {
+	return _location < d;
+}
+
+bool ContainerLocationData::g(std::shared_ptr<vsData> d) {
+	return _location > d;
+}
+
+// 运算
+data_ptr ContainerLocationData::add(std::shared_ptr<vsData> d) {
+	auto f = p_container->find(_location);
+	if (f != nullptr)
+		return f->add(d);
+	return NULL_DATA::null_data;
+}
+
+// 回显用函数
+std::string ContainerLocationData::toEchoString() const {
+	auto f = p_container->find(_location);
+	if (f != nullptr)
+		return f->toEchoString();
+	return UNDEFINED_ECHO;
+}
+
+// 返回转换的字符串(支持数字转换为字符串)
+std::string ContainerLocationData::toString() const {
+	auto f = p_container->find(_location);
+	if (f != nullptr)
+		return f->toEchoString();
+	return UNDEFINED_ECHO;
+}
+
+// 返回转换的数字(支持字符串转换为数字)
+long long ContainerLocationData::toNumber() const {
+	auto f = p_container->find(_location);
+	if (f != nullptr)
+		return f->toNumber();
+	return 0;
+}
+
+// 返回转换的bool型(支持数字, 字符串转换bool)
+bool ContainerLocationData::toBool() const {
+	auto f = p_container->find(_location);
+	if (f != nullptr)
+		return f->toBool();
+	return 0;
+}
+
+// 返回地址(只能是地址类型)
+unsigned int ContainerLocationData::toAddr() const {
+	auto f = p_container->find(_location);
+	if (f != nullptr)
+		return f->toAddr();
+	return 0;
+}
+
+// 返回索引(只能是索引类型)
+size_t ContainerLocationData::toIndex() const {
+	auto f = p_container->find(_location);
+	if (f != nullptr)
+		return f->toIndex();
+	return 0;
+}

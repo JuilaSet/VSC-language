@@ -64,6 +64,7 @@ public:
 			auto& stk = eval->current_stk_frame()->stk;
 			assert(!stk.empty());
 			data_ptr d = eval->top();
+			assert(d != nullptr);
 			std::string str = d->toEchoString();
 #if CHECK_Eval 
 			std::cerr << str << std::endl;

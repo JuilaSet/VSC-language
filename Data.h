@@ -2,7 +2,7 @@
 
 enum class DataType :int {
 	// 空, enum默认构造为NON
-	NON,
+	NON = 0,
 	// 字符串(只读转换为number)
 	STRING,
 	// 整型(只读转换为string)
@@ -16,7 +16,13 @@ enum class DataType :int {
 	// 参数类型
 	PARA_INDEX,
 	// 函数类型
-	FUNCTION
+	FUNCTION,
+	// 引用类型
+	DELEGATION,
+	// 用户自定义对象类型(>= object都是对象, 都有in方法)
+	OBJECT,
+	// vector对象
+	OBJECT_VECTOR
 };
 
 // 数据对象基类
@@ -56,16 +62,13 @@ public:
 	// 返回索引(只能是索引类型)
 	virtual size_t toIndex() const = 0; 
 
-	// 查询成员
-	virtual std::shared_ptr<vsData> in(size_t index) = 0;
-
 	// 返回类型
-	DataType getType() const {
+	virtual DataType getType() const {
 		return _type;
 	}
 
 	// 返回类型名称
-	std::string getTypeName() const  {
+	virtual std::string getTypeName() const  {
 		switch (_type) {
 		case DataType::NON:
 			return "NON";
@@ -80,9 +83,15 @@ public:
 		case DataType::BLK_INDEX:
 			return "BLK_INDEX";
 		case DataType::PARA_INDEX:
-			return "PARA_INDEX";
+			return "PARA_INDEX"; 
 		case DataType::FUNCTION:
 			return "FUNCTION";
+		case DataType::DELEGATION:
+			return "DELEGATION";
+		case DataType::OBJECT:
+			return "OBJECT";
+		case DataType::OBJECT_VECTOR:
+			return "OBJECT_VECTOR";
 		default:
 			assert(false); // 说明存在还没有注册的名称
 			return "ERROR";
@@ -189,11 +198,6 @@ public:
 		assert(_type == DataType::ID_INDEX || _type == DataType::BLK_INDEX || _type == DataType::PARA_INDEX);
 		return value;
 	}
-	
-	// 查询成员(之后的成员全为0)
-	virtual data_ptr in(size_t index) override {
-		return data_ptr(new NumData(0));
-	};
 };
 
 class AddrData : public vsData {
@@ -270,12 +274,6 @@ public:
 		assert(_type == DataType::ID_INDEX || _type == DataType::BLK_INDEX || _type == DataType::PARA_INDEX);
 		return value;
 	}
-
-	// 查询成员(之后的成员全为0)
-	virtual data_ptr in(size_t index) override {
-		assert(false);
-		return nullptr;
-	};
 };
 
 class IndexData : public vsData {
@@ -344,12 +342,6 @@ public:
 	// 返回索引(只能是索引类型)
 	virtual size_t toIndex() const {
 		return toNumber();
-	}
-
-	// 返回索引
-	virtual data_ptr in(size_t p_index) override {
-		assert(false);
-		return nullptr;
 	}
 };
 
@@ -423,18 +415,18 @@ public:
 		assert(false); // 不能返回索引
 		return toNumber();
 	}
-
-	// 返回索引
-	virtual data_ptr in(size_t index) override {
-		std::string sub = value.substr(index, 1);
-		return data_ptr(new StringData(sub));
-	}
 };
 
 class FunctionData: public IEvaluable {
 protected:
 	size_t block_id;							// block代码块地址
 public:
+
+	static FunctionData* cast_delegation_ptr(std::shared_ptr<vsData> d) {
+		assert(d->getType() == DataType::FUNCTION);
+		return reinterpret_cast<FunctionData*>(&*d);
+	}
+
 	FunctionData(size_t block_id) : block_id(block_id) {}
 
 	virtual data_ptr cp(std::shared_ptr<vsData> d) override {
@@ -502,14 +494,77 @@ public:
 		return block_id;
 	}
 
-	// 查询成员
-	virtual std::shared_ptr<vsData> in(size_t index) override  {
-		return data_ptr(new FunctionData(index));
-	}
-
 public:
 	// 执行
 	virtual int eval(vsEvaluator& evalor, int argc) override;
+};
+
+class IDelegation : public vsData {
+public:
+	static IDelegation* cast_delegation_ptr(std::shared_ptr<vsData> d) {
+		assert(d->getType() == DataType::DELEGATION);
+		IDelegation* delegation_data = reinterpret_cast<IDelegation*>(&*d);
+		return delegation_data;
+	}
+
+	IDelegation() : vsData(DataType::DELEGATION) {}
+
+	// 会重写原有的映射关系, 重写返回false, 自动扩容或插入原先没有的元素系返回true
+	virtual bool container_assign(data_ptr) = 0;
+
+	// 不会重写原有的映射关系, 重写更改容器内的指针指向元素的值, 找到元素返回true, 没找到什么都不做, 并返回false
+	virtual bool container_cp(data_ptr) = 0;
+
+	// 返回找到的对象指针, 没有返回nullptr
+	virtual data_ptr container_find() = 0;
+};
+
+// 调用in指令时生成的对象, 用于索引容器位置
+class ContainerLocationData : public IDelegation {
+protected:
+	container_ptr p_container;  // 容器指针
+	data_ptr _location;			// 索引容器的位置
+public:
+	ContainerLocationData(container_ptr container_p, data_ptr location);
+
+	// 更改对容器该位置的索引
+	virtual bool container_assign(data_ptr value);
+
+	// 复制到容器的该位置
+	virtual bool container_cp(data_ptr value);
+
+	virtual std::shared_ptr<vsData> cp(std::shared_ptr<vsData> d);
+
+	// 返回找到的对象指针, 没有返回nullptr
+	virtual data_ptr container_find();
+
+	// 比较的方法
+	virtual bool eq(std::shared_ptr<vsData> d);
+
+	virtual bool l(std::shared_ptr<vsData> d);
+
+	virtual bool g(std::shared_ptr<vsData> d);
+
+	// 运算
+	virtual data_ptr add(std::shared_ptr<vsData> d);
+
+	// 回显用函数
+	virtual std::string toEchoString() const;
+
+	// 返回转换的字符串(支持数字转换为字符串)
+	virtual std::string toString() const;
+
+	// 返回转换的数字(支持字符串转换为数字)
+	virtual long long toNumber() const;
+
+	// 返回转换的bool型(支持数字, 字符串转换bool)
+	virtual bool toBool() const;
+
+	// 返回地址(只能是地址类型)
+	virtual unsigned int toAddr() const;
+
+	// 返回索引(只能是索引类型)
+	virtual size_t toIndex() const;
 };
 
 namespace NULL_DATA {

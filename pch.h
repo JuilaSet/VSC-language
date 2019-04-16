@@ -21,6 +21,9 @@
 #define CHECK_Eval true
 #define CHECK_Eval_command false
 
+// 未定义时回显字符串
+const char* const UNDEFINED_ECHO = "undefined";
+
 // 最大栈帧数, 超过会触发栈溢出异常
 #define MAX_STACK_SIZE 1024
 
@@ -29,9 +32,6 @@
 
 // 分配给block的最大数量
 #define MAX_BLOCK_INDEX_SIZE 1024
-
-// 带包函数自身
-#define ID_SELF "$self"
 
 // 流
 #include <iostream>
@@ -63,6 +63,11 @@
 
 class IEvaluable;
 class vsData;
+
+class vsContainer;
+class vsLinearContainer;
+class vsIdentifierContainer;
+
 class Command;
 class vsblock_static;
 class vsEvaluator;
@@ -76,23 +81,31 @@ using data_ptr = std::shared_ptr<vsData>;
 using evalable_ptr = std::shared_ptr<IEvaluable>;
 using block_ptr = std::shared_ptr<vsblock_static>;
 using index_t = long int;
+
+// compiler
 using word_type_map = std::map<std::string, WordType>;
-using local_index_set = std::set<std::string>;	// 局部变量索引
-using form_paras_set = std::set<std::string>;	// 存放形参名集合
-using form_paras_vec = std::vector<std::string>;// 形参表
+using local_index_set = std::set<std::string>;			// 局部变量索引
+using form_paras_set = std::set<std::string>;			// 存放形参名集合
+using form_paras_vec = std::vector<std::string>;		// 形参表
 // using act_paras_vec = std::vector<data_ptr>;
 // using new_data_list_t = std::vector<data_ptr>;
-using act_paras_list_t = std::map<std::string, data_ptr>;// 形参结合表(函数内部解引用使用, $self为自己)
+// using act_paras_list_t = std::map<std::string, data_ptr>;// 形参结合表(函数内部解引用使用)
+
+// eval
+using container_ptr = std::shared_ptr<vsContainer>;		 // 容器指针
 using form_paras_list_t = std::vector<std::string>;		 // 形参列表(block编译时确定)
 using pass_paras_list_t = std::vector<data_ptr>;		 // 传递参数的列表(call时调用)
-using data_list_t = std::map<std::string, data_ptr>;
-using RunTimeStackFrame = _StackFrame;
+// using data_list_t = std::map<std::string, data_ptr>;局部变量表
+using local_var_container_ptr = container_ptr;			 // 局部变量表
+using para_var_container_ptr = container_ptr;			 // 形参结合表
+using RunTimeStackFrame = _StackFrame;					 // 运行时栈帧
 using RunTimeStackFrame_ptr = std::shared_ptr<_StackFrame>;
 
 #include "Token.h"
 #include "vsFrame.h"
 #include "Data.h"
-
+#include "vsObject.h"
+#include "vsContainer.h"
 #include "Input.h"
 #include "Lexer.h"
 #include "Parser.h"

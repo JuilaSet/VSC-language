@@ -255,7 +255,6 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 			auto block_id = _cur_block_id();
 
 			if (ctx.type != Context_Type::END) {		// 忽略END上下文
-			// pop
 #if CHECK_Compiler
 				std::cout << "Context stack POP = " << ctx.getName() << std::endl;
 				std::cout << "COMMAND: PUSH " << context_name << std::endl;
@@ -267,6 +266,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 					std::cerr << std::endl;
 				}
 #endif
+				// pop	
 				if (type == WordType::IDENTIFIER_ENABLED && !ctool().is_in_def()){
 
 #if CHECK_Compiler
@@ -299,7 +299,19 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 						}
 					}
 				}
+				else if (type == WordType::IDENTIFIER_ENABLED){
+					// 是标识符且在定义语句中(def assign cp)
+					if (has_para(word)) {
+						// 对形参赋值
+						result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::PARA_INDEX, word.getString()))));
+					}
+					else {
+						// 默认是局部变量
+						result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, word.getString()))));
+					}
+				}
 				else {
+					// 其他非标识符
 					result.refCommandVector(block_id).push_back(CommandHelper::getPushOpera(word.getData()));	// push 立即数
 				}
 				

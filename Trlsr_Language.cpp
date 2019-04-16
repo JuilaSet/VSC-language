@@ -134,8 +134,8 @@ void regist_keywords_contents(Context_helper& helper) {
 					compiler->dont_gene_callblk();
 					// 获取分配的下标
 					compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
-					commandVec.pop_back(); // 将之前的 push 立即数指令弹出
-					commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
+//					commandVec.pop_back(); // 将之前的 push 立即数指令弹出 []][
+//					commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
 					compiler->setSubFieldStrongHold();
 					return _command_set{};
 				}, Context_Type::NORMAL, "def_op1"),
@@ -160,26 +160,21 @@ void regist_keywords_contents(Context_helper& helper) {
 			},
 			{
 				Context([&](ContextStk& cstk, _command_set& commandVec, Word& w,  auto* compiler) {
-					// 将之前的 push 立即数指令弹出
-					commandVec.pop_back();
 					compiler->out_def();
-					// 获取分配的下标
-					if (compiler->has_local(w)) {
-						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
-					}
-					else if (compiler->has_para(w)) {
-						// 对形参赋值
-						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
-					}
-					else {
+					compiler->dont_gene_callblk();
+					compiler->setSubFieldStrongHold();
+					// 检查word是否定义: 如果当前只有一个word作为标识符 []][
+					if (w.getType() == WordType::IDENTIFIER_ENABLED && !compiler->has_local(w) && !compiler->has_para(w)) {
 						throw undefined_exception(w.getString());
 					}
 					return _command_set{};
 				}, Context_Type::NORMAL, "assign_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->enable_gene_callblk();
 					return _command_set{};
 				}, Context_Type::NORMAL, "assign_op2"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->setSubFieldWeakHold();
 					return _command_set{
 						// COMMAND(ASSIGN)
 						COMMAND(NEW_ASSIGN)
@@ -196,26 +191,21 @@ void regist_keywords_contents(Context_helper& helper) {
 			},
 			{
 				Context([&](ContextStk& cstk, _command_set& commandVec, Word& w,  auto* compiler) {
-					// 将之前的 push 立即数指令弹出
-					commandVec.pop_back();
 					compiler->out_def();
-					// 获取分配的下标
-					if (compiler->has_local(w)) {
-						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
-					}
-					else if (compiler->has_para(w)) {
-						// 对形参赋值
-						commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
-					}
-					else {
-						throw undefined_exception(w.getString());
+					compiler->dont_gene_callblk();
+					compiler->setSubFieldStrongHold();
+					// 检查word是否定义: 如果当前只有一个word作为标识符 []][
+					if (w.getType() == WordType::IDENTIFIER_ENABLED && !compiler->has_local(w) && !compiler->has_para(w)) {
+							throw undefined_exception(w.getString());
 					}
 					return _command_set{};
 				}, Context_Type::NORMAL, "copy_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->enable_gene_callblk();
 					return _command_set{};
 				}, Context_Type::NORMAL, "copy_op2"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->setSubFieldWeakHold();
 					return _command_set{
 						COMMAND(CP)
 					};
@@ -390,11 +380,45 @@ void regist_keywords_contents(Context_helper& helper) {
 #if CHECK_Compiler
 		cout << "COMMAND:::: $null" << endl;
 #endif
-		return _command_set{ COMMAND(NUL) };
-	}, { })	// 只能有一个上下文
+			return _command_set{ COMMAND(NUL) };
+		}, { })	// 只能有一个上下文
 	);
 
+	helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$vec").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+#if CHECK_Compiler
+					cout << "COMMAND:: $vec" << endl;
+#endif
+					return _command_set{ 
+						CommandHelper::getPushOpera(data_ptr(new vsVector))
+					};
+				}, { })	// 只能有一个上下文
+			);
+
 	// OPERATOR_WORD
+
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "in").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+				compiler->save_def();
+				return _command_set{};
+			},
+			{
+				Context([&](ContextStk& cstk, _command_set& commandVec, Word& w,  auto* compiler) {
+					return _command_set{};
+				}, Context_Type::NORMAL, "in_op1"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					return _command_set{
+						COMMAND(IN)
+					};
+				}, Context_Type::NORMAL, "in_op2"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->reserve_def();
+					return _command_set{};
+				}, Context_Type::END, "in_end")
+			})
+	);
 
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "add").serialize(),
 		helper.build_context(
@@ -594,6 +618,7 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_OPERATO_WORDS(helper, "g");
 	REGIST_OPERATO_WORDS(helper, "l");
 	REGIST_OPERATO_WORDS(helper, "typename");
+	REGIST_OPERATO_WORDS(helper, "in");
 	
 	REGIST_CONTROLLER_WORDS(helper, "call");
 	REGIST_CONTROLLER_WORDS(helper, "lambda");

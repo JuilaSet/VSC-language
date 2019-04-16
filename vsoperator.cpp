@@ -90,6 +90,35 @@ void OPERATOR::SUB(vsEval_ptr eval) {
 #endif
 }
 
+void OPERATOR::IN(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::IN ";
+#endif
+	auto& stk = eval->current_stk_frame()->stk;
+
+	assert(!stk.empty());
+	data_ptr index = eval->pop();
+
+	assert(!stk.empty());
+	data_ptr obj = eval->pop();
+
+#if CHECK_Eval
+	if (obj->getType() < DataType::OBJECT) {
+		std::cerr << "DATA_TYPE = " << obj->getTypeName() << std::endl;
+		assert(false);
+	}
+#else
+	assert(obj->getType() >= DataType::OBJECT);
+#endif
+	// 返回索引位置
+	auto vsobj_ptr = vsObject::cast_vsObject_ptr(obj);
+	data_ptr data_ref = vsobj_ptr->in(index);
+	eval->push(data_ref);
+#if CHECK_Eval 
+	std::cerr << std::endl;
+#endif
+}
+
 void OPERATOR::NOT(vsEval_ptr eval) {
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::NOT ";
@@ -606,9 +635,18 @@ void OPERATOR::NEW_DEF(vsEval_ptr eval)
 	data_ptr d = eval->pop();
 	assert(!stk.empty());
 	data_ptr id = eval->pop();
-	assert(id->getType() == DataType::ID_INDEX);
-//	eval->new_regist_identity(id->toIndex(), d);
-	eval->new_regist_identity(id->toString(), d);
+
+	// 根据类型判断
+	assert(id->getType() == DataType::ID_INDEX || id->getType() == DataType::DELEGATION);
+	switch (id->getType()) {
+	case DataType::ID_INDEX:
+		eval->new_regist_identity(id->toString(), d);
+		break;
+	case DataType::DELEGATION:
+		// 在引用处定义
+		IDelegation::cast_delegation_ptr(id)->container_assign(d);
+		break;
+	}
 	// 返回定义的data
 	eval->push(d);
 #if CHECK_Eval 
@@ -629,19 +667,34 @@ void OPERATOR::NEW_ASSIGN(vsEval_ptr eval)
 	data_ptr id = eval->pop();
 	
 	auto type = id->getType();
-	if (type == DataType::ID_INDEX) {
-		// 当做局部变量赋值
-		bool local_assign_success = eval->new_set_data(id->toString(), value);
-		assert(local_assign_success);
+	// 根据类型判断
+	switch (type) {
+		case DataType::ID_INDEX: {
+			// 当做局部变量赋值
+			bool local_assign_success = eval->new_set_data(id->toString(), value);
+			assert(local_assign_success);
+			break;
+		}
+		case DataType::PARA_INDEX: {
+			// 当做参数变量赋值
+			bool paras_assign_success = eval->para_assign_data(id->toString(), value);
+			assert(paras_assign_success);
+			break;
+		}
+		case DataType::DELEGATION: {
+			// 复制到索引位置
+			IDelegation::cast_delegation_ptr(id)->container_assign(value);
+			break;
+		}
+		default: {
+#if CHECK_Eval
+			std::cerr << "DATA_TYPE = " << id->getTypeName() << std::endl;
+#endif
+			assert(false);
+			break;
+		}
 	}
-	else if (type == DataType::PARA_INDEX) {
-		// 当做参数变量赋值
-		bool paras_assign_success = eval->para_assign_data(id->toString(), value);
-		assert(paras_assign_success);
-	}
-	else {
-		assert(false);
-	}
+
 	// 返回赋值的data
 	eval->push(value);
 #if CHECK_Eval 
@@ -680,18 +733,28 @@ void OPERATOR::CP(vsEval_ptr eval) {
 	data_ptr id = eval->pop();
 
 	auto type = id->getType();
-	if (type == DataType::ID_INDEX) {
-		// 当做局部变量赋值
-		bool local_assign_success = eval->new_set_data(id->toString(), value, true);
-		assert(local_assign_success);
-	}
-	else if (type == DataType::PARA_INDEX) {
-		// 当做参数变量赋值
-		bool paras_assign_success = eval->para_assign_data(id->toString(), value, true);
-		assert(paras_assign_success);
-	}
-	else {
-		assert(false);
+	// 根据类型判断
+	switch (type) {
+		case DataType::ID_INDEX: {
+			// 当做局部变量赋值
+			bool local_assign_success = eval->new_set_data(id->toString(), value, true);
+			assert(local_assign_success);
+			break; 
+		}
+		case DataType::PARA_INDEX: {
+			// 当做参数变量赋值
+			bool paras_assign_success = eval->para_assign_data(id->toString(), value, true);
+			assert(paras_assign_success);
+			break;
+		}
+		case DataType::DELEGATION: {
+			// 复制到值
+			IDelegation::cast_delegation_ptr(id)->container_cp(value);
+			break;
+		}
+		default: {
+			assert(false);
+		}
 	}
 
 	// 返回赋值的data
@@ -783,8 +846,26 @@ void OPERATOR::CALL_BLK(vsEval_ptr eval)
 
 	// 获取function对象, 设置运行时上下文
 	auto function_obj = pass_list[0];
-	assert(function_obj->getType() == DataType::FUNCTION);
-	reinterpret_cast<IEvaluable*>(&*function_obj)->eval(*eval, count);
+
+	bool end = false;
+	while (!end) {
+		BEGIN: auto type = function_obj->getType();
+		switch (type) {
+		case DataType::FUNCTION:
+			FunctionData::cast_delegation_ptr(function_obj)->eval(*eval, count);
+			end = true;
+			break;
+		case DataType::DELEGATION:
+			function_obj = IDelegation::cast_delegation_ptr(function_obj)->container_find();
+			break;
+		default:
+#if CHECK_Eval
+			std::cerr << function_obj->getTypeName() << std::endl;
+#else
+			assert(false); // 传入的类型错误
+#endif
+		}
+	}
 }
 
 // 传递实参给形参, 注册data到该临时帧的形参表中

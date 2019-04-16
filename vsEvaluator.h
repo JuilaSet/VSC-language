@@ -80,10 +80,10 @@ protected:
 
 protected:
 	// 根据index获取data对象
-	data_ptr _find_data(std::string index, data_list_t*& table_ret);
+	data_ptr _find_data(std::string index, local_var_container_ptr& table_ret);
 
-	// 根据index获取para实参对象
-	data_ptr _find_para(std::string index, act_paras_list_t*& act_paras_table_ret);
+	// 根据index获取para实参对象 
+	data_ptr _find_para(std::string index, para_var_container_ptr& act_paras_table_ret);
 
 	// 创建并压入栈帧
 	void _push_and_setting_frame(block_ptr retblock, block_ptr curblock, int paras_count) throw(stack_overflow_exception);

@@ -1,6 +1,19 @@
 ﻿#include "pch.h"
 #include "vsFrame.h"
+#include "Data.h"
 #include "vsfunction.h"
+#include "vsContainer.h"
+
+// 构造
+_StackFrameParasInfo::_StackFrameParasInfo() : act_para_container(new vsIdentifierContainer) { }
+
+// 初始化
+void _StackFrameParasInfo::init() {
+	act_para_container->clearAll();
+	pass_paras_list.clear();
+}
+
+_StackFrame::_StackFrame() : local_var_table(new vsIdentifierContainer) { }
 
 // 获取外部运行上下文
 RunTimeStackFrame_ptr _StackFrame::get_current_function_context() {
@@ -22,7 +35,8 @@ RunTimeStackFrame_ptr _StackFrame::get_current_function_context() {
 void _StackFrame::pass_paras(block_ptr innerblock) {
 	auto& f_list = innerblock->get_form_paras_list_ref();
 	auto& p_list = paras_info.pass_paras_list; // 第一个参数是函数下标
-	auto& act_list = paras_info.act_para_list;
+//	auto& act_list = paras_info.act_para_list;
+	auto act_list = paras_info.act_para_container;	// 实参结合表<id -> data_ptr>
 	auto begin = 0;
 	auto fend = f_list.size();
 	auto pend = p_list.size();
@@ -37,13 +51,11 @@ void _StackFrame::pass_paras(block_ptr innerblock) {
 		if (it - 1 == fend) {
 			break;
 		}
-		// paraname -> data
-		auto pair = std::make_pair(f_list[it - 1], data);
 #if CHECK_Eval
 		std::cout << "形参结合: " <<
 			f_list[it - 1] << "->" << 
 			data->toEchoString() << std::endl;
 #endif
-		act_list.insert(pair);
+		act_list->assign(data_ptr(new StringData(f_list[it - 1])), data);
 	}
 }
