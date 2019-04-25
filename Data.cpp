@@ -30,35 +30,43 @@ bool ContainerLocationData::container_cp(data_ptr value) {
 	return p_container->cp(_location, value);
 }
 
-std::shared_ptr<vsData> ContainerLocationData::cp(std::shared_ptr<vsData> d) {
-	p_container->cp(_location, d);
-	return data_ptr(p_container->find(_location));
+// 返回找到的对象指针, 没有返回空对象
+data_ptr ContainerLocationData::container_find() {
+	auto data = p_container->find(_location);
+	return data == nullptr ? NULL_DATA::null_data : data;
 }
 
-// 返回找到的对象指针, 没有返回nullptr
-data_ptr ContainerLocationData::container_find() {
-	return p_container->find(_location);
+std::shared_ptr<vsData> ContainerLocationData::cp(std::shared_ptr<vsData> d) {
+	auto f = p_container->find(_location);
+	if (f != nullptr)
+		return f->cp(d);
+	return NULL_DATA::null_data;
 }
 
 // 比较的方法
 bool ContainerLocationData::eq(std::shared_ptr<vsData> d) {
-	return _location == d;	// 指针是否相同
+	auto f = p_container->find(_location);
+	if (f == nullptr) f = NULL_DATA::null_data;
+	return f->eq(d);
 }
 
 bool ContainerLocationData::l(std::shared_ptr<vsData> d) {
-	return _location < d;
+	auto f = p_container->find(_location);
+	if (f == nullptr) f = NULL_DATA::null_data;
+	return f->l(d);
 }
 
 bool ContainerLocationData::g(std::shared_ptr<vsData> d) {
-	return _location > d;
+	auto f = p_container->find(_location);
+	if (f == nullptr) f = NULL_DATA::null_data;
+	return f->g(d);
 }
 
 // 运算
 data_ptr ContainerLocationData::add(std::shared_ptr<vsData> d) {
 	auto f = p_container->find(_location);
-	if (f != nullptr)
-		return f->add(d);
-	return NULL_DATA::null_data;
+	if (f == nullptr) f = NULL_DATA::null_data;
+	return f->add(d);
 }
 
 // 回显用函数

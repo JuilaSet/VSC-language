@@ -192,6 +192,20 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 			// 什么都不做
 			assert(!ctool_stk.empty());
 		}
+		else if (type == WordType::SEPARATOR) {
+#if CHECK_Compiler
+		std::cout << "Word = " << word.serialize() << std::endl;
+		for (auto& t : ctool_stk) {
+			if (!ctool_stk.empty()) {
+				show_cstk("Context stk", t._context_stk);
+				show_cstk("temp stk", t.tempStk);
+			}
+			std::cerr << std::endl;
+		}
+#endif
+			// 什么都不做
+			assert(!ctool_stk.empty());
+		}
 		else if (type == WordType::CONTEXT_CLOSED) {
 			assert(!ctool_stk.empty());
 			// 遇到上下文结束符";"

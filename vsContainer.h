@@ -47,7 +47,7 @@ public:
 	virtual void clear(data_ptr) throw(std::out_of_range) = 0;
 
 	// for_each(需要判断第二个参数是否为nullptr)
-	virtual void for_each(std::function<void(std::string, data_ptr)> callback) = 0;
+	virtual void for_each(std::function<bool(std::string, data_ptr)> callback) = 0;
 };
 
 // 线性容器
@@ -56,111 +56,51 @@ protected:
 	std::vector<data_ptr> _vec;
 	int _it;
 public:
-	vsLinearContainer() {
-		_it = 0;
-	}
+	vsLinearContainer();
 	
+	vsLinearContainer(const vsLinearContainer& container);
+		
 	// 返回容器大小
-	virtual size_t size() {
-		return _vec.size();
-	}
+	virtual size_t size();
 
 	// 是否为空
-	virtual bool empty() override {
-		return _vec.empty();
-	}
+	virtual bool empty() override;
 
 	// 下一个对象(如果没有返回false, 如果还有返回true)
-	virtual bool next()override {
-		++_it;
-		return _it == _vec.size() ? false: true;
-	}
+	virtual bool next()override;
 
 	// 当前对象
-	virtual data_ptr cur_data()override {
-		return _vec[_it];
-	}
+	virtual data_ptr cur_data()override;
 
 	// 当前键
-	virtual data_ptr cur_key() override {
-		return data_ptr(new NumData(_it));
-	}
+	virtual data_ptr cur_key() override;
 
 	// 从头开始
-	virtual void gotoBegin() override {
-		_it = 0;
-	}
+	virtual void gotoBegin() override;
 
 	// 头部键值
-	virtual data_ptr back_key() override {
-		return data_ptr(new NumData(_vec.size()));
-	}
+	virtual data_ptr back_key() override;
 
 	// 尾部键值
-	virtual data_ptr head_key() {
-		return data_ptr(new NumData(0));
-	}
+	virtual data_ptr head_key() override;
 
 	// 会重写原有的映射关系, 重写返回false, 自动扩容或插入原先没有的元素系返回true
-	virtual bool assign(data_ptr index, data_ptr value) override {
-		int i = index->toNumber();
-		bool ret = true;
-		if (i < _vec.size()) {
-			// 当前位置非空, 更新了元素, 返回false
-			if (_vec[i] != nullptr) {
-				ret = false;
-			}
-			_vec[i] = value;
-		}
-		else {
-			_vec.resize(i + 1, nullptr);
-			_vec[i] = value;
-		}
-		return ret;
-	}
+	virtual bool assign(data_ptr index, data_ptr value) override;
 
 	// 不会重写原有的映射关系, 重写更改容器内的指针指向元素的值, 找到元素返回true, 没找到什么都不做, 并返回false
-	virtual bool cp(data_ptr index, data_ptr value) override {
-		int i = index->toNumber();
-		bool ret = false;
-		if (i < _vec.size()) {
-			if (_vec[i] != nullptr) {
-				ret = true;
-				_vec[i]->cp(value);
-			}
-		}
-		return ret;
-	}
+	virtual bool cp(data_ptr index, data_ptr value) override;
 
 	// 返回找到的对象指针, 没有返回nullptr
-	virtual data_ptr find(data_ptr index) override {
-		int i = index->toNumber();
-		if (i < _vec.size())
-			return _vec.at(i);
-		else
-			return nullptr;
-	}
+	virtual data_ptr find(data_ptr index) override;
+
 
 	// 全部清空
-	virtual void clearAll() override {
-		_vec.clear();
-	}
+	virtual void clearAll() override;
 
 	// 删除一个映射关系(会用空对象替代)
-	virtual void clear(data_ptr index) throw(std::out_of_range) override {
-		int i = index->toNumber();
-		// throw
-		_vec.at(i) = nullptr;
-	}
+	virtual void clear(data_ptr index);
 
-	virtual void for_each(std::function<void(std::string, data_ptr)> callback) {
-		auto begin = 0;
-		auto end = _vec.size();
-		for (auto it = begin; it != end; ++it) {
-			if(_vec[it] != nullptr)
-				callback(std::to_string(it), _vec[it]);
-		}
-	};
+	virtual void for_each(std::function<bool(std::string, data_ptr)> callback);
 };
 
 // 标识符容器
@@ -171,110 +111,49 @@ protected:
 	std::map<std::string, data_ptr>::iterator _it;
 
 public:
-	vsIdentifierContainer() {
-		_it = _map.begin();
-	}
+	vsIdentifierContainer();
 
+	vsIdentifierContainer(const vsIdentifierContainer& container);
+	
 	// 返回容器大小
-	virtual size_t size() {
-		return _map.size();
-	}
+	virtual size_t size() override;
+
 	// 是否为空
-	virtual bool empty() override {
-		return _map.empty();
-	}
+	virtual bool empty() override;
 
 	// 下一个对象(如果没有返回false, 如果还有返回true)
-	virtual bool next() override {
-		++_it;
-		return _it == _map.end() ? false : true;
-	}
+	virtual bool next() override;
 
 	// 当前对象
-	virtual data_ptr cur_data()override {
-		return _it->second;
-	}
+	virtual data_ptr cur_data()override;
 
 	// 当前键
-	virtual data_ptr cur_key()override {
-		return data_ptr(new StringData(_it->first));
-	}
+	virtual data_ptr cur_key()override;
 
 	// 从头开始
-	virtual void gotoBegin() override {
-		_it = _map.begin();
-	}
+	virtual void gotoBegin() override;
 
 	// 头部键值
-	virtual data_ptr back_key() override {
-		return data_ptr(new StringData(_map.rbegin()->first));
-	}
+	virtual data_ptr back_key() override;
 
 	// 尾部键值
-	virtual data_ptr head_key() {
-		return data_ptr(new StringData(_map.begin()->first));
-	}
+	virtual data_ptr head_key() override;
 
 	// 会重写原有的映射关系, 重写返回false, 自动扩容或插入原先没有的元素系返回true
-	virtual bool assign(data_ptr index, data_ptr value)override {
-		std::string i = index->toString();
-		bool ret = true;
-		auto it = _map.find(i);
-		if (it != _map.end()) {
-			ret = false;
-		}
-		// 更新映射关系
-		_map.insert_or_assign(i, value);
-		return ret;
-	}
+	virtual bool assign(data_ptr index, data_ptr value)override;
 
 	// 不会重写原有的映射关系, 重写更改容器内的指针指向元素的值, 找到元素返回true, 没找到什么都不做, 并返回false
-	virtual bool cp(data_ptr index, data_ptr value) override {
-		std::string i = index->toString();
-		bool ret = false;
-		auto it = _map.find(i);
-		if (it != _map.end()) {
-			auto& old_v = it->second;
-			if (old_v != nullptr) {
-				ret = true;
-				old_v->cp(value);
-			}
-		}
-		return ret;
-	}
+	virtual bool cp(data_ptr index, data_ptr value) override;
 	
 	// 返回找到的对象指针
-	virtual data_ptr find(data_ptr index) override {
-		std::string i = index->toString();
-		// throw
-		auto it = _map.find(i);
-		if (it != _map.end()) {
-			return it->second;
-		}
-		else {
-			return nullptr;
-		}
-	}
+	virtual data_ptr find(data_ptr index) override;
 
 	// 全部清空
-	virtual void clearAll() {
-		_map.clear();
-	}
+	virtual void clearAll()override;
 
 	// 删除一个映射关系(会用空对象替代)
-	virtual void clear(data_ptr index) throw(std::out_of_range) override {
-		std::string i = index->toString();
-		// throw
-		_map.erase(i);
-	}
+	virtual void clear(data_ptr index)override;
 
 	// for_each
-	virtual void for_each(std::function<void(std::string, data_ptr)> callback) {
-		auto begin = _map.begin();
-		auto end = _map.end();
-		for (auto it = begin; it != end; ++it) {
-			if (it->second != nullptr)
-				callback(it->first, it->second);
-		}
-	};
+	virtual void for_each(std::function<bool(std::string, data_ptr)> callback)override;
 };

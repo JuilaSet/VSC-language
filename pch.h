@@ -12,18 +12,26 @@
 #define MODE_CIL false
 
 #define CHECK_Data false
+#define CHECK_Object false
+
+#define CHECK_Parser false
+#define CHECK_Parser_g false
 
 #define CHECK_Compiler false
+#define CHECK_Compiler_rev false
 #define CHECK_Compiler_alloc false
 #define CHECK_Compiler_Field false
 #define CHECK_Compiler_Field_NEW_BLK false
 
-#define CHECK_Eval true
+#define CHECK_Eval false
 #define CHECK_Eval_command false
+
+// 字符串最大显示数量除数
+const int const STRING_MAX_SZIE = 100;
 
 // 未定义时回显字符串
 const char* const UNDEFINED_ECHO = "undefined";
-
+ 
 // 最大栈帧数, 超过会触发栈溢出异常
 #define MAX_STACK_SIZE 1024
 
@@ -95,7 +103,7 @@ using form_paras_vec = std::vector<std::string>;		// 形参表
 using container_ptr = std::shared_ptr<vsContainer>;		 // 容器指针
 using form_paras_list_t = std::vector<std::string>;		 // 形参列表(block编译时确定)
 using pass_paras_list_t = std::vector<data_ptr>;		 // 传递参数的列表(call时调用)
-// using data_list_t = std::map<std::string, data_ptr>;局部变量表
+// using data_list_t = std::map<std::string, data_ptr>;	局部变量表
 using local_var_container_ptr = container_ptr;			 // 局部变量表
 using para_var_container_ptr = container_ptr;			 // 形参结合表
 using RunTimeStackFrame = _StackFrame;					 // 运行时栈帧
@@ -113,6 +121,7 @@ using RunTimeStackFrame_ptr = std::shared_ptr<_StackFrame>;
 #include "vsoperator.h"
 #include "vscommand.h"
 #include "vsfunction.h"
+#include "Adaptor.h"
 #include "Compiler.h"
 #include "vsVirtualMachine.h"
 

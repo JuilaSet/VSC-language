@@ -45,7 +45,7 @@ void _StackFrame::pass_paras(block_ptr innerblock) {
 		if (it == pend) {
 
 		}
-		else {
+		else if (p_list.size() > it) {
 			data = p_list[it];
 		}
 		if (it - 1 == fend) {

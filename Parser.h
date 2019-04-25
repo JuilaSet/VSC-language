@@ -8,9 +8,6 @@
 #include <functional>
 #include <initializer_list>
 
-#define CHECK_Parser false
-#define CHECK_Parser_g true
-
 enum class IsTerminal : bool {
 	False = false, True
 };

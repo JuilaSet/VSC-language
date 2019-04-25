@@ -22,7 +22,9 @@ enum class DataType :int {
 	// 用户自定义对象类型(>= object都是对象, 都有in方法)
 	OBJECT,
 	// vector对象
-	OBJECT_VECTOR
+	OBJECT_VECTOR,
+	// 原始自定义对象
+	OBJECT_ORIGIN
 };
 
 // 数据对象基类
@@ -92,6 +94,8 @@ public:
 			return "OBJECT";
 		case DataType::OBJECT_VECTOR:
 			return "OBJECT_VECTOR";
+		case DataType::OBJECT_ORIGIN:
+			return "OBJECT_ORIGIN";
 		default:
 			assert(false); // 说明存在还没有注册的名称
 			return "ERROR";
@@ -105,6 +109,11 @@ class IEvaluable: public vsData {
 protected:
 	RunTimeStackFrame_ptr runtime_context_ptr;	// 上下文环境(运行时栈帧)
 public:
+	static IEvaluable* cast_evaluable_ptr(std::shared_ptr<vsData> d) {
+		assert(d->getType() == DataType::FUNCTION);
+		return reinterpret_cast<IEvaluable*>(&*d);
+	}
+
 	IEvaluable() : vsData(DataType::FUNCTION) {}
 
 	// 执行(计算对象, 函数参数个数)
@@ -422,11 +431,6 @@ protected:
 	size_t block_id;							// block代码块地址
 public:
 
-	static FunctionData* cast_delegation_ptr(std::shared_ptr<vsData> d) {
-		assert(d->getType() == DataType::FUNCTION);
-		return reinterpret_cast<FunctionData*>(&*d);
-	}
-
 	FunctionData(size_t block_id) : block_id(block_id) {}
 
 	virtual data_ptr cp(std::shared_ptr<vsData> d) override {
@@ -515,7 +519,7 @@ public:
 	// 不会重写原有的映射关系, 重写更改容器内的指针指向元素的值, 找到元素返回true, 没找到什么都不做, 并返回false
 	virtual bool container_cp(data_ptr) = 0;
 
-	// 返回找到的对象指针, 没有返回nullptr
+	// 返回找到的对象指针, 没有返回空对象
 	virtual data_ptr container_find() = 0;
 };
 
@@ -528,43 +532,43 @@ public:
 	ContainerLocationData(container_ptr container_p, data_ptr location);
 
 	// 更改对容器该位置的索引
-	virtual bool container_assign(data_ptr value);
+	virtual bool container_assign(data_ptr value) override;
 
 	// 复制到容器的该位置
-	virtual bool container_cp(data_ptr value);
+	virtual bool container_cp(data_ptr value) override;
 
-	virtual std::shared_ptr<vsData> cp(std::shared_ptr<vsData> d);
+	virtual std::shared_ptr<vsData> cp(std::shared_ptr<vsData> d) override;
 
 	// 返回找到的对象指针, 没有返回nullptr
-	virtual data_ptr container_find();
+	virtual data_ptr container_find() override;
 
 	// 比较的方法
-	virtual bool eq(std::shared_ptr<vsData> d);
+	virtual bool eq(std::shared_ptr<vsData> d) override;
 
-	virtual bool l(std::shared_ptr<vsData> d);
+	virtual bool l(std::shared_ptr<vsData> d) override;
 
-	virtual bool g(std::shared_ptr<vsData> d);
+	virtual bool g(std::shared_ptr<vsData> d) override;
 
 	// 运算
-	virtual data_ptr add(std::shared_ptr<vsData> d);
+	virtual data_ptr add(std::shared_ptr<vsData> d) override;
 
 	// 回显用函数
-	virtual std::string toEchoString() const;
+	virtual std::string toEchoString() const override;
 
 	// 返回转换的字符串(支持数字转换为字符串)
-	virtual std::string toString() const;
+	virtual std::string toString() const override;
 
 	// 返回转换的数字(支持字符串转换为数字)
-	virtual long long toNumber() const;
+	virtual long long toNumber() const override;
 
 	// 返回转换的bool型(支持数字, 字符串转换bool)
-	virtual bool toBool() const;
+	virtual bool toBool() const override;
 
 	// 返回地址(只能是地址类型)
-	virtual unsigned int toAddr() const;
+	virtual unsigned int toAddr() const override;
 
 	// 返回索引(只能是索引类型)
-	virtual size_t toIndex() const;
+	virtual size_t toIndex() const override;
 };
 
 namespace NULL_DATA {

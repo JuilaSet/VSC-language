@@ -51,50 +51,6 @@ void regist_keywords_contents(Context_helper& helper) {
 			}, Context_Type::END)
 		})
 	);
-
-	helper.regist_context(Word(WordType::CONTROLLER, "call").serialize(),
-		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
-			compiler->paras_begin();
-			compiler->dont_gene_callblk();
-			return _command_set{ COMMAND(CALL_BLK_BEGIN) };
-		},
-		{
-			Context([=](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
-				compiler->paras()++;
-				compiler->enable_gene_callblk();
-				return _command_set{ 
-					COMMAND(PARA_PASS)
-				};
-			}, Context_Type::ALWAYS), 
-			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
-				auto count = compiler->paras();
-				compiler->paras_end();
-				return _command_set{
-						CommandHelper::getPushOpera(data_ptr(new NumData(count))),
-						COMMAND(CALL_BLK)
-				};
-			}, Context_Type::END)
-		})
-	); 
-
-	helper.regist_context(Word(WordType::CONTROLLER, "time").serialize(),
-		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
-		helper.push_command_index(_vec.size());
-			return _command_set{
-					COMMAND(TIME_BEGIN)
-			};
-		},
-		{
-			Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-				return _command_set{ };
-			}, Context_Type::NORMAL, "time_block"),
-			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
-				return _command_set{
-						COMMAND(TIME_END)
-				};
-			}, Context_Type::END, "time_end")
-		})
-	);
 	
 	/*
 	helper.regist_context(Word(WordType::CONTROLLER, "prcd").serialize(),
@@ -371,7 +327,7 @@ void regist_keywords_contents(Context_helper& helper) {
 		cout << "COMMAND:::: $C" << endl;
 #endif
 			return _command_set{ COMMAND(ECX) };
-		}, { })	// 只能有一个上下文
+		}, { })		// 只能有一个上下文
 	);
 
 	helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$null").serialize(),
@@ -396,7 +352,63 @@ void regist_keywords_contents(Context_helper& helper) {
 				}, { })	// 只能有一个上下文
 			);
 
+
+	helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$obj").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+#if CHECK_Compiler
+		cout << "COMMAND:: $obj" << endl;
+#endif
+				return _command_set{
+					CommandHelper::getPushOpera(data_ptr(new vsOriginObject))
+				};
+			}, { })	// 只能有一个上下文
+		);
 	// OPERATOR_WORD
+
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "time").serialize(),
+		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, auto* compiler) {
+		helper.push_command_index(_vec.size());
+		return _command_set{
+				COMMAND(TIME_BEGIN)
+		};
+	},
+		{
+			Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+				return _command_set{ };
+			}, Context_Type::NORMAL, "time_block"),
+			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				return _command_set{
+						COMMAND(TIME_END)
+				};
+			}, Context_Type::END, "time_end")
+		})
+	);
+
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "call").serialize(),
+		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, auto* compiler) {
+		compiler->paras_begin();
+		compiler->dont_gene_callblk();
+		return _command_set{ COMMAND(CALL_BLK_BEGIN) };
+	},
+		{
+			Context([=](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				compiler->paras()++;
+				compiler->enable_gene_callblk();
+				return _command_set{
+					COMMAND(PARA_PASS)
+				};
+			}, Context_Type::ALWAYS),
+			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+				auto count = compiler->paras();
+				compiler->paras_end();
+				return _command_set{
+						CommandHelper::getPushOpera(data_ptr(new NumData(count))),
+						COMMAND(CALL_BLK)
+				};
+			}, Context_Type::END)
+		})
+	);
 
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "in").serialize(),
 		helper.build_context(
@@ -406,9 +418,11 @@ void regist_keywords_contents(Context_helper& helper) {
 			},
 			{
 				Context([&](ContextStk& cstk, _command_set& commandVec, Word& w,  auto* compiler) {
+					compiler->in_def();
 					return _command_set{};
 				}, Context_Type::NORMAL, "in_op1"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->out_def();
 					return _command_set{
 						COMMAND(IN)
 					};
@@ -565,7 +579,10 @@ void regist_keywords_contents(Context_helper& helper) {
 
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "echo").serialize(),
 		helper.build_context(
-			[&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) { return _command_set{}; },
+			[&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+				compiler->dont_gene_callblk(); 
+				return _command_set{}; 
+			},
 			{
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
 #if CHECK_Compiler
@@ -576,6 +593,7 @@ void regist_keywords_contents(Context_helper& helper) {
 					};
 				}, Context_Type::ALWAYS, "echo_op*"),
 				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->enable_gene_callblk();
 					return _command_set{ };
 				}, Context_Type::END, "echo_end")
 			})
@@ -589,6 +607,8 @@ void regist_token(Token_helper& helper) {
 	REGIST_TOKEN(helper, "*/", "commet_close");
 	REGIST_TOKEN(helper, "|<", "cstring_open");
 	REGIST_TOKEN(helper, ">|", "cstring_closed");
+	REGIST_TOKEN(helper, "(", "bracket_opend");
+	REGIST_TOKEN(helper, ")", "bracket_close");
 	REGIST_TOKEN(helper, "//", "commetLine");
 
 	// 
@@ -606,10 +626,17 @@ void regist_token(Token_helper& helper) {
 	REGIST_TOKEN(helper, "[", "list_open");
 	REGIST_TOKEN(helper, "]", "list_closed");
 	REGIST_TOKEN(helper, "\\", "connectLine");
+
+	// num
+	REGIST_TOKEN(helper, "+", "add");
+	REGIST_TOKEN(helper, "*", "mult");
+	REGIST_TOKEN(helper, "=", "assign");
 }
 
 // 注册word
 void regist_words(WordTypeHelper& helper) {
+	REGIST_OPERATO_WORDS(helper, "call");
+	REGIST_OPERATO_WORDS(helper, "time");
 	REGIST_OPERATO_WORDS(helper, "add");
 	REGIST_OPERATO_WORDS(helper, "echo");
 	REGIST_OPERATO_WORDS(helper, "strcat");
@@ -620,22 +647,31 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_OPERATO_WORDS(helper, "typename");
 	REGIST_OPERATO_WORDS(helper, "in");
 	
-	REGIST_CONTROLLER_WORDS(helper, "call");
 	REGIST_CONTROLLER_WORDS(helper, "lambda");
 	REGIST_CONTROLLER_WORDS(helper, "enclosed");
 	REGIST_CONTROLLER_WORDS(helper, "return");
 	REGIST_CONTROLLER_WORDS(helper, "break");
 
-	REGIST_CONTROLLER_WORDS(helper, "time");
 	REGIST_CONTROLLER_WORDS(helper, "abort");
 
 	REGIST_CONTROLLER_WORDS(helper, "def");
 	REGIST_CONTROLLER_WORDS(helper, "assign");
 	REGIST_CONTROLLER_WORDS(helper, "cp");
+
 	REGIST_CONTROLLER_WORDS(helper, "ignore");
 	REGIST_CONTROLLER_WORDS(helper, "while");
-//	REGIST_CONTROLLER_WORDS(helper, "rept");
 	REGIST_CONTROLLER_WORDS(helper, "if");
+
+	// num
+	REGIST_OPERATO_WORDS(helper, "+");
+	REGIST_OPERATO_WORDS(helper, "*");
+	REGIST_CONTROLLER_WORDS(helper, "=");
+
+
+	// 注册操作符优先级
+	helper.regist_opera_2(Word(WordType::OPERATOR_WORD, "+"), 2);
+	helper.regist_opera_2(Word(WordType::OPERATOR_WORD, "*"), 3);
+	helper.regist_opera_2(Word(WordType::CONTROLLER, "="), 0);
 }
 
 // 注册语法铁路图
@@ -653,7 +689,7 @@ void regist_bnf(Parser& p) {
 #endif
 			return true;
 		}
-		else{ 
+		else {
 			err += "lexer pos: " + to_string(lex_point) + "\tmight be EOS here\n";
 			return false;
 		}
@@ -674,13 +710,13 @@ void regist_bnf(Parser& p) {
 #endif
 			return true;
 		}
-		else{ 
+		else {
 			err += "lexer pos: " + to_string(lex_point) + "\tmight be '[' here\n";
 			return false;
 		}
 	})->
-		nonterminal("controller", "controller")->
-		nonterminal("controller", "controller")->
+		nonterminal("expr", "expr")->
+		nonterminal("expr", "expr")->
 		terminal("local_closed", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 		cerr << "[local_closed] get word:" << w.serialize();
@@ -691,7 +727,7 @@ void regist_bnf(Parser& p) {
 #endif
 			return true;
 		}
-		else{
+		else {
 			err += "lexer pos: " + to_string(lex_point) + "\tmight be ']' here\n";
 			return false;
 		}
@@ -700,78 +736,369 @@ void regist_bnf(Parser& p) {
 		getGraphic();
 	p.addBNFRuleGraphic(g_block);
 
-	Graphic_builder string_builder("string");
-	BNFGraphic g_string = string_builder.rule()->
-		terminal("string_open", [&](Word w, std::string& err, int lex_point) {
+	Graphic_builder expr_builder("expr");
+	BNFGraphic g_expr = expr_builder.rule()->
+		// block
+		nonterminal("block", "block")->
+		end()->
+		gotoHead()->
+		// list
+		nonterminal("list", "list")->
+		end()->
+		gotoHead()->
+		// control_expr
+		nonterminal("control_expr", "control_expr")->
+		end()->
+		getGraphic();
+	p.addBNFRuleGraphic(g_expr);
+
+	Graphic_builder control_expr_builder("control_expr");
+	BNFGraphic g_control_expr =
+		control_expr_builder.rule()->
+		// if语句
+		terminal("if", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
-		cerr << "[local_open] get word:" << w.serialize();
+		cerr << "[if] get word:" << w.serialize();
 #endif
-		if (w.getType() == WordType::STRING_OPEN) {
+		if (w.getString() == "if") {
 #if CHECK_Parser
 			cerr << ", True" << endl;
 #endif
 			return true;
 		}
-		else{
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be '<' here\n";
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'if' here\n";
 			return false;
 		}
 	})->
-		terminal("string", [&](Word w, std::string& err, int lex_point) {
+		nonterminal("atomic_if", "atomic")->
+		nonterminal("expr_if", "expr")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
-		cerr << "[local_open] get word:" << w.serialize();
+		cerr << "[context_closed] get word:" << w.serialize();
 #endif
-		if (w.getType() == WordType::STRING) {
+		if (w.getType() == WordType::CONTEXT_CLOSED) {
 #if CHECK_Parser
 			cerr << ", True" << endl;
 #endif
 			return true;
 		}
-		else{
-			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'STRING' word\n";
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
 			return false;
 		}
 	})->
-		terminal("string", [&](Word w, std::string& err, int lex_point) {
+		end()->
+		gotoHead()->
+		// while语句
+		terminal("while", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
-		cerr << "[local_open] get word:" << w.serialize();
+		cerr << "[while] get word:" << w.serialize();
 #endif
-		if (w.getType() == WordType::STRING) {
+		if (w.getString() == "while") {
 #if CHECK_Parser
 			cerr << ", True" << endl;
 #endif
 			return true;
 		}
-		else{
-			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'STRING' word\n";
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'while' here\n";
 			return false;
 		}
 	})->
-		terminal("string_closed", [&](Word w, std::string& err, int lex_point) {
+		nonterminal("atomic_while", "atomic")->
+		nonterminal("expr_while", "expr")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
-		cerr << "[string_closed] get word:" << w.serialize();
+		cerr << "[context_closed] get word:" << w.serialize();
 #endif
-		if (w.getType() == WordType::STRING_CLOSED) {
+		if (w.getType() == WordType::CONTEXT_CLOSED) {
 #if CHECK_Parser
 			cerr << ", True" << endl;
 #endif
 			return true;
 		}
-		else{
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be '>' here\n"; 
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoHead()->
+		// break语句
+		terminal("break", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[break] get word:" << w.serialize();
+#endif
+		if (w.getString() == "break") {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'break' here\n";
+			return false;
+		}
+	})->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[context_closed] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoHead()->
+		// return语句
+		terminal("return", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[return] get word:" << w.serialize();
+#endif
+		if (w.getString() == "return") {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'return' here\n";
+			return false;
+		}
+	})->
+		nonterminal("atomic_return", "atomic")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[context_closed] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoHead()->
+		// abort语句
+		terminal("abort", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[abort] get word:" << w.serialize();
+#endif
+			if (w.getString() == "abort") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'abort' here\n";
+				return false;
+			}
+		})->
+		nonterminal("atomic_abort", "atomic")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[context_closed] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoHead()->
+		// time语句
+		terminal("time", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[time] get word:" << w.serialize();
+#endif
+		if (w.getString() == "time") {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'time' here\n";
+			return false;
+		}
+	})->
+		nonterminal("expr_time", "expr")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[context_closed] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoHead()->
+		// ignore语句
+		terminal("ignore", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[ignore] get word:" << w.serialize();
+#endif
+			if (w.getString() == "ignore") {
+	#if CHECK_Parser
+				cerr << ", True" << endl;
+	#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'ignore' here\n";
+				return false;
+			}
+		})->
+		nonterminal("expr_ignore", "expr")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[context_closed] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
+		getGraphic();
+	p.addBNFRuleGraphic(g_control_expr);
+
+	// call_expr := block | atomic 
+	Graphic_builder call_expr_builder("call_expr");
+	BNFGraphic g_call_expr =
+		call_expr_builder.rule()->
+		nonterminal("block", "block")->
+		end()->
+		gotoHead()->
+		nonterminal("atomic", "atomic")->
+		end()->
+		getGraphic();
+	p.addBNFRuleGraphic(g_call_expr);
+
+	// var := 	<id_enabled> | "in" var obj_var ";"
+	Graphic_builder var_builder("var");
+	BNFGraphic g_var =
+		var_builder.rule()->
+		terminal("id_enabled", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+			return false;
+		}
+	})->
+		end()->
+		gotoHead()->
+		// "in" var obj_var ";"
+		terminal("in", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[in] get word:" << w.serialize();
+#endif
+			if (w.getString() == "in") {
+	#if CHECK_Parser
+				cerr << ", True" << endl;
+	#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " might be 'in' here\n";
+				return false;
+			}
+		})->
+		nonterminal("var_in", "var")->
+		nonterminal("obj_var_in", "obj_var")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[context_closed] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not a ';' word\n";
 			return false;
 		}
 	})->
 		end()->
 		getGraphic();
-	p.addBNFRuleGraphic(g_string);
+	p.addBNFRuleGraphic(g_var);
 
+	// obj_var := <number> | var
+	Graphic_builder obj_var_builder("obj_var");
+	BNFGraphic g_obj_var =
+		obj_var_builder.rule()->
+		terminal("number", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[number] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::NUMBER) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'NUMBER' word\n";
+			return false;
+		}
+	})->
+		end()->
+		gotoHead()->
+		nonterminal("var", "var")->
+		end()->
+		getGraphic();
+	p.addBNFRuleGraphic(g_obj_var);
+
+	// list := <operator> atomic { <seperator> atomic } ";" | def_expr
 	Graphic_builder list_builder("list");
 	BNFGraphic g_list =
 		list_builder.rule()->
-		terminal("key_word", [&](Word w, std::string& err, int lex_point) {
+		terminal("operator", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
-		cerr << "[key_word] get word:" << w.serialize();
+		cerr << "[operator] get word:" << w.serialize();
 #endif
 		if (w.getType() == WordType::OPERATOR_WORD) {
 #if CHECK_Parser
@@ -779,7 +1106,7 @@ void regist_bnf(Parser& p) {
 #endif
 			return true;
 		}
-		else{
+		else {
 			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'OPERATOR_WORD' word\n";
 			return false;
 		}
@@ -796,21 +1123,26 @@ void regist_bnf(Parser& p) {
 #endif
 			return true;
 		}
-		else{
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n"; 
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
 			return false;
 		}
 	})->
 		end()->
+		// 定义和赋值语句
 		gotoHead()->
-		nonterminal("def_ass", "def_ass")->
+		nonterminal("def_expr", "def_expr")->
 		end()->
 		getGraphic();
 	p.addBNFRuleGraphic(g_list);
 
+	// atomic: = list | <number> | string | var | <IDENTIFIER_SPEC> | ("lambda" | "enclosed") atomic { atomic } block ";"
 	Graphic_builder atomic_builder("atomic");
 	BNFGraphic g_atomic =
 		atomic_builder.rule()->
+		nonterminal("list", "list")->
+		end()->
+		gotoHead()->
 		terminal("number", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 		cerr << "[number] get word:" << w.serialize();
@@ -821,11 +1153,17 @@ void regist_bnf(Parser& p) {
 #endif
 			return true;
 		}
-		else{
+		else {
 			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not a 'NUMBER' word\n";
 			return false;
 		}
 	})->
+		end()->
+		gotoHead()->
+		nonterminal("string", "string")->
+		end()->
+		gotoHead()->
+		nonterminal("var", "var")->
 		end()->
 		gotoHead()->
 		terminal("id_enabled", [&](Word w, std::string& err, int lex_point) {
@@ -838,60 +1176,232 @@ void regist_bnf(Parser& p) {
 #endif
 			return true;
 		}
-		else { 
-			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n"; 
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
 			return false;
 		}
 	})->
 		end()->
 		gotoHead()->
-		nonterminal("list", "list")->
-		end()->
-		gotoHead()->
-		nonterminal("string", "string")->
-		end()->
-		gotoHead()->
 		terminal("IDENTIFIER_SPEC", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
-			cerr << "[IDENTIFIER_SPEC] get word:" << w.serialize();
+		cerr << "[IDENTIFIER_SPEC] get word:" << w.serialize();
 #endif
-			if (w.getType() == WordType::IDENTIFIER_SPEC) {
-#if CHECK_Parser
-				cerr << ", True" << endl;
-#endif
-				return true;
-			}
-			else {
-				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an IDENTIFIER_SPEC word \n";
-				return false;
-			}
-		})->
-		end()->
-		getGraphic(); 
-	p.addBNFRuleGraphic(g_atomic);
-
-	// tuple 多返回值语句
-	Graphic_builder tuple_builder("tuple");
-	BNFGraphic g_tuple =
-		tuple_builder.rule()->
-		terminal("tuple", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-		cerr << "[tuple] get word:" << w.serialize();
-#endif
-		if (w.getString() == "tuple") {
+		if (w.getType() == WordType::IDENTIFIER_SPEC) {
 #if CHECK_Parser
 			cerr << ", True" << endl;
 #endif
 			return true;
 		}
 		else {
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'tuple' here\n";
+			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an IDENTIFIER_SPEC word \n";
 			return false;
 		}
 	})->
-		nonterminal("atomic", "atomic")->
-		nonterminal("atomic", "atomic")->
-		terminal("context_closed_tuple", [&](Word w, std::string& err, int lex_point) {
+		end()->
+		gotoHead()->
+		// lambda语句
+		terminal("lambda", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[lambda] get word:" << w.serialize();
+#endif
+			if (w.getString() == "lambda") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'lambda' here\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled_lambda", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+					return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled_lambda")->
+		nonterminal("block_lambda", "block")->
+		terminal("context_closed_lambda", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[context_closed] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoNode("lambda")->
+		nonterminal("block_lambda", "block")->
+		end()->
+		gotoHead()->
+		// 闭包语句
+		terminal("enclosed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[enclosed] get word:" << w.serialize();
+#endif
+			if (w.getString() == "enclosed") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'enclosed' here\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled_enclosed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled_enclosed")->
+		nonterminal("block_enclosed", "block")->
+		terminal("context_closed_enclosed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[context_closed] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoNode("enclosed")->
+		nonterminal("block_enclosed", "block")->
+		end()->
+		gotoHead()->
+		// 单纯一个block
+		nonterminal("block_only", "block")->
+		end()->
+		getGraphic();
+	p.addBNFRuleGraphic(g_atomic);
+
+	Graphic_builder string_builder("string");
+	BNFGraphic g_string =
+		string_builder.rule()->
+		terminal("string_open", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[local_open] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::STRING_OPEN) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be '<' here\n";
+			return false;
+		}
+	})->
+		terminal("string", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[local_open] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::STRING) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'STRING' word\n";
+			return false;
+		}
+	})->
+		terminal("string", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[local_open] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::STRING) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'STRING' word\n";
+			return false;
+		}
+	})->
+		terminal("string_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[string_closed] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::STRING_CLOSED) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be '>' here\n";
+			return false;
+		}
+	})->
+		end()->
+		getGraphic();
+	p.addBNFRuleGraphic(g_string);
+
+	// def_expr: = ("def" var proc | "assign" var proc | "cp" var proc ) ";"
+	Graphic_builder def_expr_builder("def_expr");
+	BNFGraphic g_def_expr =
+		def_expr_builder.rule()->
+		// def语句
+		terminal("def", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[def] get word:" << w.serialize();
+#endif
+		if (w.getString() == "def") {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'def' here\n";
+			return false;
+		}
+	})->
+		nonterminal("var_def", "var")->
+		nonterminal("atomic_def", "atomic")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 		cerr << "[context_closed] get word:" << w.serialize();
 #endif
@@ -907,176 +1417,26 @@ void regist_bnf(Parser& p) {
 		}
 	})->
 		end()->
-		getGraphic();
-	p.addBNFRuleGraphic(g_tuple);
-
-	// def和assign语句
-	Graphic_builder def_ass_builder("def_ass");
-	BNFGraphic g_def_ass = def_ass_builder.rule()->
-		terminal("def", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-			cerr << "[def] get word:" << w.serialize();
-#endif
-			if (w.getString() == "def") {
-#if CHECK_Parser
-				cerr << ", True" << endl;
-#endif
-				return true;
-			}
-			else {
-				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'def' here\n";
-				return false;
-			}
-		})->
-		terminal("id_enabled_def", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-			cerr << "[id_enabled] get word:" << w.serialize();
-#endif
-			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
-#if CHECK_Parser
-				cerr << ", True" << endl;
-#endif
-				return true;
-			}
-			else {
-				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
-				return false;
-			}
-		})->
-		nonterminal("atomic", "atomic")->
-		terminal("context_closed_def", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-				cerr << "[context_closed] get word:" << w.serialize();
-#endif
-				if (w.getType() == WordType::CONTEXT_CLOSED) {
-#if CHECK_Parser
-					cerr << ", True" << endl;
-#endif
-					return true;
-				}
-				else {
-					err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
-					return false;
-				}
-			})->
-		end()->
-		// assign语句
 		gotoHead()->
+		// assign语句
 		terminal("assign", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
-			cerr << "[assign] get word:" << w.serialize();
+		cerr << "[assign] get word:" << w.serialize();
 #endif
-			if (w.getString() == "assign") {
-#if CHECK_Parser
-				cerr << ", True" << endl;
-#endif
-				return true;
-			}
-			else {
-				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'assign' here\n";
-				return false;
-			}
-		})->
-		terminal("id_enabled_assign", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-			cerr << "[id_enabled] get word:" << w.serialize();
-#endif
-			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
-#if CHECK_Parser
-				cerr << ", True" << endl;
-#endif
-				return true;
-			}
-			else {
-				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
-				return false;
-			}
-		})->
-		nonterminal("atomic", "atomic")->
-		terminal("context_closed_assign", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-			cerr << "[context_closed] get word:" << w.serialize();
-#endif
-			if (w.getType() == WordType::CONTEXT_CLOSED) {
+		if (w.getString() == "assign") {
 #if CHECK_Parser
 			cerr << ", True" << endl;
 #endif
-				return true;
-			}
-			else {
-				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
-				return false;
-			}
-		})->
-		end()->
-		// prcd语句
-		gotoHead()->
-		terminal("prcd", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-			cerr << "[prcd] get word:" << w.serialize();
-#endif
-			if (w.getString() == "prcd") {
-#if CHECK_Parser
-				cerr << ", True" << endl;
-#endif
-				return true;
-			}
-			else {
-				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'prcd' here\n";
-				return false;
-			}
-		})->
-		nonterminal("block", "block")->
-		end()->
-		// time语句
-		gotoHead()->
-		terminal("time", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-			cerr << "[time] get word:" << w.serialize();
-#endif
-			if (w.getString() == "time") {
-#if CHECK_Parser
-				cerr << ", True" << endl;
-#endif
-				return true;
-			}
-			else {
-				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'time' here\n";
-				return false;
-			}
-		})->
-		nonterminal("block", "block")->
-		end()->
-		getGraphic();
-	p.addBNFRuleGraphic(g_def_ass);
-
-	// 流程控制语句
-	Graphic_builder controller_builder("controller");
-	BNFGraphic g_controller =
-		controller_builder.rule()->
-		nonterminal("list", "list")->
-		nonterminal("list", "list")->
-		end()->
-		// call 语句
-		gotoHead()->
-		terminal("call", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-			cerr << "[call] get word:" << w.serialize();
-#endif
-			if (w.getString() == "call") {
-#if CHECK_Parser
-				cerr << ", True" << endl;
-#endif
-				return true;
-			}
-			else {
-				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'call' here\n";
-				return false;
-			}
-		})->
-		nonterminal("atomic", "atomic")->
-		nonterminal("atomic", "atomic")->
-		terminal("context_closed_call", [&](Word w, std::string& err, int lex_point) {
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'assign' here\n";
+			return false;
+		}
+	})->
+		nonterminal("var_assign", "var")->
+		nonterminal("atomic_assign", "atomic")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 			cerr << "[context_closed] get word:" << w.serialize();
 #endif
@@ -1092,117 +1452,46 @@ void regist_bnf(Parser& p) {
 			}
 		})->
 		end()->
-		// rept语句
 		gotoHead()->
-		terminal("rept", [&](Word w, std::string& err, int lex_point) {
+		// cp语句
+		terminal("cp", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
-		cerr << "[rept] get word:" << w.serialize();
+		cerr << "[cp] get word:" << w.serialize();
 #endif
-		if (w.getString() == "rept") {
+		if (w.getString() == "cp") {
 #if CHECK_Parser
 			cerr << ", True" << endl;
 #endif
 			return true;
 		}
-		else{
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'rept' here\n"; 
-			return false;}
-	})->
-		nonterminal("atomic", "atomic")->
-		nonterminal("block_rept", "block")->
-		end()->
-		// if语句
-		gotoHead()->
-		terminal("if", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-		cerr << "[if] get word:" << w.serialize();
-#endif
-			if (w.getString() == "if") {
-#if CHECK_Parser
-				cerr << ", True" << endl;
-#endif
-				return true;
-			}
-			else{
-				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'if' here\n"; 
-				return false;}
-		})->
-		nonterminal("atomic", "atomic")->
-		nonterminal("block_if", "block")->
-		end()->
-		// ignore语句
-		gotoHead()->
-		terminal("ignore", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-		cerr << "[ignore] get word:" << w.serialize();
-#endif
-		if (w.getString() == "ignore") {
-#if CHECK_Parser
-			cerr << ", True" << endl;
-#endif
-			return true;
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'cp' here\n";
+			return false;
 		}
-		else{
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'ignore' here\n"; 
-			return false;}
 	})->
-		nonterminal("block_ignore", "block")->
-		end()->
-		// abort语句
-		gotoHead()->
-		terminal("abort", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-		cerr << "[abort] get word:" << w.serialize();
-#endif
-		if (w.getString() == "abort") {
-#if CHECK_Parser
-			cerr << ", True" << endl;
-#endif
-			return true;
-		}
-		else{
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'abort' here\n"; 
-			return false;}
-	})->
-		nonterminal("atomic", "atomic")->
-		terminal("context_closed_abort", [&](Word w, std::string& err, int lex_point) {
+		nonterminal("var_cp", "var")->
+		nonterminal("atomic_cp", "atomic")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 		cerr << "[context_closed] get word:" << w.serialize();
 #endif
-		if (w.getType() == WordType::CONTEXT_CLOSED) {
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
 #if CHECK_Parser
 			cerr << ", True" << endl;
 #endif
-			return true;
-		}
-		else{ 
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be ']' here\n"; 
-			return false;}
-	})->
-		end()->
-		// while语句
-		gotoHead()->
-		terminal("while", [&](Word w, std::string& err, int lex_point) {
-#if CHECK_Parser
-		cerr << "[while] get word:" << w.serialize();
-#endif
-		if (w.getString() == "while") {
-#if CHECK_Parser
-			cerr << ", True" << endl;
-#endif
-			return true;
-		}
-		else{
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be 'while' here\n"; 
-			return false;}
-	})->
-		nonterminal("atomic", "atomic")->
-		nonterminal("block_while", "block")->
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
 		end()->
 		getGraphic();
-	p.addBNFRuleGraphic(g_controller);
+	p.addBNFRuleGraphic(g_def_expr);
 }
 
+// 写入文件 []][
 void write_to_file() {
 	// string str("abcdaa");
 	op_code_bit_set bitset(OPCODE::ADD, 0x11223344);	//str.c_str(), str.size());
@@ -1252,7 +1541,53 @@ void write_to_file() {
 	ofs.close();
 }
 
-void test_input_cli(){
+// 前缀转中缀 []][
+void test_app() {
+
+	// 准备工作
+	Context_helper ctx_helper;
+	regist_keywords_contents(ctx_helper);
+
+	Token_helper token_helper;
+	regist_token(token_helper);
+
+	WordTypeHelper word_type_helper;
+	regist_words(word_type_helper);
+
+	// 初始化lexer
+#if MODE_CIL
+	Lexer lex(new CLIInput("luo ->"));
+#else
+	Lexer lex(new FileInput("in.tr"));
+#endif
+
+	// 初始化适配器
+	Mid_Expr_Adaptor adptor;
+#if MODE_CIL
+	while (1)
+#endif
+	{
+		// 词法分析
+		lex.init();
+		lex.fillList(token_helper, word_type_helper);
+		std::vector<Word>& words = lex.get_words_list();
+
+		for (auto w : words) {
+			cout << w.serialize() << ends;
+		}
+
+		cout << endl << "转为前缀表达式: " << endl;
+
+		auto adapts = adptor.adapt_code(words, word_type_helper);
+		for (auto w : adapts) {
+			cout << w.getString() << ends;
+		}
+		cout << endl;
+	}
+}
+
+// 测试命令行
+void test_input_cli() {
 
 	// 准备工作
 	Context_helper ctx_helper;
@@ -1283,7 +1618,7 @@ void test_input_cli(){
 	vsVirtualMachine vm(0);
 
 #if MODE_CIL
-	while (1) 
+	while (1)
 #endif
 	{
 		p.clear_word_vec();
@@ -1297,26 +1632,26 @@ void test_input_cli(){
 			cerr << "[" << lex.peek().serialize() << "], " << endl;
 		} while (lex.next());
 #endif
-
 		try {
 			// 语法分析
-			/*int b = p.parse("top");
+			int b = p.parse("top");
 			cerr << "Parse " << (b ? "success!" : "failed!") << endl;
 			if (!b) {
 				cout << "Parse ERROR =\n" << p.getErrors() << endl;
 			}
-			else*/
+			else
 			{
 				// 生成目标代码
-				// compiler.generate_code(p.get_word_vector_ref(), cresult, ctx_helper);	// 可能抛出异常
-				compiler.generate_code(lex.get_words_list(), cresult, ctx_helper);	// 可能抛出异常
+
+				compiler.generate_code(p.get_word_vector_ref(), cresult, ctx_helper);	// 会抛出异常
+				// compiler.generate_code(lex.get_words_list(), cresult, ctx_helper);	// 会抛出异常
 				cout << "Code Generated finished!" << endl << endl;
 
 				// 执行代码
 				vm.init(cresult, 1);
 				vm.run();
 #if MODE_CIL
-				if(vm.get_eval_ret_value() == -1)break;
+				if (vm.get_eval_ret_value() == -1)break;
 #endif
 			}
 		}
@@ -1335,7 +1670,9 @@ void test_input_cli(){
 	}
 }
 
+// 
 int main(int argc, char* argv[]) {
+//	test_app();
 	test_input_cli();
 	return 0;
 };

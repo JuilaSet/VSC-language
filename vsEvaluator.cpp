@@ -326,6 +326,7 @@ int vsEvaluator::step() {
 			auto table = frame->local_var_table;
 			table->for_each([](auto key, auto data) {
 				std::cout << key << '=' << data->toEchoString() << ',' << std::ends;
+				return true;
 			});
 
 			// 遍历每一个栈帧的参数列表
@@ -333,6 +334,7 @@ int vsEvaluator::step() {
 			auto list = frame->paras_info.act_para_container;
 			list->for_each([](auto key, auto data) {
 				std::cout << key << '=' << data->toEchoString() << ',' << std::ends;
+				return true;
 			});
 
 			// 是否是强作用域
@@ -373,6 +375,7 @@ int vsEvaluator::eval() {
 			auto table = frame->local_var_table;
 			table->for_each([] (auto key, auto data){
 				std::cout << key << '=' << data->toEchoString() << ',' << std::ends;
+				return true;
 			});
 			
 			// 遍历每一个栈帧的参数列表
@@ -380,6 +383,7 @@ int vsEvaluator::eval() {
 			auto list = frame->paras_info.act_para_container;
 			list->for_each([](auto key, auto data) {
 				std::cout << key << '=' << data->toEchoString() << ',' << std::ends;
+				return true;
 			});
 
 			// 是否是强作用域

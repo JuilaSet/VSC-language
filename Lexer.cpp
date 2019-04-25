@@ -29,12 +29,51 @@ WordType WordTypeHelper::calc_word_type(const std::string& str, IsToken b) const
 	REGEX_MATCH(LOCAL_OPEN);
 	REGEX_MATCH(LOCAL_CLOSED);
 	REGEX_MATCH(CONTEXT_CLOSED);
+	REGEX_MATCH(BRACKET_OPEN);
+	REGEX_MATCH(BRACKET_CLOSED);
 	REGEX_MATCH(COMMET_OPEN);
 	REGEX_MATCH(COMMET_CLOSED);
 	REGEX_MATCH(COMMET_LINE);
 	REGEX_MATCH(IDENTIFIER_ENABLED);
 	REGEX_MATCH(IDENTIFIER_SPEC);
 	return type;
+}
+
+void WordTypeHelper::regist_opera_2(const Word& word, int level) {
+	_operators_2_map.insert_or_assign(word, level);
+}
+
+bool WordTypeHelper::is_keyword(const Word& w) const {
+	std::string str = w.getString();
+	// key_words
+	if (_operators_set.find(str) != _operators_set.end() ||
+		_controller_set.find(str) != _controller_set.end()){
+		return true;
+	}
+	return false;
+}
+
+bool WordTypeHelper::is_opera2(const Word& w)const {
+	auto fit = _operators_2_map.find(w);
+	auto end = _operators_2_map.end();
+	if (fit == end) {
+		return false;
+	}
+	else {
+		return true;
+	}
+
+}
+
+int WordTypeHelper::get_level(const Word& w)const {
+	auto fit = _operators_2_map.find(w);
+	auto end = _operators_2_map.end();
+	if (fit == end) {
+		return -1;	// 如果没有注册, 最低优先级
+	}
+	else {
+		return fit->second;
+	}
 }
 
 void WordTypeHelper::regist_operator(const std::string str) {
@@ -62,31 +101,53 @@ Lexer::Lexer(Input* input) : Lexer()
 Lexer::Lexer() : _fd(0), has_read(false)
 {}
 
-// 只分析一行用
+// 只分析一行用(以后改为DFA)
 bool Lexer::_push_into_list(std::string str, IsToken b, const WordTypeHelper& word_type_helper)
 {
 	if (str != "")
 	{
 		WordType type = word_type_helper.calc_word_type(str, b);
 		// commet
-		if (!_flag_string_begin&& !_flag_ignore && type == WordType::COMMET_LINE)_flag_ignore_line = true;
+		if (!_flag_string_begin && !_flag_ignore && type == WordType::COMMET_LINE) {
+		//	has_read_seperator = false;
+			_flag_ignore_line = true;
+		}
 		if (!_flag_ignore_line) {
-			if (!_flag_string_begin && type == WordType::COMMET_OPEN)_flag_ignore = true;
+			if (!_flag_string_begin && type == WordType::COMMET_OPEN) {
+			//	has_read_seperator = false;
+				_flag_ignore = true;
+			}
 			if (!_flag_ignore) {
 				if (!has_read) has_read = true;	// 只要push过一次就说明读取过
 				if (type == WordType::STRING_CLOSED) {
 					_words_list.emplace_back(WordType::STRING, _string_);
+				//	has_read_seperator = false;
 					_flag_string_begin = false;
 					_string_ = "";
 				}
 				// push
-				if (_flag_string_begin)
+				if (_flag_string_begin) {
+				//	has_read_seperator = false;
 					_string_ += str;
-				else if(type != WordType::SEPARATOR)	// 不会加入分隔符, 除非是字符串
+				}
+				//else if (type != WordType::SEPARATOR ) {
+				// else if (type == WordType::SEPARATOR && !has_read_seperator) {
+				//	has_read_seperator = true;
+				//	_words_list.emplace_back(type, SEP);
+				//}
+				else if (type != WordType::SEPARATOR){	// 只会加入一次分隔符, 并且只是空格, 除非是字符串
+				//	has_read_seperator = false;
 					_words_list.emplace_back(type, str);
-				if (type == WordType::STRING_OPEN)_flag_string_begin = true;
+				}
+				if (type == WordType::STRING_OPEN) {
+				//	has_read_seperator = false;
+					_flag_string_begin = true;
+				}
 			}
-			if (!_flag_string_begin && type == WordType::COMMET_CLOSED)_flag_ignore = false;
+			if (!_flag_string_begin && type == WordType::COMMET_CLOSED) {
+			//	has_read_seperator = false;
+				_flag_ignore = false;
+			}
 		}
 #if CHECK_Lexer
 		std::cerr << __LINE__ << ": push_back = " << str << std::endl;

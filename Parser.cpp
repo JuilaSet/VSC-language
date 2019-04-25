@@ -125,6 +125,10 @@ int Parser::_judge_g(Position pos, std::string& errors, std::vector<Word>& _judg
 #endif
 		// 找到当前的图
 		assert(_cur_position._graphic_str != "");
+#if CHECK_Parser_g
+		if (_graphic_map.find(_cur_position._graphic_str) == _graphic_map.end())
+			std::cerr << "没有找到图: " << _cur_position._graphic_str << std::endl;
+#endif
 		assert(_graphic_map.find(_cur_position._graphic_str) != _graphic_map.end());
 		BNFGraphic g = _graphic_map.find(_cur_position._graphic_str)->second;
 
@@ -223,7 +227,7 @@ Success:
 	errors = "";
 	int offset_ret_SUCESS = _cur_position._lexer_point - offset_start;
 #if CHECK_Parser
-	std::cout << __LINE__  << "\t"  << "Success and return! offset = " << offset_ret << std::endl;
+	std::cout << __LINE__  << "\t"  << "Success and return! offset = " << offset_ret_SUCESS << std::endl;
 #endif
 	// 语法成功
 	return offset_ret_SUCESS; // 返回偏移量

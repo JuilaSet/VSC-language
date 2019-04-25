@@ -102,18 +102,27 @@ void OPERATOR::IN(vsEval_ptr eval) {
 	assert(!stk.empty());
 	data_ptr obj = eval->pop();
 
+	bool end = false;
+	while (!end) {
+	BEGIN: auto type = obj->getType();
+		if (type >= DataType::OBJECT) {
+			// 返回索引位置
+			obj = vsObject::cast_vsObject_ptr(obj)->in(index);
+			eval->push(obj);
+			end = true;
+		}
+		else if(type == DataType::DELEGATION){
+			// 得到委托的对象
+			obj = IDelegation::cast_delegation_ptr(obj)->container_find();
+		}else{
 #if CHECK_Eval
-	if (obj->getType() < DataType::OBJECT) {
-		std::cerr << "DATA_TYPE = " << obj->getTypeName() << std::endl;
-		assert(false);
-	}
+			std::cerr << obj->getTypeName() << std::endl;
+			assert(false); // 说明委托的类型 或 push的类型错误
 #else
-	assert(obj->getType() >= DataType::OBJECT);
+			assert(false); // 传入的类型错误
 #endif
-	// 返回索引位置
-	auto vsobj_ptr = vsObject::cast_vsObject_ptr(obj);
-	data_ptr data_ref = vsobj_ptr->in(index);
-	eval->push(data_ref);
+		}
+	}
 #if CHECK_Eval 
 	std::cerr << std::endl;
 #endif
@@ -852,7 +861,7 @@ void OPERATOR::CALL_BLK(vsEval_ptr eval)
 		BEGIN: auto type = function_obj->getType();
 		switch (type) {
 		case DataType::FUNCTION:
-			FunctionData::cast_delegation_ptr(function_obj)->eval(*eval, count);
+			IEvaluable::cast_evaluable_ptr(function_obj)->eval(*eval, count);
 			end = true;
 			break;
 		case DataType::DELEGATION:
@@ -861,6 +870,7 @@ void OPERATOR::CALL_BLK(vsEval_ptr eval)
 		default:
 #if CHECK_Eval
 			std::cerr << function_obj->getTypeName() << std::endl;
+			assert(false); // 说明委托的类型 或 push的类型错误
 #else
 			assert(false); // 传入的类型错误
 #endif
