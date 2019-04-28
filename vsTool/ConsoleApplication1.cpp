@@ -22,11 +22,21 @@ void test_activity() {
 
 void test_graphic() {
 	vsTool::GraphicBuilder<string> builder(vsTool::BUILD_MODE::AUTO_MOVE);
-	auto g = builder.head("c1")
-		->addNode(1, "c2")
-		->addNode(2, "c3")
+	auto g = builder.head("c0")
+		->addNode(1, "c1")
+		->addNode(2, "c2")
+		->addNode(3, "c3")
+		->gotoNode(3)
+		->linkToNode(1)
+		->gotoNode(0)
+		->linkToNode(3)
 		->getGraphic();
 	g->show();
+
+	g->for_each_dfs_norepeat([](auto g, auto index) {
+		cout << g->get_node_ptr(index)->get_data() << endl;
+		return true; 
+	}, [](auto g, auto index) {return true; }, 0);
 
 	cout << g->isDirected() << endl;
 	cout << g->isLoop() << endl;
@@ -55,9 +65,66 @@ void test_dfa() {
 	}
 }
 
-
 int main() {
-	TaskManager tm;
-	tm.test_thread_pool();
+	vsThread::taskGraphic_ptr<string, int> tm(new vsThread::TaskGraphic<string, int>);
+
+	// 根据设置初始化结点信息
+	tm->build_node([](auto& _ret_data, auto& datas, auto& keys) {
+		auto tid = std::this_thread::get_id();
+		_ret_data = datas["x"] + 1;
+		for (int i = 0; i < 3; ++i) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			printf("p%d clac0: %d\n", tid, int(_ret_data));
+		}
+		return "x";
+	}, { "x" }, 0);
+	tm->build_node([](auto& _ret_data, auto& datas, auto& keys) {
+		auto tid = std::this_thread::get_id();
+		_ret_data = datas["x"] + 1;
+		for (int i = 0; i < 3; ++i) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			printf("p%d clac1: %d\n", tid, int(_ret_data));
+		}
+		return "x";
+	}, { "x" }, 1);
+	tm->build_node([](auto& _ret_data, auto& datas, auto& keys) {
+		auto tid = std::this_thread::get_id();
+		int d;
+		std::cin >> d;
+		_ret_data = d;
+		for (int i = 0; i < 3; ++i) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			printf("p%d clac2: %d\n", tid, int(_ret_data));
+		}
+		return "x";
+	}, { }, 2);
+	tm->build_node([](auto& _ret_data, auto& datas, auto& keys) {
+		auto tid = std::this_thread::get_id();
+		_ret_data = datas["x"] + 1;
+		for (int i = 0; i < 3; ++i) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			printf("p%d clac3: %d\n", tid, int(_ret_data));
+		}
+		return "x";
+	}, { "x" }, 3);
+	tm->build_node([](auto& _ret_data, auto& datas, auto& keys) {
+		auto tid = std::this_thread::get_id();
+		_ret_data = 100;
+		for (int i = 0; i < 3; ++i) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			printf("p%d clac4: %d\n", tid, int(_ret_data));
+		}
+		return "x";
+	}, { }, 4);
+
+	// 构建图信息
+	tm->head()->linkToNode(1)->linkToNode(2)->linkToNode(3)
+		->gotoNode(1)->linkToNode(3)
+		->gotoNode(0)->linkToNode(3)//->linkToNode(4)
+		->end();
+
+	vsThread::Session<std::string, int> sess(tm);
+	sess.eval(1, "x");
+	printf("Session end!\n");
 	return 0;
 }

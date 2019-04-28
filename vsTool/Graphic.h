@@ -128,6 +128,15 @@ namespace vsTool {
 		_GNode(id_t id, CONTAIN_TYPE data) : id(id), data(data) {}
 	
 	public:
+		// 获取所有出去的结点下标
+		const std::set<id_t>& get_out_nodes_id() {
+			return out_nodes_id;
+		}
+		
+		// 所有进入的结点下标
+		const std::set<id_t>& get_in_nodes_id() {
+			return in_nodes_id;
+		}
 
 		// 结点的入度
 		size_t get_in_degree() const {
@@ -214,15 +223,19 @@ namespace vsTool {
 			// 通过dfs遍历时, 如果该结点有边指向师祖结点, 就是一个环
 			this->for_each_dfs(
 				// 取出带拓展的结点, 该结点下标放入标记数组, 放入栈中
-				[&set_index](auto index) {
+				[&set_index](auto g, auto index) {
 					set_index.insert(index);
 					return true;
 				},
-				// 拓展的结点, 如果生成的结点在祖先结点中, 说明是一个环
-				[&set_index, this](auto index) {
-					if (set_index.find(index) != set_index.end()) {
-						this->_is_loop = true;
-						return false;
+				// 拓展的结点, 如果生成的结点指向祖先结点, 说明是一个环
+				[&set_index, this](auto g, auto index) {
+					auto node = g->get_node_ptr(index);
+					for (auto out : set_index) {
+						// 生成的结点是否指向祖先结点
+						if (node->is_out_index(out)) {
+							this->_is_loop = true;
+							return false;
+						}
 					}
 					return true;
 				});
@@ -261,6 +274,11 @@ namespace vsTool {
 			return _is_directed;
 		}
 
+		// 图是否包含结点
+		bool contain_node(id_t id) {
+			return _contain_node(id);
+		}
+
 		// 判断两个图是否同构 []][
 		// bool isomorphism(const _Graphic<CONTAIN_TYPE>& _g);
 
@@ -269,19 +287,21 @@ namespace vsTool {
 		//////////////
 
 		// 无序遍历(规则: 传入函数为void (node_ptr<CONTAIN_TYPE>))
-		void for_each_unordered(std::function<void (node_ptr<CONTAIN_TYPE>)> func) {
+		void for_each_unordered(std::function<void (_Graphic<CONTAIN_TYPE>*, node_ptr<CONTAIN_TYPE>)> func) {
 			for (auto n : nodes) {
 				if(n != nullptr)
-					func(n);
+					func(this, n);
 			}
 		}
 
-		// DFS遍历(规则: 函数返回false停止遍历, 返回true继续)
-		void for_each_dfs(std::function<bool (id_t index)> func, std::function<bool(id_t index)> func_ext) {
+		// 从first开始进行DFS遍历(规则: 函数返回false停止遍历, 返回true继续)
+		void for_each_dfs(std::function<bool (_Graphic<CONTAIN_TYPE>*, id_t index)> func, 
+			std::function<bool(_Graphic<CONTAIN_TYPE>*, id_t index)> func_ext = [](auto g, auto index) {return true; },
+			id_t first = 0) {
 			// 存放待拓展的结点
 			std::vector<id_t> stk_index;
-			// 取出首部结点下标, 放入stk
-			stk_index.push_back(0);
+			// 取出first部结点下标, 放入stk
+			stk_index.push_back(first);
 			// 一一遍历, 直到stk为空为止
 			while (!stk_index.empty()) {
 				// 取出一个结点下标
@@ -290,11 +310,11 @@ namespace vsTool {
 				// 获取这个结点
 				auto node = get_node(index);
 				// 调用待扩展结点的回调函数
-				if (!func(index)) goto End;
+				if (!func(this, index)) goto End;
 				// 获取它所有的后继结点下标
 				for (id_t i : node->out_nodes_id) {
 					// 调用回调函数
-					if (!func_ext(i)) goto End;
+					if (!func_ext(this, i)) goto End;
 					// 取出结点下标
 					stk_index.push_back(i);
 				}
@@ -302,6 +322,41 @@ namespace vsTool {
 		End:;
 		}
 
+		// 从first开始进行DFS遍历不重复的元素(规则: 函数返回false停止遍历, 返回true继续)
+		void for_each_dfs_norepeat(std::function<bool(_Graphic<CONTAIN_TYPE>*, id_t index)> func,
+			std::function<bool(_Graphic<CONTAIN_TYPE>*, id_t index)> func_ext = [](auto g, auto index) {return true; },
+			id_t first = 0) {
+			// 存放重复的元素下标
+			std::set<id_t> rep;
+			// 存放待拓展的结点
+			std::vector<id_t> stk_index;
+			// 取出首部结点下标, 放入stk
+			stk_index.push_back(first);
+			// 一一遍历, 直到stk为空为止
+			while (!stk_index.empty()) {
+				// 取出一个结点下标
+				id_t index = stk_index.back();
+				stk_index.pop_back();
+				// 获取这个结点
+				auto node = get_node(index);
+				// 调用待扩展结点的回调函数
+				if (!func(this, index)) goto End;
+				// 获取它所有的后继结点下标
+				for (id_t i : node->out_nodes_id) {
+					// 拓展的结点是否已经被拓展过
+					if (rep.find(i) == rep.end()) {
+						// 调用回调函数
+						if (!func_ext(this, i)) goto End;
+						// 加入已扩展的结点
+						rep.insert(i);
+						// 取出结点下标
+						stk_index.push_back(i);
+					}
+				}
+			}
+		End:;
+		}
+	
 		//////////////
 		// 数据访问 //
 		//////////////
@@ -423,6 +478,11 @@ namespace vsTool {
 		// 返回当前下标
 		id_t getIndex() {
 			return index;
+		}
+
+		// 图是否包含结点
+		bool contain_node(id_t id) {
+			return _contain_node(id);
 		}
 
 		//////////////////////////////////////////////////
