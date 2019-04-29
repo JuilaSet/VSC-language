@@ -67,10 +67,6 @@ std::string vsVector::toEchoString() const {
 				str += " " + k + ": { " + "..." + " };";
 			else
 				str += " " + k + ":" + v->toEchoString() + ";";
-			if (str.size() > STRING_MAX_SZIE) {
-				str += "...";
-				return false;
-			}
 			return true;
 		});
 	}
@@ -196,10 +192,6 @@ std::string vsOriginObject::toEchoString() const {
 				str += " " + k + ": { " + "..." + " };";
 			else
 				str += " " + k + ":" + v->toEchoString() + ";";
-			if (str.size() > STRING_MAX_SZIE) {
-				str += "...";
-				return false;
-			}
 			return true;
 		});
 	}
@@ -249,7 +241,9 @@ size_t vsOriginObject::toIndex() const {
 	return 0;
 }
 
-// 查询成员, 返回查询的位置
+// 查询成员, 返回查询的位置, 如果当前没有, 就从原型中继续查找
 data_ptr vsOriginObject::in(data_ptr index) {
-	return data_ptr(new ContainerLocationData(_public_map, index));
+	auto delegation = new ContainerLocationData(_public_map, index);
+	data_ptr data(delegation);
+	return data;
 }

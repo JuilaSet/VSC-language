@@ -4,7 +4,13 @@
 // 计算异常 //
 //			//
 
-class undefined_exception {
+class run_time_exception {
+public:
+	virtual std::string what() const = 0;
+};
+
+// 未定义异常
+class undefined_exception : public run_time_exception {
 	std::string id_name;
 	size_t _id;
 	std::string _message;
@@ -17,10 +23,23 @@ public:
 		_message = "id= " + std::to_string(id) + " was not defined";
 	}
 
+	virtual std::string what() const {
+		return _message;
+	}
+};
+
+// 类型错误函数
+class type_error_exception : public run_time_exception {
+	std::string _message;
+public:
+	type_error_exception(const std::string name, const std::string type_wrong, const std::string type_need)
+		: _message("type error: " + name + " needs " + type_need + " , error type=" + type_wrong) {}
+
 	std::string what() const {
 		return _message;
 	}
 };
+
 
 // 
 // 如果要添加OPERATOR, 先在OPCODE中添加, 再在OPERATOR类中注册方法, 最后在getBasicCommandOfString中添加字符串转换
@@ -38,6 +57,9 @@ enum class OPCODE :int {
 	CAST_BOOL,		// 转换为bool型
 	TYPENAME,		// 获取typename
 	REVERSE_TOP,	// 将栈顶两个数据交换
+
+	// 外部变量
+	EXTERN,
 
 	// 比较
 	ISNON,		// 是否遇到了non, 返回原来的值, 将bool类型放入_f[3]
@@ -82,7 +104,7 @@ enum class OPCODE :int {
 	ASSIGN,		// 变量赋值
 	ADD,		// 栈前两个元素相加
 	SUB,		// 栈前两个元素相减
-	IN,			// 对容器进行索引
+	IN,			// 对容器进行索
 
 	// 关系运算
 	NOT,		// 非
@@ -107,6 +129,8 @@ public:
 	static void PUSH_POS(vsEval_ptr eval);
 
 	static void REVERSE_TOP(vsEval_ptr eval);
+
+	static void EXTERN(vsEval_ptr eval) throw(type_error_exception);
 
 	static void ADD(vsEval_ptr eval);
 

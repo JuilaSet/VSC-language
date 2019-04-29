@@ -17,6 +17,7 @@ void OPERATOR::ABORT(vsEval_ptr eval)		// 停止
 	int a = n->toNumber();
 
 	eval->stop(a);
+	eval->ret_data = n;
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::ABORT" << std::endl;
 #endif
@@ -45,6 +46,34 @@ void OPERATOR::REVERSE_TOP(vsEval_ptr eval) {
 	std::cerr << __LINE__ << "\tOPCODE::REVERSE_TOP " << std::endl;
 #endif
 	eval->reverse_top();
+}
+
+void OPERATOR::EXTERN(vsEval_ptr eval) throw(type_error_exception){
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::EXTERN ";
+#endif
+	auto& stk = eval->current_stk_frame()->stk;
+
+	assert(!stk.empty());
+	data_ptr index = eval->pop();
+	
+	// 检查类型
+	if (index->getType() != DataType::ID_INDEX) {
+		throw type_error_exception(index->toEchoString(), index->getTypeName(), "ID_INDEX");
+	}
+
+	// 通过字符串访问
+	auto ext_data = eval->_get_extern_data(index->toString());
+	
+	// 设置参数
+	eval->new_regist_identity(index->toString(), ext_data);
+
+	// 返回结果
+	eval->push(ext_data);
+
+#if CHECK_Eval 
+	std::cerr << std::endl;
+#endif
 }
 
 void OPERATOR::ADD(vsEval_ptr eval) {
@@ -790,9 +819,17 @@ void OPERATOR::RET(vsEval_ptr eval) {
 	assert(eval->_block_ptr);
 	eval->exit_block();
 
-	// 将返回值放入上一层的stk
-	eval->push(ret_data);
-
+	// 如果当前没有栈帧, 说明在最外层的栈中, 此时return的值会输入到eval的返回值中
+	if (eval->_stk_frame.size() == 0) {
+#if CHECK_Eval 
+		std::cerr << "set eval return data = ";
+#endif
+		eval->_set_return_data(ret_data);
+	}
+	else {
+		// 将返回值放入上一层的stk
+		eval->push(ret_data);
+	}
 #if CHECK_Eval 
 	std::cerr << ret_data->toEchoString() << std::endl;
 #endif

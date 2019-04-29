@@ -79,6 +79,7 @@ protected:
 	bool _flag_has_instruct;
 
 protected:
+
 	// 根据index获取data对象
 	data_ptr _find_data(std::string index, local_var_container_ptr& table_ret);
 
@@ -90,9 +91,35 @@ protected:
 
 	// 弹出局部变量
 	void _pop_frame();
+
+protected:
+	// 保存返回值
+	data_ptr ret_data = NULL_DATA::null_data;
+
+	// 外部数据
+	vsIdentifierContainer _extern_datas;
+
+	// 保存程序id, 会向在vm中对应的程序运行
+	vsTool::id_t _process_id;
 public:
-	vsEvaluator(vsVirtualMachine* vm)
-		:_vm(vm), _stop_val(0), _stop(false), _flag_has_instruct(false) { }
+
+	// 获取外部数据(如果没有找到就返回空对象)
+	data_ptr _get_extern_data(std::string index);
+
+	// 设置外部数据(会覆盖原有数据)
+	void _add_extern_data(std::string index, data_ptr data);
+
+	// 设置返回值
+	void _set_return_data(data_ptr ret_data);
+
+	// 获取返回值
+	data_ptr _get_ret_data() {
+		return ret_data;
+	}
+
+public:
+	vsEvaluator(vsVirtualMachine* vm, vsTool::id_t process_id)
+		:_vm(vm), _stop_val(0), _stop(false), _flag_has_instruct(false), _process_id(process_id){ }
 
 	vsEvaluator(vsVirtualMachine* vm, vec_command_t* ptr)
 		:_vm(vm), _instruct_ptr(ptr), _stop(false), _stop_val(0), _flag_has_instruct(true) { }
@@ -105,7 +132,7 @@ public:
 	}
 
 	// 加载block, 在调用call_blk时调用
-	void load_block(block_ptr block, int paras_count);
+	void load_block(int enter_point, int paras_count);
 
 	// 退出block, 会调用pop_frame
 	void exit_block();

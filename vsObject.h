@@ -27,7 +27,11 @@ public:
 		return vsobj_data;
 	}
 
-	vsObject(DataType type = DataType::OBJECT) : vsData(type){ }
+	vsObject(DataType type = DataType::OBJECT) : vsData(type) { }
+
+//	virtual void set_proto(std::shared_ptr<vsObject> obj_proto) {}
+
+//	std::shared_ptr<vsObject> get_proto() {	}
 
 	// 查询成员, 索引的时候如果不存在就自动添加
 	virtual data_ptr in(data_ptr index) = 0;

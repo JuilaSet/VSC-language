@@ -6,11 +6,9 @@ vsContainer::vsContainer()
 {
 }
 
-
 vsContainer::~vsContainer()
 {
 }
-
 
 // LinearConatiner
 

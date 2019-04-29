@@ -23,6 +23,9 @@ RunTimeStackFrame_ptr _StackFrame::get_current_function_context() {
 	auto data_obj = paras_info.pass_paras_list[0];
 
 	// 出错, 说明call传递的第一个参数不是函数类型
+	if (data_obj->getType() == DataType::DELEGATION) {
+		data_obj = IDelegation::cast_delegation_ptr(data_obj)->container_find();
+	}
 	assert(data_obj->getType() == DataType::FUNCTION);
 
 	// 得到函数对象的运行环境(向子类转换可能出错????)

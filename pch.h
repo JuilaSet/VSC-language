@@ -9,7 +9,10 @@
 #ifndef PCH_H
 #define PCH_H
 
-#define MODE_CIL false
+#define MODE_CIL true
+
+#define CHECK_Tool false
+#define CHECK_Thread false
 
 #define CHECK_Data false
 #define CHECK_Object false
@@ -63,11 +66,14 @@ const char* const UNDEFINED_ECHO = "undefined";
 #include <memory>
 #include <chrono>
 #include <thread>
+#include <atomic>
+#include <condition_variable>
 
 // 调试
 #include <cstdlib>
 #include <cassert>
 #include <exception>
+#include <cstdio>
 
 class IEvaluable;
 class vsData;
@@ -103,12 +109,17 @@ using form_paras_vec = std::vector<std::string>;		// 形参表
 using container_ptr = std::shared_ptr<vsContainer>;		 // 容器指针
 using form_paras_list_t = std::vector<std::string>;		 // 形参列表(block编译时确定)
 using pass_paras_list_t = std::vector<data_ptr>;		 // 传递参数的列表(call时调用)
-// using data_list_t = std::map<std::string, data_ptr>;	局部变量表
+// using data_list_t = std::map<std::string, data_ptr>;		局部变量表
 using local_var_container_ptr = container_ptr;			 // 局部变量表
 using para_var_container_ptr = container_ptr;			 // 形参结合表
 using RunTimeStackFrame = _StackFrame;					 // 运行时栈帧
 using RunTimeStackFrame_ptr = std::shared_ptr<_StackFrame>;
 
+// tool
+#include "Graphic.h"
+#include "vsThread.h"
+
+// 
 #include "Token.h"
 #include "vsFrame.h"
 #include "Data.h"

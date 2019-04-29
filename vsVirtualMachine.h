@@ -86,7 +86,7 @@ public:
 /// 异常类
 ///
 
-// 虚拟机没有准备完毕
+// 虚拟机没有准备完毕异常
 struct vsVm_not_inited_exception : public std::exception 
 {
 private:
@@ -106,40 +106,59 @@ public:
 // 虚拟机
 class vsVirtualMachine
 {
-	size_t _id;							// 虚拟机的id
+	friend class vsEvaluator;
+protected:
+	size_t _id;									// 虚拟机的id
 
+	////
+	//// 属性
+	////
 
-	///
-	/// 属性
-	///
+//	std::map<size_t, block_ptr> _sb_map;
+	std::map <vsTool::id_t, std::map<size_t, block_ptr>> _sb_map;	// block表 (id -> vsblock), 只读
 
-	std::map<size_t, block_ptr> _sb_map;	// block表 (id -> vsblock)
-	std::shared_ptr<vsEvaluator> _eval_main; // 表示主线程的解释器
-	size_t _enter_point;				// 入口点
+	size_t _enter_point;						// 入口点
 
-	///
-	/// 标志flag
-	///
+	// 初始化计算图图
+	vsThread::taskGraphic_ptr<std::string, data_ptr> _taskGraphic;
 
-	bool _inited;				// 是否初始化完成, 即完成加载工作(block表加载, 入口点设置)
-	int _eval_ret_value;		// 解释器的退出值
+	////
+	//// 标志flag
+	////
+
+	bool _inited;							// 是否初始化完成, 即完成加载工作(block表加载, 入口点设置)
+	std::atomic<int> _eval_ret_value;		// 解释器的退出值
+
 public:
-	void run();	// 执行虚拟机代码
+	// 执行虚拟机代码, 返回一个int表示状态
+	data_ptr run(vsThread::Session<std::string, data_ptr>& sess, vsTool::id_t id, std::string aim);
 	
 	/// 辅助函数
 	///
 
 	// 获取block
-	block_ptr get_block_ref(size_t block_index) {
+	block_ptr get_block_ref(size_t block_index, vsTool::id_t process_id) const {
 		assert(!_sb_map.empty());
-		auto it = _sb_map.find(block_index);
-		assert(it != _sb_map.end());
+		auto mapit = _sb_map.find(process_id);
+		assert(mapit != _sb_map.end());
+		auto map = mapit->second;
+		assert(!map.empty());
+		auto it = map.find(block_index);
+		assert(it != map.end());
+//		if (it == _sb_map.end()) {
+//			printf("没有找到这个block: %d\n", block_index);
+//			printf("block数量: %d\n", _sb_map.size());
+//			for (auto b : _sb_map) {
+//				std::cout << b.first << std::endl;
+//			}
+//			assert(false);
+//		}
 		block_ptr block = it->second;
 		return block;
 	}
 
-	// 获取退出值
-	int get_eval_ret_value() {
+	// 获取退出值(非线程安全的)
+	int get_return_ref() const {
 		return _eval_ret_value;
 	}
 
@@ -147,24 +166,31 @@ public:
 	/// 虚拟机函数
 	///
 
+	// 绑定对应的程序
+	std::shared_ptr<vsEvaluator> make_eval(vsTool::id_t process_id) {
+		// 创建一个eval解释器
+		auto eval_ptr = std::make_shared<vsEvaluator>(vsEvaluator(this, process_id));
+		return eval_ptr;
+	}
+
+	// 设置图
+	void set_graphic(vsThread::taskGraphic_ptr<std::string, data_ptr> g) {
+		_taskGraphic = g;
+	}
+
+	// 设置程序(程序结果, 程序id)
+	void add_process(Compile_result cresult, vsTool::id_t processs_id) {
+		auto map = cresult.get_sb_map();
+		_sb_map.insert(std::make_pair(processs_id, map));
+	}
+
 	// 初始化并设置block表
-	void init(Compile_result cresult, size_t enter_point){
-		_sb_map = cresult.get_sb_map();
+	void init(size_t enter_point){
 		_enter_point = enter_point;
 		_inited = true;
 	}
 
 	// 初始化时，不指定属性
-	vsVirtualMachine(size_t id) 
+	vsVirtualMachine(size_t id)
 		: _id(id), _inited(false) {}
-
-	// 直接通过结果对象来初始化
-	vsVirtualMachine(size_t id, Compile_result cresult, size_t enter_point)
-		: _id(id), _sb_map(cresult.get_sb_map()), _enter_point(enter_point), _inited(true){}
-	
-	// 通过block表来初始化
-	vsVirtualMachine(size_t id, std::map<size_t, block_ptr> sb_map, size_t enter_point)
-		: _id(id), _sb_map(sb_map), _enter_point(enter_point), _inited(true){}
-
-	~vsVirtualMachine() {};
 };

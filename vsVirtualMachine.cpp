@@ -1,11 +1,9 @@
 ﻿#include "pch.h"
 #include "vsVirtualMachine.h"
 
-void vsVirtualMachine::run() {
+data_ptr vsVirtualMachine::run(vsThread::Session<std::string, data_ptr>& sess, vsTool::id_t eval_id, std::string aim){
 	if (!this->_inited)throw vsVm_not_inited_exception(_id);
-	// 新建解释器
-	_eval_main = std::make_shared<vsEvaluator>(vsEvaluator(this));
-	// 主线程进入入口点, 相当于直接 <call_blk _enter_point>
-	_eval_main->load_block(get_block_ref(_enter_point), 0);
-	_eval_ret_value = _eval_main->eval();
+
+	// session start
+	return sess.eval(eval_id, aim);
 }

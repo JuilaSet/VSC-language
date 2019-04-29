@@ -51,32 +51,6 @@ void regist_keywords_contents(Context_helper& helper) {
 			}, Context_Type::END)
 		})
 	);
-	
-	/*
-	helper.regist_context(Word(WordType::CONTROLLER, "prcd").serialize(),
-		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
-			helper.push_command_index(_vec.size());
-			return _command_set{
-					COMMAND(ERROR),	// 待确定
-					COMMAND(JMP)
-			};
-		},
-		{
-			Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-				return _command_set{ };
-			}, Context_Type::NORMAL, "prcd_op1"),
-			Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
-				int last_index = helper.pop_command_index();
-				int addr = _vec.size();
-				_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new NumData(DataType::OPERA_ADDR, addr + 1)));
-				return _command_set{
-						COMMAND(RET),
-						CommandHelper::getPushOpera(data_ptr(new NumData((DataType::OPERA_ADDR, last_index + 2)))	// push过程的首地址
-				};
-			}, Context_Type::END, "prcd_end")
-		})
-	);
-	*/
 
 	helper.regist_context(Word(WordType::CONTROLLER, "def").serialize(),
 		helper.build_context(
@@ -90,8 +64,6 @@ void regist_keywords_contents(Context_helper& helper) {
 					compiler->dont_gene_callblk();
 					// 获取分配的下标
 					compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
-//					commandVec.pop_back(); // 将之前的 push 立即数指令弹出 []][
-//					commandVec.push_back(CommandHelper::getPushOpera(data_ptr(new IndexData(DataType::ID_INDEX, w.getString()))));
 					compiler->setSubFieldStrongHold();
 					return _command_set{};
 				}, Context_Type::NORMAL, "def_op1"),
@@ -199,6 +171,29 @@ void regist_keywords_contents(Context_helper& helper) {
 			})
 	);
 
+	helper.regist_context(Word(WordType::CONTROLLER, "extern").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+				compiler->in_def(); 
+				return _command_set{}; 
+			},
+			{
+				// 转为数字
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_*
+					// 获取分配的下标
+					compiler->insert_local(w, WordType::IDENTIFIER);	// 告知Compiler声明过了第一个参数
+					return _command_set{
+						COMMAND(EXTERN)
+					};
+				}, Context_Type::ALWAYS, "extern_op*"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->out_def();
+					return _command_set{ };
+				}, Context_Type::END, "extern_end")
+			})
+	);
+
+
 	helper.regist_context(Word(WordType::CONTROLLER, "abort").serialize(),
 		helper.build_context(
 			[&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) { return _command_set{}; },
@@ -291,32 +286,6 @@ void regist_keywords_contents(Context_helper& helper) {
 				}, Context_Type::END)
 			})
 	);
-
-	/*
-	helper.regist_context(Word(WordType::CONTROLLER, "rept").serialize(),
-		helper.build_context(
-			[&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {	return _command_set{}; },
-			{
-				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
-					helper.push_command_index(_vec.size() + 1);
-					return _command_set {
-						COMMAND(COUNT),
-						COMMAND(NOP)
-					};
-				}, Context_Type::NORMAL, "rept_op1"),
-				// block
-				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-					return _command_set{ };
-				}, Context_Type::NORMAL, "rept_block"),
-				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
-					int addr = helper.pop_command_index();
-					return _command_set{
-						CommandHelper::getPushOpera(NumData(DataType::OPERA_ADDR, addr)),
-						COMMAND(REPT)};
-				}, Context_Type::END, "rept_end")
-			})
-	);
-	*/
 	
 	// IDENTIFIER_SPEC
 	
@@ -350,7 +319,7 @@ void regist_keywords_contents(Context_helper& helper) {
 						CommandHelper::getPushOpera(data_ptr(new vsVector))
 					};
 				}, { })	// 只能有一个上下文
-			);
+	);
 
 
 	helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$obj").serialize(),
@@ -363,7 +332,8 @@ void regist_keywords_contents(Context_helper& helper) {
 					CommandHelper::getPushOpera(data_ptr(new vsOriginObject))
 				};
 			}, { })	// 只能有一个上下文
-		);
+	);
+
 	// OPERATOR_WORD
 
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "time").serialize(),
@@ -455,6 +425,48 @@ void regist_keywords_contents(Context_helper& helper) {
 			})
 	);
 
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "sub").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {	// op_0
+				return _command_set{ };
+			},
+			{
+				// 转为数字
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
+					return _command_set{ };
+				}, Context_Type::NORMAL, "sub_op1"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
+						return _command_set{ };
+				}, Context_Type::NORMAL, "sub_op2"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
+					return _command_set{
+						COMMAND(SUB)
+					};
+				}, Context_Type::END, "sub_end")
+			})
+	);
+
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "eq").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {	// op_0
+				return _command_set{ };
+			},
+			{
+				// 转为数字
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
+					return _command_set{ };
+				}, Context_Type::NORMAL, "eq_op1"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
+						return _command_set{ };
+				}, Context_Type::NORMAL, "eq_op2"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
+					return _command_set{
+						COMMAND(EQ)
+					};
+				}, Context_Type::END, "eq_end")
+			})
+	);
+
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "typename").serialize(),
 		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, auto* compiler) {
 		helper.push_command_index(_vec.size());
@@ -469,113 +481,6 @@ void regist_keywords_contents(Context_helper& helper) {
 			}, Context_Type::END, "typename_end")
 		})
 	);
-
-	/*
-
-	helper.regist_context(Word(WordType::OPERATOR_WORD, "sub").serialize(),
-		helper.build_context(
-			[](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-				return _command_set{ };
-			},
-			{
-				// 转为数字
-				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
-					if (w.getType() != WordType::NUMBER) {
-						return _command_set{
-							COMMAND(CAST_NUMBER)
-						};
-					}
-					else {
-						return _command_set{ };
-					}
-				}),
-				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
-					if (w.getType() != WordType::NUMBER) {
-						return _command_set{
-							COMMAND(CAST_NUMBER)
-						};
-					}
-					else {
-						return _command_set{ };
-					}
-				}),
-				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-					return _command_set{
-						COMMAND(SUB)
-					};
-				}, Context_Type::END)
-			})
-	);
-
-	helper.regist_context(Word(WordType::OPERATOR_WORD, "not").serialize(),
-		helper.build_context(
-			[](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-				return _command_set{ };
-			},
-			{
-				// 转为数字
-				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
-					return _command_set{
-						COMMAND(CAST_NUMBER)
-					};
-				}),
-				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-					return _command_set{
-						COMMAND(NOT)
-					};
-				}, Context_Type::END)
-			})
-	);
-
-	helper.regist_context(Word(WordType::OPERATOR_WORD, "eq").serialize(),
-		helper.build_context(
-			[](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-				return _command_set{ };
-			},
-			{
-				EMPTY_CONTEXT,
-				EMPTY_CONTEXT,
-				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-					return _command_set{
-						COMMAND(EQ)
-					};
-				}, Context_Type::END)
-			})
-	);*/
-
-	/*
-	helper.regist_context(Word(WordType::OPERATOR_WORD, "l").serialize(),
-		helper.build_context(
-			[](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-				return _command_set{ };
-			},
-			{
-				EMPTY_CONTEXT,
-				EMPTY_CONTEXT,
-				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-					return _command_set{
-						COMMAND(L)
-					};
-				}, Context_Type::END)
-			})
-	);
-
-	helper.regist_context(Word(WordType::OPERATOR_WORD, "g").serialize(),
-		helper.build_context(
-			[](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-				return _command_set{ };
-			},
-			{
-					EMPTY_CONTEXT,
-					EMPTY_CONTEXT,
-					Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
-						return _command_set{
-							COMMAND(G)
-						};
-					}, Context_Type::END)
-				})
-	);
-	*/
 
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "echo").serialize(),
 		helper.build_context(
@@ -638,6 +543,7 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_OPERATO_WORDS(helper, "call");
 	REGIST_OPERATO_WORDS(helper, "time");
 	REGIST_OPERATO_WORDS(helper, "add");
+	REGIST_OPERATO_WORDS(helper, "sub");
 	REGIST_OPERATO_WORDS(helper, "echo");
 	REGIST_OPERATO_WORDS(helper, "strcat");
 	REGIST_OPERATO_WORDS(helper, "not");
@@ -653,6 +559,7 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_CONTROLLER_WORDS(helper, "break");
 
 	REGIST_CONTROLLER_WORDS(helper, "abort");
+	REGIST_CONTROLLER_WORDS(helper, "extern");
 
 	REGIST_CONTROLLER_WORDS(helper, "def");
 	REGIST_CONTROLLER_WORDS(helper, "assign");
@@ -669,9 +576,9 @@ void regist_words(WordTypeHelper& helper) {
 
 
 	// 注册操作符优先级
-	helper.regist_opera_2(Word(WordType::OPERATOR_WORD, "+"), 2);
-	helper.regist_opera_2(Word(WordType::OPERATOR_WORD, "*"), 3);
-	helper.regist_opera_2(Word(WordType::CONTROLLER, "="), 0);
+//	helper.regist_opera_2(Word(WordType::OPERATOR_WORD, "+"), 2);
+//	helper.regist_opera_2(Word(WordType::OPERATOR_WORD, "*"), 3);
+//	helper.regist_opera_2(Word(WordType::CONTROLLER, "="), 0);
 }
 
 // 注册语法铁路图
@@ -755,7 +662,70 @@ void regist_bnf(Parser& p) {
 	Graphic_builder control_expr_builder("control_expr");
 	BNFGraphic g_control_expr =
 		control_expr_builder.rule()->
+		// extern语句
+		terminal("extern", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[break] get word:" << w.serialize();
+#endif
+		if (w.getString() == "extern") {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'break' here\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+		})->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[context_closed] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
 		// if语句
+		gotoHead()->
 		terminal("if", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 		cerr << "[if] get word:" << w.serialize();
@@ -1586,6 +1556,44 @@ void test_app() {
 	}
 }
 
+// 返回计算图图
+vsThread::taskGraphic_ptr<std::string, data_ptr> get_graphic(vsVirtualMachine& vm) {
+
+	// 初始化计算图图
+	vsThread::taskGraphic_ptr<std::string, data_ptr> _taskGraphic(new vsThread::TaskGraphic<std::string, data_ptr>);
+
+	// 新建解释器, 绑定对应的block
+	auto _eval_main = vm.make_eval(0);
+
+	// build node
+	_taskGraphic->build_node([=](auto& _out, auto& datas, auto& keys) {
+
+		printf("开始计算\n");
+
+		// 获取数据
+		_eval_main->_add_extern_data("x", data_ptr(new NumData(10)));
+
+		// 主线程进入入口点, 相当于直接 <call_blk _enter_point>
+		_eval_main->load_block(1, 0);
+
+		// 执行
+		_eval_main->eval();
+
+		// 设置返回值
+		_out = _eval_main->_get_ret_data();
+
+		cout << "返回值: " << _out->toNumber() << endl;
+
+		// 返回信号
+		return "x";
+	}, { }, 0, 19000);
+
+	// build graphic
+	_taskGraphic->head()->end();
+
+	return _taskGraphic;
+}
+
 // 测试命令行
 void test_input_cli() {
 
@@ -1614,6 +1622,7 @@ void test_input_cli() {
 	S_Expr_Compiler compiler;
 	Compile_result cresult;
 
+	
 	// 虚拟机
 	vsVirtualMachine vm(0);
 
@@ -1644,14 +1653,25 @@ void test_input_cli() {
 				// 生成目标代码
 
 				compiler.generate_code(p.get_word_vector_ref(), cresult, ctx_helper);	// 会抛出异常
-				// compiler.generate_code(lex.get_words_list(), cresult, ctx_helper);	// 会抛出异常
 				cout << "Code Generated finished!" << endl << endl;
 
+				// 搭建图
+				auto graphic = get_graphic(vm);
+
+				// 设置会话
+				vsThread::Session<std::string, data_ptr> sess(graphic);
+
+				vm.set_graphic(graphic);
+				vm.add_process(cresult, 0);
+
 				// 执行代码
-				vm.init(cresult, 1);
-				vm.run();
+				vm.init(1);
+
+				auto ret = vm.run(sess, 0, "x");
+				if (ret->toNumber() == -1)break;
+
 #if MODE_CIL
-				if (vm.get_eval_ret_value() == -1)break;
+				if (vm.get_return_ref() == -1)break;
 #endif
 			}
 		}
@@ -1661,7 +1681,7 @@ void test_input_cli() {
 		catch (stack_overflow_exception e) {
 			cerr << e.what() << endl;
 		}
-		catch (undefined_exception e) {
+		catch (run_time_exception& e) {
 			cerr << e.what() << endl;
 		}
 		// 清除结果
@@ -1670,9 +1690,34 @@ void test_input_cli() {
 	}
 }
 
+void test_session() {
+
+	// 初始化计算图图
+	vsThread::taskGraphic_ptr<std::string, data_ptr> tm(new vsThread::TaskGraphic<std::string, data_ptr>);
+
+	// 根据设置初始化结点信息
+	tm->build_node([](auto& _out, auto& datas, auto& keys) {
+		auto tid = std::this_thread::get_id();
+		_out = data_ptr(new StringData("Hello node!"));
+		for (int i = 0; i < 3; ++i) {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			printf("p%d clac0: \n", tid);
+			cout << _out->toEchoString() << endl;
+		}
+		return "x";
+	}, { }, 0, 19000);
+
+	// 构建图信息
+	tm->head()->end();
+
+	vsThread::Session<std::string, data_ptr> sess(tm);
+	sess.eval(0, "");
+	printf("Session end!\n");
+}
 // 
 int main(int argc, char* argv[]) {
 //	test_app();
+//	test_input_cli();
 	test_input_cli();
 	return 0;
 };

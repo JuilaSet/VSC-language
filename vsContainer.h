@@ -54,7 +54,9 @@ public:
 class vsLinearContainer : public vsContainer {
 protected:
 	std::vector<data_ptr> _vec;
+
 	int _it;
+
 public:
 	vsLinearContainer();
 	
@@ -111,8 +113,10 @@ protected:
 	std::map<std::string, data_ptr>::iterator _it;
 
 public:
+	// 
 	vsIdentifierContainer();
 
+	// 复制构造函数
 	vsIdentifierContainer(const vsIdentifierContainer& container);
 	
 	// 返回容器大小
@@ -125,10 +129,10 @@ public:
 	virtual bool next() override;
 
 	// 当前对象
-	virtual data_ptr cur_data()override;
+	virtual data_ptr cur_data() override;
 
 	// 当前键
-	virtual data_ptr cur_key()override;
+	virtual data_ptr cur_key() override;
 
 	// 从头开始
 	virtual void gotoBegin() override;
@@ -140,7 +144,7 @@ public:
 	virtual data_ptr head_key() override;
 
 	// 会重写原有的映射关系, 重写返回false, 自动扩容或插入原先没有的元素系返回true
-	virtual bool assign(data_ptr index, data_ptr value)override;
+	virtual bool assign(data_ptr index, data_ptr value) override;
 
 	// 不会重写原有的映射关系, 重写更改容器内的指针指向元素的值, 找到元素返回true, 没找到什么都不做, 并返回false
 	virtual bool cp(data_ptr index, data_ptr value) override;

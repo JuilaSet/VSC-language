@@ -4,8 +4,10 @@
 // vsEvaluator
 
 // 在此之前要使用push_next_temp_paras_info(), 防止exit_block的时候出错
-void vsEvaluator::load_block(block_ptr block, int paras_count)
+void vsEvaluator::load_block(int enter_point, int paras_count)
 {
+	auto block = this->_vm->get_block_ref(enter_point, _process_id);
+
 	// 设置并传递栈帧
 	_push_and_setting_frame(this->_block_ptr, block, paras_count);
 	
@@ -18,6 +20,7 @@ void vsEvaluator::load_block(block_ptr block, int paras_count)
 	ipc = -1; // 跳转后变成0
 }
 
+// 退出block
 void vsEvaluator::exit_block()
 {
 	assert(!_stk_frame.empty());
@@ -37,7 +40,7 @@ void vsEvaluator::exit_block()
 		assert(_return_addr != -1 && _return_blk_id != -1);
 
 		// 返回上一个block
-		block_ptr lastblock = _vm->get_block_ref(_return_blk_id);
+		block_ptr lastblock = _vm->get_block_ref(_return_blk_id, _process_id);
 
 		// 恢复现场
 		this->_instruct_ptr = &lastblock->instruct();
@@ -98,6 +101,25 @@ void vsEvaluator::_pop_frame() {
 #if CHECK_Eval
 	std::cerr << ", frame stk size = " << _stk_frame.size() << std::endl;
 #endif
+}
+
+// 获取外部数据(没有找到返回空对象)
+data_ptr vsEvaluator::_get_extern_data(std::string index) {
+	auto ptr = _extern_datas.find(data_ptr(new StringData(index)));
+	if (ptr == nullptr) {
+		return NULL_DATA::null_data;
+	}
+	return ptr;
+}
+
+// 设置外部数据(会覆盖原有数据)
+void vsEvaluator::_add_extern_data(std::string index, data_ptr data) {
+	_extern_datas.assign(data_ptr(new StringData(index)), data);
+}
+
+// 设置返回数据
+void vsEvaluator::_set_return_data(data_ptr ret_data) {
+	this->ret_data = ret_data;
 }
 
 // 根据index获取data对象
