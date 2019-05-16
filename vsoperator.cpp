@@ -905,6 +905,27 @@ void OPERATOR::ENCLOSED(vsEval_ptr eval) {
 	evalable->set_runtime_ctx_ptr(frame);
 }
 
+// 休眠N秒
+void OPERATOR::SLEEP(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::SLEEP ";
+#endif
+	auto frame = eval->current_stk_frame();
+
+	// 获取下标
+	auto& stk = frame->stk;
+	assert(!stk.empty());
+
+	auto sec = eval->pop();
+	int seconds = sec->toNumber();
+
+	std::this_thread::sleep_for(std::chrono::seconds(seconds));
+
+#if CHECK_Eval 
+	std::cerr << seconds << std::endl;
+#endif
+}
+
 // 分配临时实参列表, 为接下来传递参数做准备
 void OPERATOR::CALL_BLK_BEGIN(vsEval_ptr eval) {
 	// 注意: call Block的时候还是在栈外面

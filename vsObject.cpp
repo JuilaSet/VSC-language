@@ -96,7 +96,7 @@ std::string vsVector::toString() const {
 
 // 返回大小的数字(支持字符串转换为数字)
 long long vsVector::toNumber() const {
-	return _vec->size();
+	return data_ptr(new ContainerLocationData(_vec, data_ptr(new NumData(0))))->toNumber();
 }
 
 // 返回转换的bool型(支持数字, 字符串转换bool)

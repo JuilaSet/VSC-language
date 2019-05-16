@@ -527,6 +527,23 @@ void regist_keywords_contents(Context_helper& helper) {
 			})
 	);
 
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "sleep").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {	// op_0
+		return _command_set{ };
+	},
+			{
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
+					return _command_set{
+						COMMAND(SLEEP)
+					};
+				}, Context_Type::ALWAYS, "not_op1"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
+					return _command_set{ };
+				}, Context_Type::END, "not_end")
+			})
+	);
+
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "not").serialize(),
 		helper.build_context(
 			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {	// op_0
@@ -707,7 +724,8 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_OPERATO_WORDS(helper, "typename");
 	REGIST_OPERATO_WORDS(helper, "in");
 	REGIST_OPERATO_WORDS(helper, "get");
-	REGIST_OPERATO_WORDS(helper, "vec"); 
+	REGIST_OPERATO_WORDS(helper, "vec");
+	REGIST_OPERATO_WORDS(helper, "sleep");
 	
 	REGIST_CONTROLLER_WORDS(helper, "lambda");
 	REGIST_CONTROLLER_WORDS(helper, "enclosed");
@@ -2463,16 +2481,18 @@ void test_vsFrontend(const char *filename, InputMode m) {
 	// 初始化输入系统
 	InputMode mode = m;
 	std::shared_ptr<Lexer> lex;
+	bool rept = false;
 	switch (m) {
 	case InputMode::CILMode:
 		lex.reset(new Lexer(new CLIInput("vsc mt->")));
+		rept = true;
 		break;
 	case InputMode::FileMode:
 		lex.reset(new Lexer(new FileInput(filename)));
 		break;
 	}
 
-	while (1){
+	do{
 		try {
 			// 编译前端
 			vsFrontend front(regist_bnf, regist_keywords_contents, regist_token, regist_words);
@@ -2511,8 +2531,9 @@ void test_vsFrontend(const char *filename, InputMode m) {
 		}
 		catch (std::string& e) {
 			std::cerr << e << std::endl;
+			exit(-1);
 		}
-	}
+	} while (rept);
 }
 
 //
@@ -2607,7 +2628,10 @@ void test_input_cli() {
 				vm.add_process(cresult, 0); // 编译结果, 代码段id
 
 				auto ret = vm.run(0, "x");
-				if (ret->toNumber() == -1)break;
+				if (ret->toNumber() == -1) {
+					std::cout << "vsBye~" << std::endl;
+					break;
+				}
 
 				vm.init_pools();
 			}
@@ -2630,24 +2654,24 @@ void test_input_cli() {
 // 
 int main(int argc, char* argv[]) {
 	// 输入模式
-	if (argc == 2 && strcmp(argv[1], "-cli") == 0)
+	if (argc == 1)
 	{
 		// 单线程模式
 		test_input_cli();
 	}
-	else if (argc == 2 && strcmp(argv[1], "-cli_thread") == 0)
+	else if (argc == 2 && strcmp(argv[1], "-thread") == 0)
 	{
 		// 多线程模式
 		test_vsFrontend("", InputMode::CILMode);
 	}
-	else if (argc == 3 && strcmp(argv[1], "-file") == 0)
+	else if (argc == 2)
 	{
 		// 文件模式(只支持多线程)
-		test_vsFrontend(argv[2], InputMode::FileMode);
+		test_vsFrontend(argv[1], InputMode::FileMode);
 	}
 	else
 	{
-		std::cerr << "Usage vsc <-cli> | <-cli_thread> | <-file> <filename>" << std::endl;
+		std::cerr << "Usage: vsc <-thread> | vsc <filename>" << std::endl;
 		exit(-1);
 	}
 	return 0;

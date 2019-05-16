@@ -207,6 +207,9 @@ public:
 	
 	static void CP(vsEval_ptr eval);
 
+	// 休眠N秒
+	static void SLEEP(vsEval_ptr eval);
+
 	// 带有返回值的break
 	static void RET(vsEval_ptr eval);
 

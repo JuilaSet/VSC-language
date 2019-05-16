@@ -1,1 +1,11 @@
-* 123:12344
+[
+ // 求1+2+3+4.。。+100的和
+ def x 0;
+ def sum 0;
+ while not eq x 101;;
+ [
+  assign sum add sum x;;
+  assign x add x 1;;
+ ];
+ echo add <sum=> sum;;
+]
