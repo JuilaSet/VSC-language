@@ -3,18 +3,31 @@
 
 #define CHECK_input false
 
+void split(std::vector<std::string>& dest, std::string str, std::string pattern) {
+	std::string::size_type pos;
+	std::vector<std::string> result;
+	// 最后加上这个分隔符便于操作
+	str += pattern;
+	int size = str.size();
+	for (int i = 0; i < size; i++) {
+		// 从i位置开始寻找pattern字符串
+		pos = str.find(pattern, i);
+		if (pos < size) {
+			// 不包括字符串
+			std::string s = str.substr(i, pos - i);
+			dest.push_back(s);
+			i = pos + pattern.size() - 1;
+		}
+	}
+}
+
 std::string StringInput::getLine()
 {
-	size_t endline = _str.find_first_of(EOL[0]);
-	if (endline != std::string::npos) {
-		auto begin = _str.begin();
-		std::string ret(begin, begin + endline + 1);
-		_str.erase(0, endline + 1);	// 删除之前的字符串
-		return ret + EOL;
+	if (i == lines.size()) {
+		_isEnd = true;
+		return EOL;
 	}
-	else {
-		return _str + EOL;
-	}
+	return lines[i++] + EOL;
 }
 
 std::string CLIInput::getLine()

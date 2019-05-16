@@ -1,20 +1,9 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Node.h"
-
-
-LeafNode::LeafNode():_tag_name("div")
-{
+bool operator==(const LeafNode& l1, const LeafNode& l2) {
+	return l1._id == l2._id;
 }
 
-LeafNode::LeafNode(std::string tag): _tag_name(tag)
-{
-}
-
-bool LeafNode::check(std::string str)
-{
-	return false;
-}
-
-LeafNode::~LeafNode()
-{
+bool operator<(const LeafNode& l1, const LeafNode& l2) {
+	return l1._id < l2._id;
 }

@@ -8,8 +8,13 @@
 const std::string EOL = "\n";
 const std::string CONLIN = "\\";
 
+// 分割字符串放入dest
+void split(std::vector<std::string>& dest, std::string str, std::string pattern);
+
 class Input {
 protected:
+	bool _isoverflow;
+	int _readsize;
 	bool _isEnd;
 public:
 	virtual std::string getLine() = 0;
@@ -19,12 +24,18 @@ public:
 };
 
 class StringInput : public Input {
-	std::string _str;
+	std::vector<std::string> lines;				// 存放每一行
+	int i;										// 行地址
 public:
-	StringInput(std::string str) :_str(str) {};
-	StringInput() :StringInput("") {}	// 空对象模式使用
-	std::string getLine();
-	void setString(std::string str) { _str = str; }
+	StringInput()	// 空对象模式使用
+		:i(0){}	
+
+	StringInput(std::string str): i(0) {
+		// 放入每一行
+		split(lines, str, EOL);
+	}
+	
+	virtual std::string getLine() override;
 };
 
 class CLIInput : public Input {

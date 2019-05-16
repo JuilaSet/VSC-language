@@ -29,11 +29,10 @@ public:
 	friend class Token_helper;
 };
 
-class TOKEN_HELPER;
 class Token_helper
 {
 	std::map<const std::string, Token> _token_map;
-	std::multimap<const char, Token> _first_sign_map; // 关联符号字符串第一个char可能是哪些符号_
+	std::multimap<const char, Token> _first_sign_map; // 关联符号字符串第一个char可能是哪些符号
 	using _mutimap_char_token_iter = std::multimap<const char, Token>::iterator;
 
 public:
@@ -48,12 +47,7 @@ public:
 	Token get_token_obj(const std::string& token_str);
 	std::pair<_mutimap_char_token_iter, _mutimap_char_token_iter> get_token_range(const char c);
 };
-/* []][
-class TOKEN_HELPER {
-public:
-	static Token_helper token_helper;	// 单例对象
-};
-*/
+
 //
 // 用于注册符号的宏
 //

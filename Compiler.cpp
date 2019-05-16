@@ -439,3 +439,223 @@ END:
 	_cresult_ptr = nullptr;
 	return;
 }
+
+// 结点定义符号
+const std::string Node_Compiler::NODE_DEF = "*";
+
+// 结点会话符号
+const std::string Node_Compiler::NODE_SESS = "#";
+
+// 定义花括号
+const std::string Node_Compiler::NODE_DEF_OPEN = "{";
+const std::string Node_Compiler::NODE_DEF_CLOSED = "}";
+
+// 连接符号
+const std::string Node_Compiler::NODE_LIINK = "->";
+
+// 结束符号
+const std::string Node_Compiler::NODE_END = ";";
+
+// 冒号
+const std::string Node_Compiler::NODE_ADM = ":";
+
+// 使用函数递归的方式分析记号流
+void Node_Compiler::top() throw (undefined_exception) {
+	assert(_word_vec.size() > _pos);
+	auto& w = _getWord(_pos);
+	auto str = w.getString();
+	auto type = w.getType();
+	
+	// 是多个结点定义符号
+	while (str == NODE_DEF) {
+		_pos++; // 跳过*号
+		nodeBlock();
+
+		// 下一个单词
+		assert(_word_vec.size() > _pos);
+		w = _getWord(_pos);
+		str = w.getString();
+		type = w.getType();
+	}
+	
+	// 可以是一个结点组织语句
+	while(type == WordType::IDENTIFIER_ENABLED) {
+		nodeLinkExpr();
+		w = _getWord(_pos);
+		str = w.getString();
+		type = w.getType();
+	}
+	_pos++;
+	
+	// 可以是一个结点调用语句
+	if (str == NODE_SESS) {
+		w = _getWord(_pos++);
+		auto name = w.getString();
+		if (_contain(name))
+			_sess_point = _find_node(name)->getId();
+		else
+			throw undefined_exception("未定义结点" + name);
+	}
+}
+
+// 结点声明语句
+void Node_Compiler::nodeBlock() throw (undefined_exception) {
+	assert(_word_vec.size() > _pos);
+	auto& w = _getWord(_pos);
+	auto name = w.getString();
+	// 创建这个结点, 名称为node定义时的名称
+	if (_contain(name)) {
+		throw undefined_exception("重定义" + name + "结点!");
+	}
+	auto node = LeafNode::create(name);
+	// 进入结点定义语句
+	_pos++; // 跳过结点名
+	nodeDef(node);
+}
+
+// 结点声明语句 := * 名 { 结点定义语句... }
+void Node_Compiler::nodeDef(std::shared_ptr<LeafNode> node) {
+	assert(_word_vec.size() > _pos);
+	auto& w = _getWord(_pos);
+	auto str = w.getString();
+	auto type = w.getType();
+	// 是大括号, 进入定义语句
+	if (str == NODE_DEF_OPEN) {
+		_pos++; // 跳过{括号
+		while (true) {
+			// 开始
+			defExpr(node);
+
+			// 如果是结束语句就退出
+			if (_word_vec.size() <= _pos) {
+				std::cerr << "超过边界:" << _pos << std::endl;
+				assert(false);
+			}
+			auto& w = _getWord(_pos);
+			auto str = w.getString();
+			auto type = w.getType();
+			if (str == NODE_DEF_CLOSED) {
+				_pos++; // 跳过}括号
+				break;
+			}
+		}
+	}
+}
+
+// 结点定义语句 := 属性 : 值 ;
+void Node_Compiler::defExpr(std::shared_ptr<LeafNode> node) {
+	assert(_word_vec.size() > _pos);
+	auto& w = _getWord(_pos);
+	auto str = w.getString();
+	auto type = w.getType();
+	// 是属性
+	if (type == WordType::IDENTIFIER_ENABLED || type == WordType::OPERATOR_WORD) {
+		assert(_word_vec.size() > _pos);
+		std::string attr = _getWord(_pos).getString();
+		_pos++; // 跳过属性名
+
+		// 冒号
+		assert(_word_vec.size() > _pos);
+		if (_getWord(_pos).getString() == NODE_ADM) {
+			_pos++; // 跳过冒号
+
+			// 之后会跟上值, 查看类型, 一直到分号为止
+			assert(_word_vec.size() > _pos);
+			auto value_word = _getWord(_pos);
+			if (value_word.getType() == WordType::NUMBER) {
+				node->pushData(attr, data_ptr(value_word.getData()));
+				// 直到最后一个分号为止
+				assert(_word_vec.size() > _pos);
+				while (_getWord(_pos).getString() != NODE_END) // 跳过分号
+					_pos++;
+			}
+			// 集合
+			else if (value_word.getType() == WordType::IDENTIFIER_ENABLED) {
+				std::shared_ptr<vsVector> vec(new vsVector);
+				while (value_word.getType() != WordType::CONTEXT_CLOSED) { // 到分号为止, 将前面所有字符串加入集合
+					assert(_word_vec.size() > _pos);
+					vec->push_data(value_word.getData());
+					// 下一个单词
+					value_word = _getWord(++_pos);
+				}
+				node->pushData(attr, vec);
+			}
+			// 字符串
+			else {
+				assert(_word_vec.size() > _pos);
+				std::string value;
+				// 直到最后一个分号为止, 过滤字符串标记
+				for (;; _pos++) {
+					assert(_word_vec.size() > _pos);
+					auto& w = _getWord(_pos);
+					auto temp_type = w.getType();
+					if (temp_type == WordType::STRING) {
+						value += w.getString();
+					}
+					else if (temp_type == WordType::CONTEXT_CLOSED) {
+						break;
+					}
+				}
+				node->pushData(attr, data_ptr(new StringData(value)));
+			}
+		}
+		// 没有冒号, 直接分号结束
+	}
+	// 跳过分号
+	_pos++;
+	// 结束定义, 加入集合
+	_nodes.insert_or_assign(node->getName(), node);
+}
+
+// 结点组织语句 := 名 -> 名 { -> 名 }
+void Node_Compiler::nodeLinkExpr()throw(undefined_exception) {
+	// 名
+	auto& w = _getWord(_pos++);
+	auto name = w.getString();
+	if (!_contain(name)) {
+		// 抛出未定义异常
+		throw undefined_exception("未定义" + name + "结点!");
+	}
+	// 第一次时是head
+	if (gbuilder.is_empty()) {
+		auto node = _find_node(name);
+
+		node->setID(_count++);
+		gbuilder.head(node);
+	}
+	// 下一次表示跳转到这个结点
+	else {
+		gbuilder.gotoNode(_find_node(name)->getId());
+	}
+
+	// 后续"->名"
+	while (true) {
+		// { -> 名 }
+		auto& w = _getWord(_pos++);// 跳过 "->"或";"
+		auto link = w.getString();
+		auto type = w.getType();
+		// ->号
+		if (link == NODE_LIINK) {
+			auto& w = _getWord(_pos++);	// 跳过 node name
+			auto node_name = w.getString();
+			if (!_contain(node_name)) {
+				// 抛出未定义异常
+				throw undefined_exception("未定义" + node_name + "结点!");
+			}
+			auto node = _find_node(node_name);
+			// 如果没有被设置过id, 才进行设置和添加, 否则视为连接 
+			if (node->getId() == -1) {
+				node->setID(_count);
+				gbuilder.addNode(_count++, node);
+			}
+			else {
+				// 连接结点
+				gbuilder.linkToNode(node->getId());
+			}
+		}
+		// ;号
+		else if (type == WordType::CONTEXT_CLOSED) {
+			break;
+		}
+	}
+}

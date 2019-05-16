@@ -114,10 +114,7 @@ protected:
 	//// 属性
 	////
 
-//	std::map<size_t, block_ptr> _sb_map;
-	std::map <vsTool::id_t, std::map<size_t, block_ptr>> _sb_map;	// block表 (id -> vsblock), 只读
-
-	size_t _enter_point;						// 入口点
+	std::map <vsTool::id_t, std::map<size_t, block_ptr>> _sb_map;	// block表 (id -> vsblock), 只读s
 
 	// 初始化计算图图
 	vsThread::taskGraphic_ptr<std::string, data_ptr> _taskGraphic;
@@ -131,7 +128,7 @@ protected:
 
 public:
 	// 执行虚拟机代码, 返回一个int表示状态
-	data_ptr run(vsThread::Session<std::string, data_ptr>& sess, vsTool::id_t id, std::string aim);
+	data_ptr run(vsTool::id_t id, std::string aim);
 	
 	/// 辅助函数
 	///
@@ -144,15 +141,16 @@ public:
 		auto map = mapit->second;
 		assert(!map.empty());
 		auto it = map.find(block_index);
-		assert(it != map.end());
-//		if (it == _sb_map.end()) {
-//			printf("没有找到这个block: %d\n", block_index);
-//			printf("block数量: %d\n", _sb_map.size());
-//			for (auto b : _sb_map) {
-//				std::cout << b.first << std::endl;
-//			}
-//			assert(false);
-//		}
+//		assert(it != map.end());
+		if (it == map.end()) {
+			printf("在proc: %d中", process_id);
+			printf("没有找到这个block: %d\n", block_index);
+			printf("block数量: %d\n", map.size());
+			for (auto b : map) {
+				std::cout << "Blockid: " << b.first << std::endl;
+			}
+			assert(false);
+		}
 		block_ptr block = it->second;
 		return block;
 	}
@@ -176,6 +174,7 @@ public:
 	// 设置图
 	void set_graphic(vsThread::taskGraphic_ptr<std::string, data_ptr> g) {
 		_taskGraphic = g;
+		_inited = true;
 	}
 
 	// 设置程序(程序结果, 程序id)
@@ -184,10 +183,10 @@ public:
 		_sb_map.insert(std::make_pair(processs_id, map));
 	}
 
-	// 初始化并设置block表
-	void init(size_t enter_point){
-		_enter_point = enter_point;
-		_inited = true;
+	// 清空线程池和程序池
+	void init_pools() {
+		_taskGraphic->init();
+		_sb_map.clear();
 	}
 
 	// 初始化时，不指定属性

@@ -8,6 +8,27 @@
 #include <functional>
 #include <initializer_list>
 
+
+// 编译错误异常
+class ParserError {
+public:
+	virtual std::string what() = 0;
+};
+
+// 编译失败异常
+class ParserFailed : public ParserError {
+protected:
+	std::string _msg;
+
+public:
+	ParserFailed(const std::string& msg)
+		:_msg(msg) {}
+	virtual std::string what() override {
+		return _msg;
+	}
+};
+
+
 enum class IsTerminal : bool {
 	False = false, True
 };

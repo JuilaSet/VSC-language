@@ -1,14 +1,2 @@
-#pragma once
-#include <string>
-class Text
-{
-protected:
-	const std::string _text;
-public:
-	Text();
-	Text(std::string);
-
-	std::string getText();
-	virtual ~Text();
-};
-
+﻿#pragma once
+// 存放临时代码

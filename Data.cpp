@@ -5,7 +5,6 @@
 int FunctionData::eval(vsEvaluator& evalor, int argc) {
 	// 跳转block
 	auto block_id = toIndex();
-	auto vm = evalor.getVM();
 
 #if	CHECK_Compiler_Field_NEW_BLK
 	std::cerr << __LINE__ << " BLOCK_Field: " << (block_ptr->strong_hold() ? "T" : "F") << std::endl;
@@ -114,4 +113,11 @@ size_t ContainerLocationData::toIndex() const {
 	if (f != nullptr)
 		return f->toIndex();
 	return 0;
+}
+
+// 删除该位置的数据
+void ContainerLocationData::container_del() {
+	auto f = p_container->find(_location);
+	if (f != nullptr)
+		p_container->clear(_location);
 }

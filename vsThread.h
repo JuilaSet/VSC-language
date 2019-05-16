@@ -245,7 +245,7 @@ namespace vsThread {
 
 	public:
 		// 传递处理方法, 所有关心的信号键, 结点的id
-		_Thread_Node(node_mapping_func<KEY_TYPE, DATA_TYPE> evalFunc, std::initializer_list<KEY_TYPE> keys, ID_TYPE id, int time_out = 0)
+		_Thread_Node(node_mapping_func<KEY_TYPE, DATA_TYPE> evalFunc, std::vector<KEY_TYPE> keys, ID_TYPE id, int time_out = 0)
 			:_calc(evalFunc), _keys(keys.begin(), keys.end()), _not_ready_flag(keys.size()), _id(id) , _time_out(time_out){ }
 
 		// 添加目标
@@ -401,7 +401,7 @@ namespace vsThread {
 		}
 
 		// 构建结点
-		void build_node(node_mapping_func<KEY_TYPE, DATA_TYPE> evalFunc, const std::initializer_list<KEY_TYPE>& keys, vsTool::id_t id, int time_out = 0)
+		void build_node(node_mapping_func<KEY_TYPE, DATA_TYPE> evalFunc, std::vector<KEY_TYPE>& keys, vsTool::id_t id, int time_out = 0)
 		{
 			auto task_ptr = _thread_node_ptr<vsTool::id_t, KEY_TYPE, DATA_TYPE>
 				(new _Thread_Node<vsTool::id_t, KEY_TYPE, DATA_TYPE>(evalFunc, keys, id, time_out));
@@ -438,15 +438,11 @@ namespace vsThread {
 #if CHECK_Tool
 			thread_node_g_ptr->show();
 #endif
-			if (thread_node_g_ptr->isLoop()) {
-			//	throw std::exception("Graphic looped");
-			}
 		}
 
 		// 初始化, 清空所有数据
 		void init() {
 			_builder.init();
-			thread_node_g_ptr->init();
 			node_ptr_map.clear();
 		}
 	};

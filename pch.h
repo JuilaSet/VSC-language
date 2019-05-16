@@ -9,13 +9,16 @@
 #ifndef PCH_H
 #define PCH_H
 
-#define MODE_CIL true
+#define MODE_CIL false	
 
 #define CHECK_Tool false
 #define CHECK_Thread false
 
 #define CHECK_Data false
 #define CHECK_Object false
+
+#define CHECK_Lexer false
+#define CHECK_Lexer_res false
 
 #define CHECK_Parser false
 #define CHECK_Parser_g false
@@ -25,6 +28,9 @@
 #define CHECK_Compiler_alloc false
 #define CHECK_Compiler_Field false
 #define CHECK_Compiler_Field_NEW_BLK false
+
+#define CHECK_Compiler_Node false
+#define CHECK_Compiler_Node_res false
 
 #define CHECK_Eval false
 #define CHECK_Eval_command false
@@ -118,13 +124,13 @@ using RunTimeStackFrame_ptr = std::shared_ptr<_StackFrame>;
 // tool
 #include "Graphic.h"
 #include "vsThread.h"
-
 // 
 #include "Token.h"
 #include "vsFrame.h"
 #include "Data.h"
 #include "vsObject.h"
 #include "vsContainer.h"
+#include "Node.h"
 #include "Input.h"
 #include "Lexer.h"
 #include "Parser.h"
@@ -135,5 +141,6 @@ using RunTimeStackFrame_ptr = std::shared_ptr<_StackFrame>;
 #include "Adaptor.h"
 #include "Compiler.h"
 #include "vsVirtualMachine.h"
+#include "vsFrontend.h"
 
 #endif //PCH_H

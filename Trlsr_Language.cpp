@@ -5,6 +5,10 @@
 
 using namespace std;
 
+////////////////
+// 注册语言层 //
+////////////////
+
 // 注册关键字到上下文的关联
 void regist_keywords_contents(Context_helper& helper) {
 
@@ -50,6 +54,27 @@ void regist_keywords_contents(Context_helper& helper) {
 				return _command_set{ COMMAND(ENCLOSED) };
 			}, Context_Type::END)
 		})
+	);
+
+	helper.regist_context(Word(WordType::CONTROLLER, "delete").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+				compiler->in_def();
+				return _command_set{};
+			},
+			{
+				Context([&](ContextStk& cstk, _command_set& commandVec, Word& w,  auto* compiler) {
+					compiler->out_def();
+					compiler->dont_gene_callblk();
+					return _command_set{};
+				}, Context_Type::NORMAL, "def_op1"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->enable_gene_callblk();
+					return _command_set{
+						COMMAND(NEW_DEL)
+					};
+				}, Context_Type::END, "def_end")
+			})
 	);
 
 	helper.regist_context(Word(WordType::CONTROLLER, "def").serialize(),
@@ -248,14 +273,38 @@ void regist_keywords_contents(Context_helper& helper) {
 						COMMAND(JMP_FALSE)
 					};
 				}, Context_Type::NORMAL, "if_p1"),
-				EMPTY_CONTEXT,
 				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 					int last_index = helper.pop_command_index();
 					int addr = _vec.size();
-					_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new AddrData(addr)));
+					_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new AddrData(addr + 2)));
+					helper.push_command_index(_vec.size());
+					return _command_set{
+						COMMAND(ERROR),		// 待确定
+						COMMAND(JMP) 
+					};
+				}, Context_Type::NORMAL, "if_p2"),
+				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+					int last_index = helper.pop_command_index();
+					int addr = _vec.size(); // 获取当前地址
+					_vec[last_index] = CommandHelper::getPushOpera(data_ptr(new AddrData(addr))); // 回填
+					return _command_set{ };
+				}, Context_Type::NORMAL, "if_p3"),
+				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
 					return _command_set{ };
 				}, Context_Type::END, "if_end")
 			})
+	);
+
+	helper.regist_context(Word(WordType::CONTROLLER, "nop").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+#if CHECK_Compiler
+			cout << "COMMAND:: nop" << endl;
+#endif
+			return _command_set{
+					COMMAND(NOP)
+			};
+		}, { })	// 只能有一个上下文
 	);
 
 	helper.regist_context(Word(WordType::CONTROLLER, "while").serialize(),
@@ -321,6 +370,17 @@ void regist_keywords_contents(Context_helper& helper) {
 				}, { })	// 只能有一个上下文
 	);
 
+	helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$self").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+#if CHECK_Compiler
+		cout << "COMMAND:: $self" << endl;
+#endif
+			return _command_set{
+				COMMAND(SELF)
+			};
+		}, { })	// 只能有一个上下文
+	);
 
 	helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$obj").serialize(),
 		helper.build_context(
@@ -404,6 +464,27 @@ void regist_keywords_contents(Context_helper& helper) {
 			})
 	);
 
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "get").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+		compiler->save_def();
+		return _command_set{};
+	},
+			{
+				Context([&](ContextStk& cstk, _command_set& commandVec, Word& w,  auto* compiler) {
+					return _command_set{};
+				}, Context_Type::NORMAL, "in_op1"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					return _command_set{
+						COMMAND(IN)
+					};
+				}, Context_Type::NORMAL, "in_op2"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					return _command_set{};
+				}, Context_Type::END, "in_end")
+			})
+	);
+
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "add").serialize(),
 		helper.build_context(
 			[](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_0
@@ -415,12 +496,12 @@ void regist_keywords_contents(Context_helper& helper) {
 					return _command_set{ };
 				}, Context_Type::NORMAL, "add_op1"),
 				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
-						return _command_set{ };
-				}, Context_Type::NORMAL, "add_op2"),
+						return _command_set{
+							COMMAND(ADD)
+						};
+				}, Context_Type::ALWAYS, "add_op2"),
 				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
-					return _command_set{
-						COMMAND(ADD)
-					};
+					return _command_set{ };
 				}, Context_Type::END, "add_end")
 			})
 	);
@@ -436,13 +517,30 @@ void regist_keywords_contents(Context_helper& helper) {
 					return _command_set{ };
 				}, Context_Type::NORMAL, "sub_op1"),
 				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
-						return _command_set{ };
-				}, Context_Type::NORMAL, "sub_op2"),
+						return _command_set{
+							COMMAND(SUB)
+						};
+				}, Context_Type::ALWAYS, "sub_op2"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
+					return _command_set{ };
+				}, Context_Type::END, "sub_end")
+			})
+	);
+
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "not").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {	// op_0
+		return _command_set{ };
+	},
+			{
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
+					return _command_set{ };
+				}, Context_Type::NORMAL, "not_op1"),
 				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
 					return _command_set{
-						COMMAND(SUB)
+						COMMAND(NOT)
 					};
-				}, Context_Type::END, "sub_end")
+				}, Context_Type::END, "not_end")
 			})
 	);
 
@@ -467,6 +565,47 @@ void regist_keywords_contents(Context_helper& helper) {
 			})
 	);
 
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "g").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {	// op_0
+		return _command_set{ };
+	},
+			{
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
+					return _command_set{ };
+				}, Context_Type::NORMAL, "g_op1"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
+						return _command_set{ };
+				}, Context_Type::NORMAL, "g_op2"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
+					return _command_set{
+						COMMAND(G)
+					};
+				}, Context_Type::END, "g_end")
+			})
+	);
+
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "l").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {	// op_0
+				return _command_set{ };
+			},
+			{
+				// 转为数字
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
+					return _command_set{ };
+				}, Context_Type::NORMAL, "l_op1"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
+						return _command_set{ };
+				}, Context_Type::NORMAL, "l_op2"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
+					return _command_set{
+						COMMAND(L)
+					};
+				}, Context_Type::END, "l_end")
+			})
+	);
+
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "typename").serialize(),
 		helper.build_context([&](ContextStk& cstk, _command_set& _vec, Word& w, auto* compiler) {
 		helper.push_command_index(_vec.size());
@@ -480,6 +619,27 @@ void regist_keywords_contents(Context_helper& helper) {
 				return _command_set{ };
 			}, Context_Type::END, "typename_end")
 		})
+	);
+
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "vec").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+				compiler->dont_gene_callblk();
+				return _command_set{
+						CommandHelper::getPushOpera(data_ptr(new vsVector)) 
+				};
+			},
+			{
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					return _command_set{
+						COMMAND(VEC_PUSH)
+					};
+				}, Context_Type::ALWAYS, "echo_op*"),
+				Context([&](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {
+					compiler->enable_gene_callblk();
+					return _command_set{ };
+				}, Context_Type::END, "echo_end")
+			})
 	);
 
 	helper.regist_context(Word(WordType::OPERATOR_WORD, "echo").serialize(),
@@ -519,23 +679,18 @@ void regist_token(Token_helper& helper) {
 	// 
 	REGIST_TOKEN(helper, " ", "space");
 	REGIST_TOKEN(helper, "\t", "tab");
-	REGIST_TOKEN(helper, "\n", "space");
-	REGIST_TOKEN(helper, ":", "colon");
-	REGIST_TOKEN(helper, ":=", "copy");
-	REGIST_TOKEN(helper, ";", "context_closed");
-	REGIST_TOKEN(helper, "*", "star");
+	REGIST_TOKEN(helper, "\n", "eol");
 	REGIST_TOKEN(helper, "<", "string_open");
 	REGIST_TOKEN(helper, ">", "string_closed");
-	REGIST_TOKEN(helper, "{", "node_open");
-	REGIST_TOKEN(helper, "}", "node_closed");
 	REGIST_TOKEN(helper, "[", "list_open");
 	REGIST_TOKEN(helper, "]", "list_closed");
 	REGIST_TOKEN(helper, "\\", "connectLine");
+	REGIST_TOKEN(helper, ";", "context_closed");
 
 	// num
-	REGIST_TOKEN(helper, "+", "add");
-	REGIST_TOKEN(helper, "*", "mult");
-	REGIST_TOKEN(helper, "=", "assign");
+//	REGIST_TOKEN(helper, "+", "add");
+//	REGIST_TOKEN(helper, "*", "mult");
+//	REGIST_TOKEN(helper, "=", "assign");
 }
 
 // 注册word
@@ -545,13 +700,14 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_OPERATO_WORDS(helper, "add");
 	REGIST_OPERATO_WORDS(helper, "sub");
 	REGIST_OPERATO_WORDS(helper, "echo");
-	REGIST_OPERATO_WORDS(helper, "strcat");
 	REGIST_OPERATO_WORDS(helper, "not");
 	REGIST_OPERATO_WORDS(helper, "eq");
 	REGIST_OPERATO_WORDS(helper, "g");
 	REGIST_OPERATO_WORDS(helper, "l");
 	REGIST_OPERATO_WORDS(helper, "typename");
 	REGIST_OPERATO_WORDS(helper, "in");
+	REGIST_OPERATO_WORDS(helper, "get");
+	REGIST_OPERATO_WORDS(helper, "vec"); 
 	
 	REGIST_CONTROLLER_WORDS(helper, "lambda");
 	REGIST_CONTROLLER_WORDS(helper, "enclosed");
@@ -562,17 +718,19 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_CONTROLLER_WORDS(helper, "extern");
 
 	REGIST_CONTROLLER_WORDS(helper, "def");
+	REGIST_CONTROLLER_WORDS(helper, "delete");
 	REGIST_CONTROLLER_WORDS(helper, "assign");
 	REGIST_CONTROLLER_WORDS(helper, "cp");
 
 	REGIST_CONTROLLER_WORDS(helper, "ignore");
 	REGIST_CONTROLLER_WORDS(helper, "while");
 	REGIST_CONTROLLER_WORDS(helper, "if");
+	REGIST_CONTROLLER_WORDS(helper, "nop");
 
 	// num
-	REGIST_OPERATO_WORDS(helper, "+");
-	REGIST_OPERATO_WORDS(helper, "*");
-	REGIST_CONTROLLER_WORDS(helper, "=");
+//	REGIST_OPERATO_WORDS(helper, "+");
+//	REGIST_OPERATO_WORDS(helper, "*");
+//	REGIST_CONTROLLER_WORDS(helper, "=");
 
 
 	// 注册操作符优先级
@@ -590,17 +748,17 @@ void regist_bnf(Parser& p) {
 #if CHECK_Parser
 		cerr << "[EOS] get word:" << w.serialize();
 #endif
-		if (w.getType() == WordType::EOS) {
-#if CHECK_Parser
-			cerr << ", True" << endl;
-#endif
-			return true;
-		}
-		else {
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be EOS here\n";
-			return false;
-		}
-	})->
+			if (w.getType() == WordType::EOS) {
+	#if CHECK_Parser
+				cerr << ", True" << endl;
+	#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be EOS here\n";
+				return false;
+			}
+		})->
 		end()->
 		getGraphic();
 	p.addBNFRuleGraphic(g_top);
@@ -611,17 +769,17 @@ void regist_bnf(Parser& p) {
 #if CHECK_Parser
 		cerr << "[local_open] get word:" << w.serialize();
 #endif
-		if (w.getType() == WordType::LOCAL_OPEN) {
+			if (w.getType() == WordType::LOCAL_OPEN) {
 #if CHECK_Parser
 			cerr << ", True" << endl;
 #endif
-			return true;
-		}
-		else {
-			err += "lexer pos: " + to_string(lex_point) + "\tmight be '[' here\n";
-			return false;
-		}
-	})->
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be '[' here\n";
+				return false;
+			}
+		})->
 		nonterminal("expr", "expr")->
 		nonterminal("expr", "expr")->
 		terminal("local_closed", [&](Word w, std::string& err, int lex_point) {
@@ -662,6 +820,39 @@ void regist_bnf(Parser& p) {
 	Graphic_builder control_expr_builder("control_expr");
 	BNFGraphic g_control_expr =
 		control_expr_builder.rule()->
+		// nop语句
+		terminal("nop", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[nop] get word:" << w.serialize();
+#endif
+			if (w.getString() == "nop") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'nop' here\n";
+				return false;
+			}
+		})->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[context_closed] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoHead()->
 		// extern语句
 		terminal("extern", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
@@ -742,7 +933,8 @@ void regist_bnf(Parser& p) {
 		}
 	})->
 		nonterminal("atomic_if", "atomic")->
-		nonterminal("expr_if", "expr")->
+		nonterminal("expr_if_1", "expr")->
+		nonterminal("expr_if_2", "expr")->
 		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 		cerr << "[context_closed] get word:" << w.serialize();
@@ -1349,10 +1541,44 @@ void regist_bnf(Parser& p) {
 		getGraphic();
 	p.addBNFRuleGraphic(g_string);
 
-	// def_expr: = ("def" var proc | "assign" var proc | "cp" var proc ) ";"
+	// def_expr: = ( "type_assert" string | "def" var proc | "assign" var proc | "cp" var proc ) ";"
 	Graphic_builder def_expr_builder("def_expr");
 	BNFGraphic g_def_expr =
 		def_expr_builder.rule()->
+		// delete语句
+		terminal("delete", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[delete] get word:" << w.serialize();
+#endif
+			if (w.getString() == "delete") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'delete' here\n";
+				return false;
+			}
+		})->
+		nonterminal("var_def", "var")->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[context_closed] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoHead()->
 		// def语句
 		terminal("def", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
@@ -1461,151 +1687,634 @@ void regist_bnf(Parser& p) {
 	p.addBNFRuleGraphic(g_def_expr);
 }
 
-// 写入文件 []][
-void write_to_file() {
-	// string str("abcdaa");
-	op_code_bit_set bitset(OPCODE::ADD, 0x11223344);	//str.c_str(), str.size());
+////////////////
+// 注册第一层 //
+////////////////
 
-	// 写入文件
-	fstream fs("out.tr", ios_base::out);
-	// 写入m次opcode
-	int m = 3;
-	for (int i = 0; i < m; ++i) {
-		// bitset.display();
-		fs.write(*bitset.to_bit_set(), bitset.write_size());
-	}
-	fs.close();
+// 注册符号给第一层输入
+void regist_token_level1(Token_helper& helper) {
+	// 
+	REGIST_TOKEN(helper, "/*", "commet_open");
+	REGIST_TOKEN(helper, "*/", "commet_close");
+	REGIST_TOKEN(helper, "//", "commetLine");
+	// 分隔符
+	REGIST_TOKEN(helper, " ", "space");
+	REGIST_TOKEN(helper, "\t", "tab");
+	REGIST_TOKEN(helper, "\n", "space");
+	// 结点设置
+	REGIST_TOKEN(helper, "*", "star");
+	REGIST_TOKEN(helper, ":", "colon");
+	REGIST_TOKEN(helper, "{", "node_open");
+	REGIST_TOKEN(helper, "}", "node_closed");
+	REGIST_TOKEN(helper, ";", "context_closed");
+	REGIST_TOKEN(helper, "<", "string_open");
+	REGIST_TOKEN(helper, ">", "string_closed");
+	// 结点连接
+	REGIST_TOKEN(helper, "->", "link");
+	// 开启会话
+	REGIST_TOKEN(helper, "#", "session");
+}
 
-	// 从文件中读取
-	fstream ofs("out.tr", ios_base::in | ios::binary);
-	// 读取n个opcode
-	int n = 3;
-	for (int i = 0; i < n; ++i) {
-		// 读取字符串位
-		bool is_string;
-		is_string = ofs.get();
-		cout << is_string << endl;
+// 注册word, 让字符保留
+void regist_words_level1(WordTypeHelper& helper) {
+	// attribute: = "ins" | "out" | "calc" | "timeout"
+	REGIST_OPERATO_WORDS(helper, "ins");
+	REGIST_OPERATO_WORDS(helper, "out");
+	REGIST_OPERATO_WORDS(helper, "calc");
+	REGIST_OPERATO_WORDS(helper, "timeout");
 
-		// 读取opcode
-		int op;
-		ofs.read((char*)&op, 4);
-		cout << hex << op << endl;
+	// 
+	REGIST_CONTROLLER_WORDS(helper, "*");
+	REGIST_CONTROLLER_WORDS(helper, ":");
+	REGIST_CONTROLLER_WORDS(helper, "{");
+	REGIST_CONTROLLER_WORDS(helper, "}");
+	REGIST_CONTROLLER_WORDS(helper, "->");
+	REGIST_CONTROLLER_WORDS(helper, "#");
+}
 
-		// 读取要push的data
-		if (is_string) {
-			string data;
-			for (char c; (c = ofs.get()) != '\0';) {
-				data += c;
+// 注册语法
+void regist_bnf_level1(Parser& p) {
+
+	// 顶层: = { 结点声明语句 } { 结点连接语句 } { 开启会话 } EOS
+	Graphic_builder top_builder("top");
+	BNFGraphic g_top = top_builder.rule()->
+		nonterminal("node_def_expr", "node_def_expr")->
+		nonterminal("node_def_expr", "node_def_expr")->
+		nonterminal("node_link_expr", "node_link_expr")->
+		nonterminal("node_link_expr", "node_link_expr")->
+		nonterminal("session_expr", "session_expr")->
+		nonterminal("session_expr", "session_expr")->
+		terminal("EOS", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[EOS] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::EOS) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+				return true;
 			}
-			cout << data << endl;
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be EOS here\n";
+				return false;
+			}
+		})->
+		end()->
+		getGraphic();
+	p.addBNFRuleGraphic(g_top);
+
+	// 结点声明语句 := "*" id_enabled "{" attr_def { attr_def } "}"
+	Graphic_builder node_def_expr_builder("node_def_expr");
+	BNFGraphic g_node_def_expr = node_def_expr_builder.rule()->
+		terminal("*", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[*] get word:" << w.serialize();
+#endif
+			if (w.getString() == "*") {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be * here\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+		})->
+		terminal("{", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[{] get word:" << w.serialize();
+#endif
+			if (w.getString() == "{") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be { here\n";
+				return false;
+			}
+		})->
+		nonterminal("attr_def", "attr_def")->
+		nonterminal("attr_def", "attr_def")->
+		terminal("}", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[}] get word:" << w.serialize();
+#endif
+			if (w.getString() == "}") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be } here\n";
+				return false;
+			}
+		})->
+		end()->
+		getGraphic();
+	p.addBNFRuleGraphic(g_node_def_expr);
+
+	// attr_def := "ins" id_enabled { id_enabled } ";" | "out" id_enabled ";" | calc string ";" | timeout number ";"
+	Graphic_builder attr_def_builder("attr_def");
+	BNFGraphic g_attr_def = attr_def_builder.rule()->
+		terminal("ins", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[:ins] get word:" << w.serialize();
+#endif
+			if (w.getString() == "ins") {
+	#if CHECK_Parser
+				cerr << ", True" << endl;
+	#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ins here\n";
+				return false;
+			}
+		})->
+		terminal(":_ins", [](Word w, std::string& err, int lex_point) {
+	#if CHECK_Parser
+			cerr << "[:] get word:" << w.serialize();
+	#endif
+			if (w.getString() == ":") {
+	#if CHECK_Parser
+				cerr << ", True" << endl;
+	#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be : here\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+		})->
+		terminal(";", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[:] get word:" << w.serialize();
+#endif
+			if (w.getString() == ";") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ; here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoHead()->
+		terminal("out", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[out] get word:" << w.serialize();
+#endif
+			if (w.getString() == "out") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be out here\n";
+				return false;
+			}
+		})->
+		terminal(":_out", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[:] get word:" << w.serialize();
+#endif
+			if (w.getString() == ":") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be : here\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled_out", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+		})->
+		terminal(";", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[:] get word:" << w.serialize();
+#endif
+			if (w.getString() == ";") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ; here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoHead()->
+		terminal("calc", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[calc] get word:" << w.serialize();
+#endif
+			if (w.getString() == "calc") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ins here\n";
+				return false;
+			}
+		})->
+		terminal(":_calc", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[:] get word:" << w.serialize();
+#endif
+			if (w.getString() == ":") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be : here\n";
+				return false;
+			}
+		})->
+		nonterminal("string", "string")->
+		terminal(";", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[:] get word:" << w.serialize();
+#endif
+			if (w.getString() == ";") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+		}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ; here\n";
+				return false;
+			}
+		})->
+		end()->
+		gotoHead()->
+		terminal("timeout", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[timeout] get word:" << w.serialize();
+#endif
+			if (w.getString() == "timeout") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be timeout here\n";
+				return false;
+			}
+		})->
+		terminal(":timeout", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[:] get word:" << w.serialize();
+#endif
+			if (w.getString() == ":") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be : here\n";
+				return false;
+			}
+		})->
+		terminal("number", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[number] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::NUMBER) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'NUMBER' word\n";
+				return false;
+			}
+		})->
+		terminal(";", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[:] get word:" << w.serialize();
+#endif
+			if (w.getString() == ";") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ; here\n";
+				return false;
+			}
+		})->
+		end()->
+		getGraphic();
+	p.addBNFRuleGraphic(g_attr_def);
+
+	// 结点连接语句 : = id_enabled "->" id_enabled { "->" id_enabled } ";"
+	Graphic_builder node_link_expr_builder("node_link_expr");
+	BNFGraphic g_node_link_expr = node_link_expr_builder.rule()->
+		terminal("id_enabled_1", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+	})->
+		terminal(";", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[:] get word:" << w.serialize();
+#endif
+		if (w.getString() == ";") {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
 		}
 		else {
-			char temp[sizeof(int) + 1];
-			int data;
-			ofs.read(temp, sizeof(int) + 1);
-			data = *(int*)&temp;
-			cout << hex << data << endl;
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be ; here\n";
+			return false;
 		}
-		cout << endl;
-	}
-	ofs.close();
-}
-
-// 前缀转中缀 []][
-void test_app() {
-
-	// 准备工作
-	Context_helper ctx_helper;
-	regist_keywords_contents(ctx_helper);
-
-	Token_helper token_helper;
-	regist_token(token_helper);
-
-	WordTypeHelper word_type_helper;
-	regist_words(word_type_helper);
-
-	// 初始化lexer
-#if MODE_CIL
-	Lexer lex(new CLIInput("luo ->"));
-#else
-	Lexer lex(new FileInput("in.tr"));
+	})->
+		end()->
+		gotoNode("id_enabled_1")->
+		terminal("->", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[->] get word:" << w.serialize();
 #endif
-
-	// 初始化适配器
-	Mid_Expr_Adaptor adptor;
-#if MODE_CIL
-	while (1)
+			if (w.getString() == "->") {
+#if CHECK_Parser
+			cerr << ", True" << endl;
 #endif
-	{
-		// 词法分析
-		lex.init();
-		lex.fillList(token_helper, word_type_helper);
-		std::vector<Word>& words = lex.get_words_list();
-
-		for (auto w : words) {
-			cout << w.serialize() << ends;
-		}
-
-		cout << endl << "转为前缀表达式: " << endl;
-
-		auto adapts = adptor.adapt_code(words, word_type_helper);
-		for (auto w : adapts) {
-			cout << w.getString() << ends;
-		}
-		cout << endl;
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be -> here\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled_2", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif	
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+		})->
+		terminal(";", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[:] get word:" << w.serialize();
+#endif
+		if (w.getString() == ";") {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
 	}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be ; here\n";
+			return false;
+		}
+		})->
+		end()->
+		gotoNode("id_enabled_2")->
+		terminal("->", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[->] get word:" << w.serialize();
+#endif
+			if (w.getString() == "->") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be -> here\n";
+				return false;
+			}
+		})->
+		getGraphic();
+		p.addBNFRuleGraphic(g_node_link_expr);
+
+	// 开启会话: = "#"  id_enabled
+	Graphic_builder session_expr_builder("session_expr");
+	BNFGraphic g_session_expr = session_expr_builder.rule()->
+		terminal("#", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[#] get word:" << w.serialize();
+#endif
+			if (w.getString() == "#") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be # here\n";
+				return false;
+			}
+		})->
+		terminal("id_enabled", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[id_enabled] get word:" << w.serialize();
+#endif
+			if (w.getType() == WordType::IDENTIFIER_ENABLED) {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'IDENTIFIER_ENABLED' word\n";
+				return false;
+			}
+		})->
+		terminal(";", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[:] get word:" << w.serialize();
+#endif
+			if (w.getString() == ";") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be ; here\n";
+				return false;
+			}
+		})->
+		end()->
+		getGraphic();
+		p.addBNFRuleGraphic(g_session_expr);
+
+	// string : = "<" string ">"
+	Graphic_builder string_builder("string");
+	BNFGraphic g_string =
+		string_builder.rule()->
+		terminal("string_open", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[local_open] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::STRING_OPEN) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be '<' here\n";
+			return false;
+		}
+	})->
+		terminal("string", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[local_open] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::STRING) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'STRING' word\n";
+			return false;
+		}
+	})->
+		terminal("string", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[local_open] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::STRING) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\t" + w.getString() + " is not an 'STRING' word\n";
+			return false;
+		}
+	})->
+		terminal("string_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[string_closed] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::STRING_CLOSED) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be '>' here\n";
+			return false;
+		}
+	})->
+		end()->
+		getGraphic();
+	p.addBNFRuleGraphic(g_string);
 }
 
-// 返回计算图图
-vsThread::taskGraphic_ptr<std::string, data_ptr> get_graphic(vsVirtualMachine& vm) {
-
-	// 初始化计算图图
-	vsThread::taskGraphic_ptr<std::string, data_ptr> _taskGraphic(new vsThread::TaskGraphic<std::string, data_ptr>);
-
-	// 新建解释器, 绑定对应的block
-	auto _eval_main = vm.make_eval(0);
-
-	// build node
-	_taskGraphic->build_node([=](auto& _out, auto& datas, auto& keys) {
-
-		printf("开始计算\n");
-
-		// 获取数据
-		_eval_main->_add_extern_data("x", data_ptr(new NumData(10)));
-
-		// 主线程进入入口点, 相当于直接 <call_blk _enter_point>
-		_eval_main->load_block(1, 0);
-
-		// 执行
-		_eval_main->eval();
-
-		// 设置返回值
-		_out = _eval_main->_get_ret_data();
-
-		cout << "返回值: " << _out->toNumber() << endl;
-
-		// 返回信号
-		return "x";
-	}, { }, 0, 19000);
-
-	// build graphic
-	_taskGraphic->head()->end();
-
-	return _taskGraphic;
-}
-
-// 测试命令行
-void test_input_cli() {
-
+// 获取原型图
+std::shared_ptr<Node_Compiler> getGraphicMessage() throw(ParserFailed) {
 	// 准备工作
-	Context_helper ctx_helper;
-	regist_keywords_contents(ctx_helper);
+	Token_helper level1_token_helper;
+	regist_token_level1(level1_token_helper);
 
-	Token_helper token_helper;
-	regist_token(token_helper);
-
-	WordTypeHelper word_type_helper;
-	regist_words(word_type_helper);
+	WordTypeHelper level1_word_type_helper;
+	regist_words_level1(level1_word_type_helper);
 
 	// 初始化scanner
 #if MODE_CIL
@@ -1616,15 +2325,7 @@ void test_input_cli() {
 
 	// 注册语法规则
 	Parser p(&lex);
-	regist_bnf(p);
-
-	// 编译器
-	S_Expr_Compiler compiler;
-	Compile_result cresult;
-
-	
-	// 虚拟机
-	vsVirtualMachine vm(0);
+	regist_bnf_level1(p);
 
 #if MODE_CIL
 	while (1)
@@ -1634,90 +2335,180 @@ void test_input_cli() {
 
 		// 词法分析
 		lex.init();
-		lex.fillList(token_helper, word_type_helper);
-
-#if CHECK_Lexer
-		do {
-			cerr << "[" << lex.peek().serialize() << "], " << endl;
-		} while (lex.next());
-#endif
-		try {
-			// 语法分析
-			int b = p.parse("top");
-			cerr << "Parse " << (b ? "success!" : "failed!") << endl;
-			if (!b) {
-				cout << "Parse ERROR =\n" << p.getErrors() << endl;
-			}
-			else
-			{
-				// 生成目标代码
-
-				compiler.generate_code(p.get_word_vector_ref(), cresult, ctx_helper);	// 会抛出异常
-				cout << "Code Generated finished!" << endl << endl;
-
-				// 搭建图
-				auto graphic = get_graphic(vm);
-
-				// 设置会话
-				vsThread::Session<std::string, data_ptr> sess(graphic);
-
-				vm.set_graphic(graphic);
-				vm.add_process(cresult, 0);
-
-				// 执行代码
-				vm.init(1);
-
-				auto ret = vm.run(sess, 0, "x");
-				if (ret->toNumber() == -1)break;
-
-#if MODE_CIL
-				if (vm.get_return_ref() == -1)break;
-#endif
-			}
+		lex.fillList(level1_token_helper, level1_word_type_helper);
+		// 语法分析
+		int b = p.parse("top");
+		cerr << (b ? "" : "Graphic Parse failed!") << endl;
+		if (!b) {
+			cout << "Parse ERROR =\n" << p.getErrors() << endl;
+			throw ParserFailed("Parse failed");
 		}
-		catch (Context_found_error e) {
-			cerr << e.what() << endl;
+		else {
+			auto& vec = p.get_word_vector_ref();
+			std::shared_ptr<Node_Compiler> nodecmp(new Node_Compiler(vec));
+			nodecmp->top();
+			return nodecmp;
 		}
-		catch (stack_overflow_exception e) {
-			cerr << e.what() << endl;
-		}
-		catch (run_time_exception& e) {
-			cerr << e.what() << endl;
-		}
-		// 清除结果
-		compiler.init();
-		cresult.init();
 	}
 }
 
-void test_session() {
+// 根据原型图来实例化一个图
+vsThread::taskGraphic_ptr<std::string, data_ptr>
+buildTasksGraphic(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_graphic, vsVirtualMachine& vm) {
+#if CHECK_Tool
+	proto_graphic->show();
+#endif
 
-	// 初始化计算图图
-	vsThread::taskGraphic_ptr<std::string, data_ptr> tm(new vsThread::TaskGraphic<std::string, data_ptr>);
+	// 初始化计算图
+	vsThread::taskGraphic_ptr<std::string, data_ptr> _taskGraphic(new vsThread::TaskGraphic<std::string, data_ptr>);
+	
+	// 初始化结点
+	proto_graphic->for_each_unordered([&vm, &_taskGraphic](auto graphic, auto node) {
+		auto pnode = node->get_data();
+		vsTool::id_t nodeid = pnode->getId();
+		// 接收信号
+		data_ptr ins = pnode->getData("ins");
+		std::vector<std::string> data_list;
+		if (ins->getType() != DataType::NON) {
+			// 获得数组容器
+			std::shared_ptr<vsLinearContainer> container = vsVector::cast_vsVector_ptr(ins)->getVec();
 
-	// 根据设置初始化结点信息
-	tm->build_node([](auto& _out, auto& datas, auto& keys) {
-		auto tid = std::this_thread::get_id();
-		_out = data_ptr(new StringData("Hello node!"));
-		for (int i = 0; i < 3; ++i) {
-			std::this_thread::sleep_for(std::chrono::seconds(1));
-			printf("p%d clac0: \n", tid);
-			cout << _out->toEchoString() << endl;
+			// 转化为数组对象
+			do {
+				// 将对象放入vec
+				data_ptr data = container->cur_data();
+				data_list.push_back(data->toString());
+#if CHECK_Compiler_Node_res
+				std::cout << __LINE__ << "\t添加ins: " << data->toString() << std::endl;
+#endif
+			} 
+			while(container->next());
 		}
-		return "x";
-	}, { }, 0, 19000);
 
-	// 构建图信息
-	tm->head()->end();
+#if CHECK_Compiler_Node_res
+		std::cout << __LINE__ << "\t添加eval: " << nodeid << std::endl;
+#endif
 
-	vsThread::Session<std::string, data_ptr> sess(tm);
-	sess.eval(0, "");
-	printf("Session end!\n");
+		auto _eval = vm.make_eval(nodeid);
+		// 设置eval返回信号
+		data_ptr out = pnode->getData("out");
+		if (out->getType() != DataType::NON) {
+			// 获得数组容器
+			std::shared_ptr<vsLinearContainer> container = vsVector::cast_vsVector_ptr(out)->getVec();
+			data_ptr res_str = container->cur_data();
+			_eval->set_sign_str(res_str->toString());
+		}
+#if CHECK_Compiler_Node_res
+		std::cout << __LINE__ << " id : " << nodeid << " 返回信号: " << ret << std::endl;
+#endif
+		_taskGraphic->build_node([=](auto& _out, auto& datas, auto& keys) {
+					// 设置外部_data
+					for(auto& pair : datas){
+						_eval->_add_extern_data(pair.first, pair.second);
+					}
+
+					// 主线程进入入口点, 相当于直接 <call_blk _enter_point>
+					_eval->load_block(1, 0);
+
+					// 执行
+					_eval->eval();
+			
+					// 设置返回值
+					_out = _eval->_get_ret_data();
+
+					// 返回信号
+					return _eval->get_sign_str();
+				}, 
+				data_list,
+				nodeid, 
+				pnode->getData("timeout")->toNumber()
+			);
+	});
+
+	// 初始化图结构, 遍历每条边
+	vsTool::id_t findex;
+	_taskGraphic->head();
+	proto_graphic->for_each_dfs_norepeat([&_taskGraphic, &findex](auto g, auto node_id) {
+			// 获取结点
+			auto node = g->get_node_ptr(node_id)->get_data();
+			findex = node->getId();
+			_taskGraphic->gotoNode(findex);
+			return true;
+		},  
+		[&_taskGraphic, &findex](auto g, auto node_id) {
+			// 获取结点
+			auto node = g->get_node_ptr(node_id)->get_data();
+			auto nindex = node->getId();
+			_taskGraphic->linkToNode(nindex);
+			_taskGraphic->gotoNode(findex);
+			return true;
+		});
+	_taskGraphic->end();
+
+	// 设置结果
+	return _taskGraphic;
 }
+
+// 编辑图结点的代码
+void addProcFromProtoNode(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_graphic, vsVirtualMachine& vm, vsFrontend front) {
+	// 初始化结点
+	proto_graphic->for_each_unordered([&vm, &front](auto graphic, auto node) {
+		auto pnode = node->get_data();
+		vsTool::id_t nodeid = pnode->getId();
+		std::string calc = pnode->getData("calc")->toString();
+
+#if CHECK_Compiler_Node_res
+		std::cout << __LINE__ << "添加proc: " << nodeid << std::endl;
+#endif
+
+		vm.add_process(front.getResultByString(calc), nodeid); // 编译结果, 代码段id = node的id
+	});
+}
+
+// 测试编译前端
+void test_vsFrontend() {
+	try {
+		// 编译前端
+		vsFrontend front(regist_bnf, regist_keywords_contents, regist_token, regist_words);
+
+		// 虚拟机
+		vsVirtualMachine vm(0);
+
+		// 搭建图
+		auto nodecmp = getGraphicMessage();
+
+		// 获取原型图
+		auto graphic_proto = nodecmp->getGraphic();
+
+		// 根据原型图创建计算图
+		auto graphic = buildTasksGraphic(graphic_proto, vm);
+
+		// 设置虚拟机
+		vm.set_graphic(graphic);
+		addProcFromProtoNode(graphic_proto, vm, front);
+
+		// 执行会话
+		vm.run(nodecmp->ret_sess(), "x");
+	}
+	catch (Context_error& e) {
+		cerr << e.what() << endl;
+	}
+	catch (ParserFailed& e) {
+		cerr << e.what() << endl;
+	}
+	catch (undefined_exception& e) {
+		std::cerr << e.what() << std::endl;
+	}
+	catch (stack_overflow_exception& e) {
+		cerr << e.what() << endl;
+	}
+	catch (run_time_exception& e) {
+		cerr << e.what() << endl;
+	}
+}
+
 // 
 int main(int argc, char* argv[]) {
-//	test_app();
-//	test_input_cli();
-	test_input_cli();
+	test_vsFrontend();
 	return 0;
 };

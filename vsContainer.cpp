@@ -114,7 +114,7 @@ void vsLinearContainer::for_each(std::function<bool(std::string, data_ptr)> call
 	auto end = _vec.size();
 	for (auto it = begin; it != end; ++it) {
 		if (_vec[it] != nullptr)
-			if (callback(std::to_string(it), _vec[it]))break;
+			if (!callback(std::to_string(it), _vec[it]))break;
 	}
 };
 
@@ -223,7 +223,7 @@ void vsIdentifierContainer::for_each(std::function<bool(std::string, data_ptr)> 
 	auto end = _map.end();
 	for (auto it = begin; it != end; ++it) {
 		if (it->second != nullptr)
-			if(callback(it->first, it->second))break;
+			if(!callback(it->first, it->second))break;
 	}
 };
 

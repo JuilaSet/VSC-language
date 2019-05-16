@@ -155,11 +155,11 @@ public:
 	}
 
 	virtual bool l(data_ptr d) override {
-		return value > d->toNumber();
+		return value < d->toNumber();
 	}
 
 	virtual bool g(data_ptr d) override {
-		return value == d->toNumber();
+		return value > d->toNumber();
 	}
 
 	// 运算
@@ -462,6 +462,7 @@ public:
 	// 回显用函数
 	virtual std::string toEchoString() const override {
 		std::stringstream ss;
+		ss << "Function  " << "id=";
 		ss << block_id;
 		return ss.str();
 	}
@@ -521,6 +522,9 @@ public:
 
 	// 返回找到的对象指针, 没有返回空对象
 	virtual data_ptr container_find() = 0;
+
+	// 删除该位置的指针
+	virtual void container_del() = 0;
 };
 
 // 调用in指令时生成的对象, 用于索引容器位置
@@ -569,6 +573,9 @@ public:
 
 	// 返回索引(只能是索引类型)
 	virtual size_t toIndex() const override;
+
+	// 删除该位置的指针
+	virtual void container_del() override;
 };
 
 namespace NULL_DATA {

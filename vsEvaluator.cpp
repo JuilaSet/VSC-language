@@ -119,7 +119,7 @@ void vsEvaluator::_add_extern_data(std::string index, data_ptr data) {
 
 // 设置返回数据
 void vsEvaluator::_set_return_data(data_ptr ret_data) {
-	this->ret_data = ret_data;
+	this->_ret_data = ret_data;
 }
 
 // 根据index获取data对象

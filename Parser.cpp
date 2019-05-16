@@ -110,7 +110,7 @@ void Parser::addBNFRuleGraphic(BNFGraphic g) {
 	this->_graphic_map.emplace(make_pair(g.getId(), g));
 }
 
-// 分析图是否匹配
+// 分析图是否匹配 []][ 将errors改为错误对象, 添加一种能够在分析时根据读取的字符动态地生成数据结构的类
 int Parser::_judge_g(Position pos, std::string& errors, std::vector<Word>& _judge_vector) {
 	std::string failed_info;
 	OperatorParas_vec opera_paras;	// operator 以及相应参数
@@ -162,6 +162,7 @@ int Parser::_judge_g(Position pos, std::string& errors, std::vector<Word>& _judg
 #if CHECK_Parser
 					std::cout << __LINE__  << "\t"  << "Terminal node:" << std::endl;
 #endif
+					// 调用注册的判断方法
 					if (child.judge(word, errors, _cur_position._lexer_point)) {
 #if CHECK_Parser
 						std::cout << __LINE__  << "\t"  << "Terminal node judge Success!" << std::endl;

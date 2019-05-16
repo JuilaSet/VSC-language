@@ -46,7 +46,7 @@ public:
 //
 
 enum class OPCODE :int {
-	ABORT = -1,	// 停止
+	ABORT = -1,	// 停止, 并返回数据
 	NOP,		// 什么都不做
 	PUSH_POS,	// 当前opcode地址入栈
 	POP,		// 栈顶弹出丢弃数据
@@ -196,6 +196,9 @@ public:
 
 	static void NEQL(vsEval_ptr eval);
 
+	// delete操作, 删除对象中的一个元素
+	static void NEW_DEL(vsEval_ptr eval);
+
 	static void NEW_DEF(vsEval_ptr eval);
 
 	static void NEW_ASSIGN(vsEval_ptr eval);
@@ -230,6 +233,12 @@ public:
 
 	static void LOCAL_END(vsEval_ptr eval);
 
+	// 函数调用自身
+	static void SELF(vsEval_ptr eval);
+
 	// 由于LOCAL_END的时候会自动回收栈内资源, 这个功能留在之后用于优化代码
 	static void SHRINK(vsEval_ptr eval);
+
+	// 向数组中添加单位
+	static void VEC_PUSH(vsEval_ptr eval);
 };

@@ -78,6 +78,9 @@ protected:
 	// 是否有设置instruct指针
 	bool _flag_has_instruct;
 
+	// 返回信号
+	std::string _signal;
+
 protected:
 
 	// 根据index获取data对象
@@ -94,14 +97,24 @@ protected:
 
 protected:
 	// 保存返回值
-	data_ptr ret_data = NULL_DATA::null_data;
+	data_ptr _ret_data = NULL_DATA::null_data;
 
 	// 外部数据
 	vsIdentifierContainer _extern_datas;
 
 	// 保存程序id, 会向在vm中对应的程序运行
 	vsTool::id_t _process_id;
+
 public:
+	// 设置返回信号
+	void set_sign_str(const std::string& str_signal) {
+		_signal = str_signal;
+	}
+	
+	// 获取返回信号
+	std::string get_sign_str() {
+		return _signal;
+	}
 
 	// 获取外部数据(如果没有找到就返回空对象)
 	data_ptr _get_extern_data(std::string index);
@@ -110,12 +123,10 @@ public:
 	void _add_extern_data(std::string index, data_ptr data);
 
 	// 设置返回值
-	void _set_return_data(data_ptr ret_data);
+	void _set_return_data(data_ptr _ret_data);
 
 	// 获取返回值
-	data_ptr _get_ret_data() {
-		return ret_data;
-	}
+	data_ptr _get_ret_data() {	return _ret_data; }
 
 public:
 	vsEvaluator(vsVirtualMachine* vm, vsTool::id_t process_id)

@@ -17,7 +17,7 @@ void OPERATOR::ABORT(vsEval_ptr eval)		// 停止
 	int a = n->toNumber();
 
 	eval->stop(a);
-	eval->ret_data = n;
+	eval->_set_return_data(n);
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::ABORT" << std::endl;
 #endif
@@ -209,7 +209,7 @@ void OPERATOR::G(vsEval_ptr eval)
 	data_ptr n2 = eval->pop();
 
 	// newed
-	data_ptr d_temp = data_ptr(new NumData(n1->g(n2)));
+	data_ptr d_temp = data_ptr(new NumData(n2->g(n1)));
 	eval->push(d_temp);
 #if CHECK_Eval
 	std::cerr << d_temp->toEchoString() << std::endl;
@@ -230,7 +230,7 @@ void OPERATOR::L(vsEval_ptr eval)
 	data_ptr n2 = eval->pop();
 
 	// newed
-	data_ptr d_temp = data_ptr(new NumData(n1->g(n2)));
+	data_ptr d_temp = data_ptr(new NumData(n2->l(n1)));
 	eval->push(d_temp);
 #if CHECK_Eval
 	std::cerr << d_temp->toEchoString() << std::endl;
@@ -661,6 +661,51 @@ void OPERATOR::NEQL(vsEval_ptr eval)
 #endif
 }
 
+// delete操作, 删除对象中的一个元素
+void OPERATOR::NEW_DEL(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tDEL ";
+#endif
+	auto& stk = eval->current_stk_frame()->stk;
+
+	assert(!stk.empty());
+	data_ptr id = eval->pop();
+
+	auto type = id->getType();
+	// 根据类型判断
+	switch (type) {
+		case DataType::ID_INDEX: {
+			// 当做局部变量,设置为nullptr
+			bool local_assign_success = eval->new_set_data(id->toString(), NULL_DATA::null_data);
+			assert(local_assign_success);
+			break;
+		}
+		case DataType::PARA_INDEX: {
+			// 当做参数变量赋值,设置为nullptr
+			bool paras_assign_success = eval->para_assign_data(id->toString(), NULL_DATA::null_data);
+			assert(paras_assign_success);
+			break;
+		}
+		case DataType::DELEGATION: {
+			// 索引位置删除
+			IDelegation::cast_delegation_ptr(id)->container_del();
+			break;
+		}
+		default: {
+#if CHECK_Eval
+			std::cerr << "DATA_TYPE = " << id->getTypeName() << std::endl;
+#endif
+			assert(false);
+			break;
+		}
+	}
+	// 返回null
+	eval->push(NULL_DATA::null_data);
+#if CHECK_Eval 
+	std::cerr << id->toEchoString() << std::endl;
+#endif
+}
+
 void OPERATOR::NEW_DEF(vsEval_ptr eval)
 {
 #if CHECK_Eval 
@@ -873,6 +918,7 @@ void OPERATOR::CALL_BLK_BEGIN(vsEval_ptr eval) {
 #endif
 }
 
+// 
 void OPERATOR::CALL_BLK(vsEval_ptr eval)
 {
 	// 注意: call Block的时候还是在栈外面
@@ -993,6 +1039,18 @@ void OPERATOR::LOCAL_END(vsEval_ptr eval)
 #endif
 }
 
+// 函数调用自身
+void OPERATOR::SELF(vsEval_ptr eval) {
+	// 获取当前栈帧
+	auto frame = eval->current_stk_frame();
+	// 列表的第一个参数
+	auto& pass_list = frame->paras_info.pass_paras_list;
+	// 获取自己的function对象
+	auto function_obj = pass_list[0];
+	// 放入栈中
+	eval->push(function_obj);
+}
+
 // 由于LOCAL_END的时候会自动回收栈内资源, 这个功能留在之后用于优化代码
 void OPERATOR::SHRINK(vsEval_ptr eval)
 {
@@ -1008,5 +1066,45 @@ void OPERATOR::SHRINK(vsEval_ptr eval)
 	// stk.erase(end - dirf, end);
 #if CHECK_Eval
 		// std::cerr << "list_size= " << eval->_var_list.size() << std::endl;
+#endif
+}
+
+// 向数组中添加单位
+void OPERATOR::VEC_PUSH(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::VEC_PUSH ";
+#endif
+	auto& stk = eval->current_stk_frame()->stk;
+
+	// 获取数据对象
+	assert(!stk.empty());
+	data_ptr data = eval->pop();
+
+	// 获取数组对象
+	assert(!stk.empty());
+	data_ptr vec = eval->top();
+
+	bool end = false;
+	while (!end) {
+	BEGIN: auto type = vec->getType();
+		switch (type) {
+		case DataType::OBJECT_VECTOR:
+			vsVector::cast_vsVector_ptr(vec)->push_data(data);
+			end = true;
+			break;
+		case DataType::DELEGATION:
+			vec = IDelegation::cast_delegation_ptr(vec)->container_find();
+			break;
+		default:
+#if CHECK_Eval
+			std::cerr << vec->getTypeName() << std::endl;
+			assert(false); // 说明委托的类型 或 push的类型错误
+#else
+			assert(false); // 传入的类型错误
+#endif
+	}
+}
+#if CHECK_Eval 
+	std::cerr << vec->toEchoString() << std::endl;
 #endif
 }

@@ -35,6 +35,9 @@ public:
 
 	// 查询成员, 索引的时候如果不存在就自动添加
 	virtual data_ptr in(data_ptr index) = 0;
+
+	// 删除成员
+	virtual void del(data_ptr index) = 0;
 };
 
 class vsVector : public vsObject
@@ -86,6 +89,18 @@ public:
 public:
 	// 查询成员(type == OBJECT) , 返回一个地址的引用 []][
 	virtual data_ptr in(data_ptr index) override;
+
+	// 删除成员
+	virtual void del(data_ptr index) override;
+
+	// push添加成员
+	virtual void push_data(data_ptr data);
+
+	// 获得容器
+	const decltype(_vec)& getVec() {
+		return _vec;
+	}
+
 };
 
 // 原始自定义对象(没有封装概念, 类似结构体)
@@ -138,4 +153,8 @@ public:
 
 	// 查询成员, 索引的时候如果不存在就自动添加
 	virtual data_ptr in(data_ptr index) override;
+
+	// 删除成员
+	virtual void del(data_ptr index) override;
+
 };

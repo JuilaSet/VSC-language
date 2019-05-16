@@ -55,7 +55,7 @@ void _StackFrame::pass_paras(block_ptr innerblock) {
 			break;
 		}
 #if CHECK_Eval
-		std::cout << "形参结合: " <<
+		std::cout << "\n形参结合: " <<
 			f_list[it - 1] << "->" << 
 			data->toEchoString() << std::endl;
 #endif

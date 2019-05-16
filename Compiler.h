@@ -47,6 +47,7 @@ public:
 using ContextStk = std::vector<Context>;
 using ContextParaOperaFunc = std::function<_command_set(std::vector<Context>&, _command_set&, Word& w, S_Expr_Compiler* p)>;
 
+// 异常
 class Context_error {
 public:
 	Context_error() = default;
@@ -61,6 +62,17 @@ protected:
 public:
 	virtual std::string what() {
 		return error_str;
+	}
+};
+
+class Context_assert_error : public Context_error {
+	friend class Context_helper;
+protected:
+	std::string error_str;
+public:
+	Context_assert_error(const std::string& str) :error_str(str) {}
+	virtual std::string what() override {
+		return "Assert failed: " + error_str;
 	}
 };
 
@@ -181,7 +193,9 @@ public:
 #endif
 		this->_sub_strong_hold = false;
 		_next_form_map.clear();
+		_next_form_vec.clear();
 	}
+
 };
 
 // 编译器的工具
@@ -200,7 +214,7 @@ protected:
 
 	std::vector<Context> tempStk;	// 临时栈, tempSTK用于在一个子句结束生成后弹出一个上下文并生成代码
 
-	std::vector<Context> _context_stk;	// 上下文栈
+	std::vector<Context> _context_stk;	// 上下文分析栈
 
 	std::vector<int> def_stk;		// 判断是否在"定义或赋值语句"的第一个参数中(是否生成解引用代码)
 
@@ -290,10 +304,14 @@ public:
 	// 将临时信息传递给自己, 应该在每一次新建ctool的时候传递
 	void pass_temp_message(_temp_compiler_tool& temp_tool) {
 		_strong_hold = temp_tool.subFieldStrongHold();
+		// 清空之前的形参
+		_form_set.clear();
 		// 复制形参
 		auto& set = temp_tool.next_form_paras_set();
 		_form_set.insert(set.begin(), set.end());
 
+		// 清空之前的形参表
+		_form_vec.clear();
 		auto& vec = temp_tool.next_form_paras_vec();
 		_form_vec = vec;
 		// ...
@@ -690,7 +708,29 @@ public:
 			}
 			// 强作用域下不会向上查询
 			else if (_cur_block_ptr()->strong_hold()) {
-				return -1;
+				return false;
+			}
+		}
+		return false;	// 没有这个变量名
+	}
+
+	// 判断单词类型
+	bool isType(Word& w, std::string type) {
+		auto rend = wt_map_list.rend();
+		auto rbegin = wt_map_list.rbegin();
+		for (auto rit = rbegin; rit != rend; ++rit) {
+			auto res = rit->find(w.serialize());
+			if (res != rit->end()) {
+				if (getWordTypeName(res->second) == type) {
+					return true;
+				}
+				else {
+					return false;	// 变量名存放对象的类型不匹配
+				}
+			}
+			// 强作用域下不会向上查询
+			else if (_cur_block_ptr()->strong_hold()) {
+				return false;
 			}
 		}
 		return false;	// 没有这个变量名
@@ -712,4 +752,87 @@ public:
 	// 
 	S_Expr_Compiler();
 	virtual ~S_Expr_Compiler();
+};
+
+// 数据结构编译器, 生成一种数据结构
+class Struct_Compiler {
+public:
+	virtual vsTool::graphic_ptr<std::shared_ptr<LeafNode>> getGraphic() = 0;
+};
+
+// 结点编译器, 生成计算图的数据结构描述
+class Node_Compiler: public Struct_Compiler{
+public:
+	static const std::string NODE_DEF;
+	static const std::string NODE_SESS;
+	static const std::string NODE_DEF_OPEN;
+	static const std::string NODE_DEF_CLOSED;
+	static const std::string NODE_LIINK;
+	static const std::string NODE_END;
+	static const std::string NODE_ADM;
+	
+protected:
+	vsTool::GraphicBuilder<std::shared_ptr<LeafNode>> gbuilder;
+	std::map<std::string, std::shared_ptr<LeafNode>> _nodes;
+	std::vector<Word>& _word_vec;
+	int _pos;
+	vsTool::id_t _sess_point;	// 结点的会话点
+	vsTool::id_t _count;
+
+protected:
+	Word& _getWord(int pos) { return _word_vec[pos]; }
+
+	// 是否声明过该结点
+	bool _contain(std::string name) { return _nodes.find(name) != _nodes.end(); }
+
+	// 找到该结点
+	std::shared_ptr<LeafNode> _find_node(std::string name) { return _nodes[name]; }
+
+	// 结点声明语句
+	void nodeBlock() throw (undefined_exception);
+
+	// 结点声明语句 := * 名 { 结点定义语句... }
+	void nodeDef(std::shared_ptr<LeafNode> node);
+
+	// 结点定义语句 := 属性 : 值 ;
+	void defExpr(std::shared_ptr<LeafNode> node);
+
+	// 结点组织语句 := 名 -> 名 { -> 名 }
+	void nodeLinkExpr();
+
+public:
+#if CHECK_Compiler_Node
+	// 显示创建完成的结点
+	void display() {
+		for (auto fit : _nodes) {
+			std::cout << "name: " << fit.first << " " << fit.second->getName() << "{ ";
+			for (auto d : fit.second->dataSet()) {
+				std::cout << d.first << ":" << d.second->toEchoString() << ", ";
+			}
+			std::cout << "}" << std::endl;
+		}
+
+#if CHECK_Tool
+		std::cout << "graphic: " << std::endl;
+		auto g = gbuilder.getGraphic();
+		g->show();
+#endif
+		
+		std::cout << "会话点: " << _sess_point << std::endl;
+	}
+#endif
+
+public:
+	// 绑定一个记号流
+	Node_Compiler(std::vector<Word>& word_vec)
+		: _word_vec(word_vec), _pos(0), _count(0) {}
+
+	// 使用函数递归的方式分析记号流
+	void top() throw (undefined_exception);
+
+	// 返回计算得到的图
+	virtual vsTool::graphic_ptr<std::shared_ptr<LeafNode>> getGraphic() override { return gbuilder.getGraphic(); }
+
+	// 返回会话点
+	decltype(_sess_point) ret_sess() { return _sess_point; }
 };

@@ -198,7 +198,6 @@ namespace vsTool {
 
 		const node_vec<CONTAIN_TYPE> nodes;			// 所有结点的集合, 可能有下标对应的值为空(nullptr)
 
-		bool _is_loop;								// 图类型--是否有回路
 		bool _is_directed;							// 图类型--是否是有向图
 		
 	protected:
@@ -212,32 +211,6 @@ namespace vsTool {
 		node_ptr<CONTAIN_TYPE> get_node(id_t id) {
 			assert(_contain_node(id));
 			return nodes[id];
-		}
-
-		// 计算_is_loop, 判断结点是否是环
-		void _calc_is_loop() {
-			_is_loop = false;
-			// 存放所有的祖先结点
-			std::set<id_t> set_index;
-			// 通过dfs遍历时, 如果该结点有边指向师祖结点, 就是一个环
-			this->for_each_dfs(
-				// 取出带拓展的结点, 该结点下标放入标记数组, 放入栈中
-				[&set_index](auto g, auto index) {
-					set_index.insert(index);
-					return true;
-				},
-				// 拓展的结点, 如果生成的结点指向祖先结点, 说明是一个环
-				[&set_index, this](auto g, auto index) {
-					auto node = g->get_node_ptr(index);
-					for (auto out : set_index) {
-						// 生成的结点是否指向祖先结点
-						if (node->is_out_index(out)) {
-							this->_is_loop = true;
-							return false;
-						}
-					}
-					return true;
-				});
 		}
 
 		// 计算 _is_directed, 判断图是否是有向图(即每一个结点都存在一个出与一个入相同的下标)
@@ -255,18 +228,11 @@ namespace vsTool {
 
 		// 构造函数(保存结点的索引信息)
 		_Graphic(node_vec<CONTAIN_TYPE> nodes) : nodes(nodes) {
-			// 计算是否是环
-			_calc_is_loop();
 			// 判断是否是有向图
 			_calc_is_directed();
 		}
 
 	public:
-
-		// 图是否有回路
-		bool isLoop() {
-			return _is_loop;
-		}
 
 		// 图是否是有向的
 		bool isDirected() {
@@ -401,8 +367,7 @@ namespace vsTool {
 			// 输出图的类型
 			std::cout 
 				<< "Graphic: " 
-				<< (_is_directed ? "是一个有向" : "是一个无向")
-				<< (_is_loop ? "有环图" : "无环图")
+				<< (_is_directed ? "是一个有向图" : "是一个无向图")
 				<< std::endl;
 			// 进行无序遍历
 			for (auto n : nodes) {
@@ -437,6 +402,7 @@ namespace vsTool {
 		node_vec<CONTAIN_TYPE> nodes;			// 所有结点的集合
 		id_t index;								// 建造图时所在结点的下标
 		BUILD_MODE mode;						// 构建模式
+		bool _empty = true;
 										
 	protected:
 
@@ -484,6 +450,11 @@ namespace vsTool {
 			return _contain_node(id);
 		}
 
+		// 图是否为空
+		bool is_empty() {
+			return _empty;
+		}
+
 		//////////////////////////////////////////////////
 		// 构造图的方法: 执行完毕后, 指针指向下一个位置 //
 		//////////////////////////////////////////////////
@@ -494,6 +465,7 @@ namespace vsTool {
 			auto node = _create_node(0, data);
 			nodes[0] = node;
 			index = 0;
+			_empty = false;
 			return this;
 		}
 
@@ -519,6 +491,7 @@ namespace vsTool {
 
 			// 根据对应的模式行动
 			_mode_action(node->id);
+			_empty = false;
 			return this;
 		}
 
@@ -547,6 +520,7 @@ namespace vsTool {
 
 			// 根据对应的模式行动
 			_mode_action(node->id);
+			_empty = false;
 			return this;
 		}
 
@@ -619,6 +593,7 @@ namespace vsTool {
 		void init() {
 			nodes.clear();
 			index = -1;
+			_empty = true;
 		}
 	};
 

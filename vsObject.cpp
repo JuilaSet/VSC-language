@@ -37,8 +37,8 @@ std::shared_ptr<vsData> vsVector::add(std::shared_ptr<vsData> d) {
 	vsVector* vecData = cast_vsVector_ptr(d);
 	auto& an_vec = vecData->_vec;
 	// 新建对象
-	auto ret_data = data_ptr(new vsVector(*this));
-	vsVector* ret_vecData = cast_vsVector_ptr(ret_data);
+	auto _ret_data = data_ptr(new vsVector(*this));
+	vsVector* ret_vecData = cast_vsVector_ptr(_ret_data);
 	auto& ret_vec = ret_vecData->_vec;
 	auto size = _vec->size();
 	// 添加到元素尾部
@@ -55,7 +55,7 @@ std::shared_ptr<vsData> vsVector::add(std::shared_ptr<vsData> d) {
 #if CHECK_Object
 	std::cout << __LINE__ << "\tRET_Object add result: " << ret_data->toEchoString() << std::endl;
 #endif
-	return ret_data;
+	return _ret_data;
 }
 
 // 回显用函数{ 0:x; 1:y; 2:z; ... }
@@ -119,6 +119,16 @@ size_t vsVector::toIndex() const {
 // 查询成员, 返回查询的位置
 data_ptr vsVector::in(data_ptr index) {
 	return data_ptr(new ContainerLocationData(_vec, index));
+}
+
+// 删除成员
+void vsVector::del(data_ptr index) {
+	_vec->clear(index);
+}
+
+// push添加成员
+void vsVector::push_data(data_ptr data) {
+	_vec->assign(data_ptr(new NumData(_vec->size())), data);
 }
 
 //
@@ -246,4 +256,9 @@ data_ptr vsOriginObject::in(data_ptr index) {
 	auto delegation = new ContainerLocationData(_public_map, index);
 	data_ptr data(delegation);
 	return data;
+}
+
+// 删除成员
+void vsOriginObject::del(data_ptr index) {
+	_public_map->clear(index);
 }
