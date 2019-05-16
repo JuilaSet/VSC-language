@@ -8,6 +8,11 @@
 const std::string EOL = "\n";
 const std::string CONLIN = "\\";
 
+// 输入模式
+enum class InputMode {
+	CILMode, FileMode
+};
+
 // 分割字符串放入dest
 void split(std::vector<std::string>& dest, std::string str, std::string pattern);
 

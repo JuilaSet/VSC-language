@@ -1,9 +1,33 @@
-[
-	def vec $vec;
-	def in vec 0; lambda [
-		echo 10;
-	];;
+* a {
+	ins : x;
+	calc : <[
+		extern x;
+		echo x;
+	]>;
+	timeout : 8000;
 
-	call in vec 0;;
+}
 
-]
+* b {
+	calc : <[
+		echo <from b>;
+		return 222;
+	]>;
+	out : x;
+	timeout : 8000;
+}
+
+* c {
+
+	calc : <[
+		echo <from c>;
+		return 111;
+	]>;
+	out : x;
+	timeout : 8000;
+}
+
+a->b;
+a->c;
+
+#a;

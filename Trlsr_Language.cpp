@@ -2308,7 +2308,7 @@ void regist_bnf_level1(Parser& p) {
 }
 
 // 获取原型图
-std::shared_ptr<Node_Compiler> getGraphicMessage() throw(ParserFailed) {
+std::shared_ptr<Node_Compiler> getGraphicMessage(Lexer& lex) throw(ParserFailed) {
 	// 准备工作
 	Token_helper level1_token_helper;
 	regist_token_level1(level1_token_helper);
@@ -2316,39 +2316,29 @@ std::shared_ptr<Node_Compiler> getGraphicMessage() throw(ParserFailed) {
 	WordTypeHelper level1_word_type_helper;
 	regist_words_level1(level1_word_type_helper);
 
-	// 初始化scanner
-#if MODE_CIL
-	Lexer lex(new CLIInput("luo ->"));
-#else
-	Lexer lex(new FileInput("in.tr"));
-#endif
-
 	// 注册语法规则
 	Parser p(&lex);
 	regist_bnf_level1(p);
 
-#if MODE_CIL
-	while (1)
-#endif
-	{
-		p.clear_word_vec();
+	// while开始
+	p.clear_word_vec();
 
-		// 词法分析
-		lex.init();
-		lex.fillList(level1_token_helper, level1_word_type_helper);
-		// 语法分析
-		int b = p.parse("top");
-		cerr << (b ? "" : "Graphic Parse failed!") << endl;
-		if (!b) {
-			cout << "Parse ERROR =\n" << p.getErrors() << endl;
-			throw ParserFailed("Parse failed");
-		}
-		else {
-			auto& vec = p.get_word_vector_ref();
-			std::shared_ptr<Node_Compiler> nodecmp(new Node_Compiler(vec));
-			nodecmp->top();
-			return nodecmp;
-		}
+	// 词法分析
+	lex.init();
+	lex.fillList(level1_token_helper, level1_word_type_helper);
+
+	// 语法分析
+	int b = p.parse("top");
+	std::cerr << (b ? "" : "Graphic Parse failed!\n");
+	if (!b) {
+		std::cout << "Parse ERROR =\n" << p.getErrors() << std::endl;
+		throw ParserFailed("Parse failed");
+	}
+	else {
+		auto& vec = p.get_word_vector_ref();
+		std::shared_ptr<Node_Compiler> nodecmp(new Node_Compiler(vec));
+		nodecmp->top();
+		return nodecmp;
 	}
 }
 
@@ -2466,49 +2456,199 @@ void addProcFromProtoNode(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_
 }
 
 // 测试编译前端
-void test_vsFrontend() {
-	try {
-		// 编译前端
-		vsFrontend front(regist_bnf, regist_keywords_contents, regist_token, regist_words);
+void test_vsFrontend(const char *filename, InputMode m) {
+	// 虚拟机
+	vsVirtualMachine vm(0);
 
-		// 虚拟机
-		vsVirtualMachine vm(0);
-
-		// 搭建图
-		auto nodecmp = getGraphicMessage();
-
-		// 获取原型图
-		auto graphic_proto = nodecmp->getGraphic();
-
-		// 根据原型图创建计算图
-		auto graphic = buildTasksGraphic(graphic_proto, vm);
-
-		// 设置虚拟机
-		vm.set_graphic(graphic);
-		addProcFromProtoNode(graphic_proto, vm, front);
-
-		// 执行会话
-		vm.run(nodecmp->ret_sess(), "x");
+	// 初始化输入系统
+	InputMode mode = m;
+	std::shared_ptr<Lexer> lex;
+	switch (m) {
+	case InputMode::CILMode:
+		lex.reset(new Lexer(new CLIInput("vsc mt->")));
+		break;
+	case InputMode::FileMode:
+		lex.reset(new Lexer(new FileInput(filename)));
+		break;
 	}
-	catch (Context_error& e) {
-		cerr << e.what() << endl;
+
+	while (1){
+		try {
+			// 编译前端
+			vsFrontend front(regist_bnf, regist_keywords_contents, regist_token, regist_words);
+
+			// 搭建图
+			auto nodecmp = getGraphicMessage(*lex);
+
+			// 获取原型图
+			auto graphic_proto = nodecmp->getGraphic();
+
+			// 根据原型图创建计算图
+			auto graphic = buildTasksGraphic(graphic_proto, vm);
+
+			// 设置虚拟机
+			vm.set_graphic(graphic);
+			addProcFromProtoNode(graphic_proto, vm, front);
+
+			// 执行会话
+			vm.run(nodecmp->ret_sess(), "x");
+			vm.init_pools();
+		}
+		catch (Context_error& e) {
+			cerr << e.what() << endl;
+		}
+		catch (ParserFailed& e) {
+			cerr << e.what() << endl;
+		}
+		catch (undefined_exception& e) {
+			std::cerr << e.what() << std::endl;
+		}
+		catch (stack_overflow_exception& e) {
+			cerr << e.what() << endl;
+		}
+		catch (run_time_exception& e) {
+			cerr << e.what() << endl;
+		}
+		catch (std::string& e) {
+			std::cerr << e << std::endl;
+		}
 	}
-	catch (ParserFailed& e) {
-		cerr << e.what() << endl;
-	}
-	catch (undefined_exception& e) {
-		std::cerr << e.what() << std::endl;
-	}
-	catch (stack_overflow_exception& e) {
-		cerr << e.what() << endl;
-	}
-	catch (run_time_exception& e) {
-		cerr << e.what() << endl;
+}
+
+//
+// 单线程模式
+//
+
+vsThread::taskGraphic_ptr<std::string, data_ptr>
+get_graphic(vsVirtualMachine& vm) {
+	// 初始化计算图
+	vsThread::taskGraphic_ptr<std::string, data_ptr> _taskGraphic(new vsThread::TaskGraphic<std::string, data_ptr>);
+
+	// 新建解释器, 绑定对应的block
+	vsTool::id_t nodeid = 0;
+	auto _eval_main = vm.make_eval(nodeid);
+
+	// build node
+	std::vector<std::string> vec;
+	_taskGraphic->build_node([=](auto& _out, auto& datas, auto& keys) {
+
+		// 主线程进入入口点, 相当于直接 <call_blk _enter_point>
+		_eval_main->load_block(1, 0);
+
+		// 执行
+		_eval_main->eval();
+
+		// 设置返回值
+		_out = _eval_main->_get_ret_data();
+		cout << "返回的值: " << _out->toNumber() << endl;
+
+		// 返回信号
+		return "x";
+	}, vec, 0);
+
+	// build graphic
+	_taskGraphic->head()->end();
+
+	return _taskGraphic;
+}
+
+void test_input_cli() {
+
+	// 准备工作
+	Context_helper vsc_ctx_helper;
+	regist_keywords_contents(vsc_ctx_helper);
+
+	Token_helper vsc_token_helper;
+	regist_token(vsc_token_helper);
+
+	WordTypeHelper vsc_word_type_helper;
+	regist_words(vsc_word_type_helper);
+
+	// 初始化scanner
+	Lexer lex(new CLIInput("vsc ->"));
+
+	// 注册语法规则
+	Parser p(&lex);
+	regist_bnf(p);
+
+	// 编译器
+	S_Expr_Compiler compiler;
+	Compile_result cresult;
+
+	// 虚拟机
+	vsVirtualMachine vm(0);
+
+	while (1)
+	{
+
+		p.clear_word_vec();
+
+		// 词法分析
+		lex.init();
+		lex.fillList(vsc_token_helper, vsc_word_type_helper);
+		try {
+
+			// 语法分析
+			int b = p.parse("top");
+			cerr << "Parse " << (b ? "success!" : "failed!") << endl;
+			if (!b) {
+				cout << "Parse ERROR =\n" << p.getErrors() << endl;
+			}
+			else
+			{
+				// 生成目标代码
+				compiler.generate_code(p.get_word_vector_ref(), cresult, vsc_ctx_helper);	// 会抛出异常
+				cout << "Code Generated finished!" << endl << endl;
+
+				// 搭建图
+				auto graphic = get_graphic(vm);
+
+				vm.set_graphic(graphic);
+				vm.add_process(cresult, 0); // 编译结果, 代码段id
+
+				auto ret = vm.run(0, "x");
+				if (ret->toNumber() == -1)break;
+
+				vm.init_pools();
+			}
+		}
+		catch (Context_error& e) {
+			cerr << e.what() << endl;
+		}
+		catch (stack_overflow_exception e) {
+			cerr << e.what() << endl;
+		}
+		catch (run_time_exception& e) {
+			cerr << e.what() << endl;
+		}
+		// 清除结果
+		compiler.init();
+		cresult.init();
 	}
 }
 
 // 
 int main(int argc, char* argv[]) {
-	test_vsFrontend();
+	// 输入模式
+	if (argc == 2 && strcmp(argv[1], "-cli") == 0)
+	{
+		// 单线程模式
+		test_input_cli();
+	}
+	else if (argc == 2 && strcmp(argv[1], "-cli_thread") == 0)
+	{
+		// 多线程模式
+		test_vsFrontend("", InputMode::CILMode);
+	}
+	else if (argc == 3 && strcmp(argv[1], "-file") == 0)
+	{
+		// 文件模式(只支持多线程)
+		test_vsFrontend(argv[2], InputMode::FileMode);
+	}
+	else
+	{
+		std::cerr << "Usage vsc <-cli> | <-cli_thread> | <-file> <filename>" << std::endl;
+		exit(-1);
+	}
 	return 0;
 };

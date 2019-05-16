@@ -38,7 +38,7 @@ Compile_result vsFrontend::getResultByString(const std::string& codes, const std
 
 	// 语法分析
 	int b = parser.parse(top);
-	std::cerr << (b ? "" : "Parse failed!") <<std::endl;
+	std::cerr << (b ? "" : "Parse failed!\n");
 	if (!b) {
 		// 分析出错, 返回错误
 		std::cerr << "Parse ERROR =\n" << parser.getErrors() << std::endl;
@@ -48,7 +48,7 @@ Compile_result vsFrontend::getResultByString(const std::string& codes, const std
 	{
 		// 生成目标代码
 		compiler.generate_code(parser.get_word_vector_ref(), cresult, vsc_ctx_helper);	// 会抛出异常
-		std::cout << "Code Generated finished!" << std::endl << std::endl;
+//		std::cout << "Code Generated finished!" << std::endl << std::endl;
 	}
 
 	// 返回结果
