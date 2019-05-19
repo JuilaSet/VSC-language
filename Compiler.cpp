@@ -542,12 +542,27 @@ void Node_Compiler::nodeDef(std::shared_ptr<LeafNode> node) {
 	}
 }
 
-// 结点定义语句 := 属性 : 值 ;
+// 结点定义语句 := < * >  属性 : 值 ;
 void Node_Compiler::defExpr(std::shared_ptr<LeafNode> node) {
 	assert(_word_vec.size() > _pos);
 	auto& w = _getWord(_pos);
 	auto str = w.getString();
 	auto type = w.getType();
+
+	// 是 * 符号
+	if (str == NODE_DEF) {
+		_pos++; // 跳过*号
+
+		// 下一个单词
+		assert(_word_vec.size() > _pos);
+		w = _getWord(_pos);
+		str = w.getString();
+		type = w.getType();
+	}
+	else {
+		assert(false); //说明语法分析出错
+	}
+
 	// 是属性
 	if (type == WordType::IDENTIFIER_ENABLED || type == WordType::OPERATOR_WORD) {
 		assert(_word_vec.size() > _pos);
@@ -623,9 +638,19 @@ void Node_Compiler::nodeLinkExpr()throw(undefined_exception) {
 		node->setID(_count++);
 		gbuilder.head(node);
 	}
+
 	// 下一次表示跳转到这个结点
 	else {
-		gbuilder.gotoNode(_find_node(name)->getId());
+		// 如果没有被设置过id, 才进行设置和添加, 否则视为跳转
+		auto node = _find_node(name);
+		if (node->getId() == -1) {
+			node->setID(_count);
+			gbuilder.addNode(_count++, node);
+		}
+		else {
+			// 跳转
+			gbuilder.gotoNode(_find_node(name)->getId());
+		}
 	}
 
 	// 后续"->名"

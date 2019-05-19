@@ -37,7 +37,9 @@ std::string CLIInput::getLine()
 	bool eolflag = false;
 	_isEnd = false;
 	std::cout << _lineHead;
-	while (1) {
+	std::cin.clear();
+	while (1)
+	{
 		c = std::cin.get();
 		if (!eolflag && c == EOL[0]) {
 			_isEnd = true;
@@ -46,7 +48,7 @@ std::string CLIInput::getLine()
 		eolflag = false;
 		
 		if (c == CONLIN[0]) eolflag = true;	// \号连接两行, 不会加入回车
-		else if(c != EOL[0])str << c;		// 加入这个非回车字符
+		else if(c != EOL[0]) str << c;		// 加入这个非回车字符
 	}
 #if CHECK_input
 	std::cerr << str.str() << std::endl;

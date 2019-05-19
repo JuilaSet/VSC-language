@@ -76,5 +76,36 @@ public:
 #endif 
 			);
 	}
+
+	static Command getInputNumOpera(std::istream* istm, std::string end = "\n") {
+		return Command([=](vsEvaluator *eval) {
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::INPUT ";
+#endif
+			double num;
+			std::cin >> num;
+			eval->push(data_ptr(new NumData(num)));
+			std::cin.get(); // 获取回车
+
+#if CHECK_Eval 
+			std::cerr << str << std::endl;
+#endif
+		});
+	}
+	
+	static Command getInputOpera(std::istream* istm, std::string end = "\n") {
+		return Command([=](vsEvaluator *eval) {
+#if CHECK_Eval 
+			std::cerr << __LINE__ << "\tOPCODE::INPUT ";
+#endif
+			std::string str;
+			std::cin >> str;
+			eval->push(data_ptr(new StringData(str)));
+			std::cin.get(); // 获取回车
+#if CHECK_Eval 
+			std::cerr << str << std::endl;
+#endif
+		});
+	}
 };
 

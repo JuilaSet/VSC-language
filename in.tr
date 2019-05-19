@@ -1,33 +1,57 @@
-* a {
-	ins : x;
-	calc : <[
-		extern x;
-		echo x;
+* Farmer {
+
+	* calc : <[
+		return <wheat>;
 	]>;
-	timeout : 8000;
+
+	* out : wheat;
 
 }
 
-* b {
-	calc : <[
-		echo <from b>;
-		return 222;
+* Dj {
+
+	* calc : <[
+		return <worker>;
 	]>;
-	out : x;
-	timeout : 8000;
+
+	* out : worker;
+
 }
 
-* c {
+* Factory {
 
-	calc : <[
-		echo <from c>;
-		return 111;
+	* ins : wheat worker;
+
+	* calc : <[
+		extern wheat worker;
+		def res add 
+			<flour : 
+> 
+				wheat < from Farmer, 
+>
+				worker < from Dj.>;
+		;
+		return res;
 	]>;
-	out : x;
-	timeout : 8000;
+
+	* out: flour;
+
 }
 
-a->b;
-a->c;
+* KFC {
 
-#a;
+	* ins : flour;
+	
+	* calc : <[
+		extern flour;
+		echo flour;
+		return -1;
+	]>;
+
+}
+
+Factory -> Farmer;
+Factory -> Dj;
+KFC -> Factory;
+
+# KFC;

@@ -339,6 +339,7 @@ void regist_keywords_contents(Context_helper& helper) {
 	// IDENTIFIER_SPEC
 	
 	helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$C").serialize(),
+
 		helper.build_context(
 		[](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_0
 #if CHECK_Compiler
@@ -386,12 +387,37 @@ void regist_keywords_contents(Context_helper& helper) {
 		helper.build_context(
 			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
 #if CHECK_Compiler
-		cout << "COMMAND:: $obj" << endl;
+				cout << "COMMAND:: $obj" << endl;
 #endif
 				return _command_set{
 					CommandHelper::getPushOpera(data_ptr(new vsOriginObject))
 				};
 			}, { })	// 只能有一个上下文
+	);
+
+	helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$input").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+#if CHECK_Compiler
+				cout << "COMMAND $input" << endl;
+#endif
+				return _command_set{
+						CommandHelper::getInputOpera(&cin)
+				};
+			}, {  }) // 只能有一个上下文
+	);
+
+	helper.regist_context(Word(WordType::IDENTIFIER_SPEC, "$inputNum").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {
+#if CHECK_Compiler
+		cout << "COMMAND $inputNum" << endl;
+#endif
+		compiler->dont_gene_callblk();
+		return _command_set{
+				CommandHelper::getInputNumOpera(&cin)
+		};
+	}, {  }) // 只能有一个上下文
 	);
 
 	// OPERATOR_WORD
@@ -498,6 +524,27 @@ void regist_keywords_contents(Context_helper& helper) {
 				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
 						return _command_set{
 							COMMAND(ADD)
+						};
+				}, Context_Type::ALWAYS, "add_op2"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
+					return _command_set{ };
+				}, Context_Type::END, "add_end")
+			})
+	);
+
+	helper.regist_context(Word(WordType::OPERATOR_WORD, "addup").serialize(),
+		helper.build_context(
+			[](ContextStk& cstk, _command_set&, Word& w, auto* compiler) {	// op_0
+		return _command_set{ };
+	},
+			{
+				// 转为数字
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_1
+					return _command_set{ };
+				}, Context_Type::NORMAL, "add_op1"),
+				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_2
+						return _command_set{
+							COMMAND(ADD_UP)
 						};
 				}, Context_Type::ALWAYS, "add_op2"),
 				Context([](ContextStk& cstk, _command_set&, Word& w,  auto* compiler) {	// op_end
@@ -715,6 +762,7 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_OPERATO_WORDS(helper, "call");
 	REGIST_OPERATO_WORDS(helper, "time");
 	REGIST_OPERATO_WORDS(helper, "add");
+	REGIST_OPERATO_WORDS(helper, "addup");
 	REGIST_OPERATO_WORDS(helper, "sub");
 	REGIST_OPERATO_WORDS(helper, "echo");
 	REGIST_OPERATO_WORDS(helper, "not");
@@ -1706,7 +1754,7 @@ void regist_bnf(Parser& p) {
 }
 
 ////////////////
-// 注册第一层 //
+// 注册并发层 //
 ////////////////
 
 // 注册符号给第一层输入
@@ -1850,9 +1898,24 @@ void regist_bnf_level1(Parser& p) {
 		getGraphic();
 	p.addBNFRuleGraphic(g_node_def_expr);
 
-	// attr_def := "ins" id_enabled { id_enabled } ";" | "out" id_enabled ";" | calc string ";" | timeout number ";"
+	// attr_def := <*> "ins" id_enabled { id_enabled } ";" | "out" id_enabled ";" | calc string ";" | timeout number ";"
 	Graphic_builder attr_def_builder("attr_def");
 	BNFGraphic g_attr_def = attr_def_builder.rule()->
+		terminal("*", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[*] get word:" << w.serialize();
+#endif
+		if (w.getString() == "*") {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be * here\n";
+				return false;
+			}
+		})->
 		terminal("ins", [](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 		cerr << "[:ins] get word:" << w.serialize();
@@ -1930,6 +1993,21 @@ void regist_bnf_level1(Parser& p) {
 		})->
 		end()->
 		gotoHead()->
+		terminal("*", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[*] get word:" << w.serialize();
+#endif
+			if (w.getString() == "*") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be * here\n";
+				return false;
+			}
+		})->
 		terminal("out", [](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 			cerr << "[out] get word:" << w.serialize();
@@ -1992,6 +2070,21 @@ void regist_bnf_level1(Parser& p) {
 		})->
 		end()->
 		gotoHead()->
+		terminal("*", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[*] get word:" << w.serialize();
+#endif
+			if (w.getString() == "*") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be * here\n";
+				return false;
+			}
+		})->
 		terminal("calc", [](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 			cerr << "[calc] get word:" << w.serialize();
@@ -2040,6 +2133,21 @@ void regist_bnf_level1(Parser& p) {
 		})->
 		end()->
 		gotoHead()->
+		terminal("*", [](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+			cerr << "[*] get word:" << w.serialize();
+#endif
+			if (w.getString() == "*") {
+#if CHECK_Parser
+				cerr << ", True" << endl;
+#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be * here\n";
+				return false;
+			}
+		})->
 		terminal("timeout", [](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
 			cerr << "[timeout] get word:" << w.serialize();
@@ -2374,6 +2482,7 @@ buildTasksGraphic(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_graphic,
 	proto_graphic->for_each_unordered([&vm, &_taskGraphic](auto graphic, auto node) {
 		auto pnode = node->get_data();
 		vsTool::id_t nodeid = pnode->getId();
+
 		// 接收信号
 		data_ptr ins = pnode->getData("ins");
 		std::vector<std::string> data_list;
@@ -2396,8 +2505,9 @@ buildTasksGraphic(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_graphic,
 #if CHECK_Compiler_Node_res
 		std::cout << __LINE__ << "\t添加eval: " << nodeid << std::endl;
 #endif
-
+		// 绑定计算ID
 		auto _eval = vm.make_eval(nodeid);
+		
 		// 设置eval返回信号
 		data_ptr out = pnode->getData("out");
 		if (out->getType() != DataType::NON) {
@@ -2406,9 +2516,11 @@ buildTasksGraphic(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_graphic,
 			data_ptr res_str = container->cur_data();
 			_eval->set_sign_str(res_str->toString());
 		}
+
 #if CHECK_Compiler_Node_res
 		std::cout << __LINE__ << " id : " << nodeid << " 返回信号: " << ret << std::endl;
 #endif
+
 		_taskGraphic->build_node([=](auto& _out, auto& datas, auto& keys) {
 					// 设置外部_data
 					for(auto& pair : datas){
@@ -2459,7 +2571,7 @@ buildTasksGraphic(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_graphic,
 
 // 编辑图结点的代码
 void addProcFromProtoNode(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_graphic, vsVirtualMachine& vm, vsFrontend front) {
-	// 初始化结点
+	// 初始化结点, 
 	proto_graphic->for_each_unordered([&vm, &front](auto graphic, auto node) {
 		auto pnode = node->get_data();
 		vsTool::id_t nodeid = pnode->getId();
@@ -2508,6 +2620,8 @@ void test_vsFrontend(const char *filename, InputMode m) {
 
 			// 设置虚拟机
 			vm.set_graphic(graphic);
+
+			// 添加执行代码块
 			addProcFromProtoNode(graphic_proto, vm, front);
 
 			// 执行会话
@@ -2536,9 +2650,9 @@ void test_vsFrontend(const char *filename, InputMode m) {
 	} while (rept);
 }
 
-//
+//////////////////
 // 单线程模式
-//
+//////////////////
 
 vsThread::taskGraphic_ptr<std::string, data_ptr>
 get_graphic(vsVirtualMachine& vm) {
@@ -2561,7 +2675,6 @@ get_graphic(vsVirtualMachine& vm) {
 
 		// 设置返回值
 		_out = _eval_main->_get_ret_data();
-		cout << "返回的值: " << _out->toNumber() << endl;
 
 		// 返回信号
 		return "x";
@@ -2573,6 +2686,7 @@ get_graphic(vsVirtualMachine& vm) {
 	return _taskGraphic;
 }
 
+// 单线程命令行
 void test_input_cli() {
 
 	// 准备工作
@@ -2601,49 +2715,57 @@ void test_input_cli() {
 
 	while (1)
 	{
-
 		p.clear_word_vec();
 
 		// 词法分析
 		lex.init();
 		lex.fillList(vsc_token_helper, vsc_word_type_helper);
-		try {
 
-			// 语法分析
-			int b = p.parse("top");
-			cerr << "Parse " << (b ? "success!" : "failed!") << endl;
-			if (!b) {
-				cout << "Parse ERROR =\n" << p.getErrors() << endl;
-			}
-			else
-			{
-				// 生成目标代码
-				compiler.generate_code(p.get_word_vector_ref(), cresult, vsc_ctx_helper);	// 会抛出异常
-				cout << "Code Generated finished!" << endl << endl;
+		if (lex.get_words_list().size() != 1) {
 
-				// 搭建图
-				auto graphic = get_graphic(vm);
+			try {
 
-				vm.set_graphic(graphic);
-				vm.add_process(cresult, 0); // 编译结果, 代码段id
-
-				auto ret = vm.run(0, "x");
-				if (ret->toNumber() == -1) {
-					std::cout << "vsBye~" << std::endl;
-					break;
+				// 语法分析
+				int b = p.parse("top");
+				cerr << (b ? "." : "Parse failed!") << endl;
+				if (!b) {
+					cout << "Parse ERROR =\n" << p.getErrors() << endl;
 				}
+				else
+				{
+					// 生成目标代码
+					compiler.generate_code(p.get_word_vector_ref(), cresult, vsc_ctx_helper);	// 会抛出异常
 
-				vm.init_pools();
+					// 搭建图
+					auto graphic = get_graphic(vm);
+
+					vm.set_graphic(graphic);
+					vm.add_process(cresult, 0); // 编译结果, 代码段id
+
+					auto ret = vm.run(0, "x");
+					if (ret->toNumber() == -1) {
+						std::cout << "vsBye~" << std::endl;
+						break;
+					}
+					else {
+						std::cout << ret->toEchoString() << std::endl;
+					}
+
+					vm.init_pools();
+				}
+			}
+			catch (Context_error& e) {
+				cerr << e.what() << endl;
+			}
+			catch (stack_overflow_exception e) {
+				cerr << e.what() << endl;
+			}
+			catch (run_time_exception& e) {
+				cerr << e.what() << endl;
 			}
 		}
-		catch (Context_error& e) {
-			cerr << e.what() << endl;
-		}
-		catch (stack_overflow_exception e) {
-			cerr << e.what() << endl;
-		}
-		catch (run_time_exception& e) {
-			cerr << e.what() << endl;
+		else {
+			std::cout << std::endl;
 		}
 		// 清除结果
 		compiler.init();
@@ -2653,6 +2775,8 @@ void test_input_cli() {
 
 // 
 int main(int argc, char* argv[]) {
+	// 文件模式(只支持多线程)
+//	test_vsFrontend("in.tr", InputMode::FileMode);
 	// 输入模式
 	if (argc == 1)
 	{
@@ -2664,14 +2788,14 @@ int main(int argc, char* argv[]) {
 		// 多线程模式
 		test_vsFrontend("", InputMode::CILMode);
 	}
-	else if (argc == 2)
+	else if (argc == 3 && strcmp(argv[1], "-file") == 0)
 	{
 		// 文件模式(只支持多线程)
-		test_vsFrontend(argv[1], InputMode::FileMode);
+		test_vsFrontend(argv[2], InputMode::FileMode);
 	}
 	else
 	{
-		std::cerr << "Usage: vsc <-thread> | vsc <filename>" << std::endl;
+		std::cerr << "Usage: vsc <-thread> | vsc -file <filename>" << std::endl;
 		exit(-1);
 	}
 	return 0;

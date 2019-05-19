@@ -96,6 +96,25 @@ void OPERATOR::ADD(vsEval_ptr eval) {
 #endif
 };
 
+void OPERATOR::ADD_UP(vsEval_ptr eval) {
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::ADD_UP ";
+#endif
+	auto& stk = eval->current_stk_frame()->stk;
+
+	// 根据第一个参数的类型转换
+	assert(!stk.empty());
+	data_ptr n1 = eval->pop();
+
+	assert(!stk.empty());
+	data_ptr n2 = eval->top();
+
+	n2->cp(n2->add(n1));
+#if CHECK_Eval 
+	std::cerr << n1->toEchoString() << " += " << n2->toEchoString() << std::endl;
+#endif
+}
+
 void OPERATOR::SUB(vsEval_ptr eval) {
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::SUB ";

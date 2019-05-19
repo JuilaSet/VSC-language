@@ -132,7 +132,7 @@ public:
 
 class NumData : public vsData {
 protected:
-	size_t value;
+	long long value;
 
 public:
 	NumData():vsData(DataType::NON), value(0) { }

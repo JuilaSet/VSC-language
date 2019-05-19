@@ -134,6 +134,8 @@ public:
 
 	static void ADD(vsEval_ptr eval);
 
+	static void ADD_UP(vsEval_ptr eval);
+
 	static void SUB(vsEval_ptr eval);
 
 	static void IN(vsEval_ptr eval);
