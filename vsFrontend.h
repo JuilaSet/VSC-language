@@ -22,7 +22,7 @@ public:
 		void(*regist_words)(WordTypeHelper&));
 
 	// 生成编译结果
-	Compile_result getResultByString(const std::string& codes, const std::string& top = "top");
+	Compile_result getResultByString(const std::string& codes, size_t prc_id, const std::string& top = "top");
 
 };
 

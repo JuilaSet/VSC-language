@@ -63,8 +63,7 @@ namespace vsTool {
 
 	// 边对象(边是id_t -> id_t的映射)
 	class Edge {
-		friend bool operator<(const Edge& e1, const Edge& e2);
-		friend bool operator==(const Edge& e1, const Edge& e2);
+		friend struct EdgeComparator;
 	protected:
 		id_t _in;
 		id_t _out;
@@ -72,13 +71,9 @@ namespace vsTool {
 	public:
 		Edge(id_t in, id_t out) :_in(in), _out(out) {}
 
-		id_t dest() {
-			return _out;
-		}
+		id_t dest() { return _out; }
  
-		id_t src() {
-			return _in;
-		}
+		id_t src() { return _in; }
 
 		// 赋值
 		Edge& operator=(const Edge& e) {
@@ -91,20 +86,7 @@ namespace vsTool {
 		bool operator==(const Edge& e2) {
 			return (_in == e2._in) && (_out == e2._out);
 		}
-
-		// 大小比较(用于容器中的排序)
-		bool operator < (const Edge& e2) {
-			return _in < e2._in ? true : _out < e2._out ? true : false;
-		}
 	};
-
-	bool operator==(const Edge& e1, const Edge& e2) {
-		return e1._in == e2._in && e1._out == e2._out;
-	}
-
-	bool operator<(const Edge& e1, const Edge& e2) {
-		return e1._in < e2._in ? true : e1._out < e2._out ? true : false;
-	}
 
 	// 结点对象(规则: 存放的data必须是 storeable 的, 并且有默认构造函数, id为-1是空对象)
 
@@ -184,7 +166,6 @@ namespace vsTool {
 
 	};
 
-
 	// 图: 
 
 	template<class CONTAIN_TYPE>
@@ -197,6 +178,8 @@ namespace vsTool {
 		static node_ptr<CONTAIN_TYPE> _Empty_node;	// 空对象
 
 		const node_vec<CONTAIN_TYPE> nodes;			// 所有结点的集合, 可能有下标对应的值为空(nullptr)
+
+		const std::vector<Edge> edges;				// 所有的边
 
 		bool _is_directed;							// 图类型--是否是有向图
 		
@@ -227,7 +210,7 @@ namespace vsTool {
 		}
 
 		// 构造函数(保存结点的索引信息)
-		_Graphic(node_vec<CONTAIN_TYPE> nodes) : nodes(nodes) {
+		_Graphic(node_vec<CONTAIN_TYPE> nodes, std::vector<Edge> edges) : nodes(nodes), edges(edges) {
 			// 判断是否是有向图
 			_calc_is_directed();
 		}
@@ -248,7 +231,9 @@ namespace vsTool {
 		// bool isomorphism(const _Graphic<CONTAIN_TYPE>& _g);
 
 		//////////////
+
 		// 图的遍历 //
+
 		//////////////
 
 		// 无序遍历(规则: 传入函数为void (node_ptr<CONTAIN_TYPE>))
@@ -322,6 +307,13 @@ namespace vsTool {
 		End:;
 		}
 	
+		// 遍历每一条边
+		void for_each_edges(std::function<void(_Graphic<CONTAIN_TYPE>*, id_t in, id_t out)> func) {
+			for (auto e : edges) {
+				func(this, e.src(), e.dest());
+			}
+		}
+
 		//////////////
 		// 数据访问 //
 		//////////////
@@ -400,6 +392,7 @@ namespace vsTool {
 	protected:
 
 		node_vec<CONTAIN_TYPE> nodes;			// 所有结点的集合
+		std::vector<Edge> edges;				// 所有的边
 		id_t index;								// 建造图时所在结点的下标
 		BUILD_MODE mode;						// 构建模式
 		bool _empty = true;
@@ -480,6 +473,9 @@ namespace vsTool {
 			cur_node->out_nodes_id.insert(id);
 			node->in_nodes_id.insert(index);
 
+			// index -> id
+			edges.push_back(Edge(index, id));
+
 			// 如果大小不够就分配大小
 			if (id >= nodes.size()) {
 				nodes.resize(id + 1, nullptr);
@@ -509,6 +505,10 @@ namespace vsTool {
 			cur_node->out_nodes_id.insert(id);
 			node->in_nodes_id.insert(index);
 
+			// index -> id
+			edges.push_back(Edge(index, id));
+			edges.push_back(Edge(id, index));
+
 			// 如果大小不够就分配大小
 			if (id >= nodes.size()) {
 				nodes.resize(id + 1, nullptr);
@@ -533,16 +533,20 @@ namespace vsTool {
 
 		// 结点指向结点(规则: 指向的位置一定存在, 如果之前已经存在指向这条边则加入失败返回nullptr)
 		GraphicBuilder<CONTAIN_TYPE>* linkToNode(id_t dest_id) {
-			auto cur_node = nodes[index];
 #if CHECK_Tool
 			if (!_contain_node(dest_id)) {
 				std::cerr << __LINE__ << "\tNot found: " << dest_id << std::endl;
+				assert(false);
+			}
+			if (!_contain_node(index)) {
+				std::cerr << __LINE__ << "\tindex error: " << index << std::endl;
 				assert(false);
 			}
 #else
 			// 指向的位置一定存在
 			assert(_contain_node(dest_id));
 #endif
+			auto cur_node = nodes[index];
 			auto dest_node = nodes[dest_id];
 			// 之前应该不存在指向这条边
 			auto found = cur_node->out_nodes_id.find(dest_id);
@@ -552,6 +556,8 @@ namespace vsTool {
 			// 建立单向连接
 			cur_node->out_nodes_id.insert(dest_id);
 			dest_node->in_nodes_id.insert(index);
+			// index->id
+			edges.push_back(Edge(index, dest_id));
 			// 根据对应的模式行动
 			_mode_action(dest_id);
 			return this;
@@ -577,6 +583,9 @@ namespace vsTool {
 			// 建立单向连接
 			dest_node->out_nodes_id.insert(index);
 			cur_node->in_nodes_id.insert(dest_id);
+			// index<->id
+			edges.push_back(Edge(index, dest_id));
+			edges.push_back(Edge(dest_id, index));
 
 			// 根据对应的模式行动
 			_mode_action(dest_id);
@@ -585,7 +594,7 @@ namespace vsTool {
 
 		// 建造这个图
 		graphic_ptr<CONTAIN_TYPE> getGraphic() {
-			auto g = new _Graphic<CONTAIN_TYPE>(nodes);
+			auto g = new _Graphic<CONTAIN_TYPE>(nodes, edges);
 			return graphic_ptr<CONTAIN_TYPE>(g);
 		}
 

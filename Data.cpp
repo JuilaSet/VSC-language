@@ -10,7 +10,7 @@ int FunctionData::eval(vsEvaluator& evalor, int argc) {
 	std::cerr << __LINE__ << " BLOCK_Field: " << (block_ptr->strong_hold() ? "T" : "F") << std::endl;
 #endif
 
-	evalor.load_block(block_id, argc);
+	evalor.load_block(block_id, argc, prc_id);
 	return 0;
 }
 

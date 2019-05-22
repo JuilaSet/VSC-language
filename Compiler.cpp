@@ -29,7 +29,11 @@ S_Expr_Compiler::~S_Expr_Compiler()
 {
 }
 
-void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper)
+void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, 
+	Compile_result& result, 
+	Context_helper& helper, 
+	size_t prc_id)
+
 	throw (Context_error, undefined_exception) {
 #if CHECK_Compiler
 	std::cout << "\n\nGenerate Code Begin:" << std::endl;
@@ -67,7 +71,7 @@ void S_Expr_Compiler::generate_code(const std::vector<Word>& _word_vector, Compi
 				// push 函数对象(保存了要跳转的地址)
 				auto& comm = result.refCommandVector(cur_block_id);
 				comm.push_back(CommandHelper::getPushOpera(
-						data_ptr(new FunctionData(block_id))));
+						data_ptr(new FunctionData(block_id, prc_id))));
 
 				assert(ctool_stk.size() > 1);
 				if (!(ctool_stk.rbegin() + 1)->is_def_blk()) {

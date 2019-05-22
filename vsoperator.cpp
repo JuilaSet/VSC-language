@@ -13,13 +13,22 @@ void OPERATOR::ABORT(vsEval_ptr eval)		// 停止
 	// 取出返回值
 	assert(!stk.empty());
 	data_ptr n = eval->pop();
-	assert(n->getType() == DataType::NUMBER);
+//	assert(n->getType() == DataType::NUMBER);
 	int a = n->toNumber();
 
 	eval->stop(a);
 	eval->_set_return_data(n);
 #if CHECK_Eval 
 	std::cerr << __LINE__ << "\tOPCODE::ABORT" << std::endl;
+#endif
+}
+
+// 退出线程, 设置eval状态为退出状态
+void OPERATOR::EXIT(vsEval_ptr eval) {
+
+	eval->setDead();
+#if CHECK_Eval 
+	std::cerr << __LINE__ << "\tOPCODE::EXIT" << std::endl;
 #endif
 }
 
@@ -123,12 +132,16 @@ void OPERATOR::SUB(vsEval_ptr eval) {
 
 	assert(!stk.empty());
 	data_ptr n1 = eval->pop();
-	assert(n1->getType() == DataType::NUMBER);
+	if (n1->getType() != DataType::NUMBER) {
+		throw type_error_exception(n1->toEchoString(), n1->getTypeName(), "NUMBER");
+	}
 	int a1 = n1->toNumber();
 
 	assert(!stk.empty());
 	data_ptr n2 = eval->pop();
-	assert(n2->getType() == DataType::NUMBER);
+	if (n2->getType() != DataType::NUMBER) {
+		throw type_error_exception(n2->toEchoString(), n2->getTypeName(), "NUMBER");
+	}
 	int a2 = n2->toNumber();
 	// newed
 	data_ptr d_temp = data_ptr(new NumData(a2 - a1));
@@ -167,7 +180,8 @@ void OPERATOR::IN(vsEval_ptr eval) {
 			std::cerr << obj->getTypeName() << std::endl;
 			assert(false); // 说明委托的类型 或 push的类型错误
 #else
-			assert(false); // 传入的类型错误
+			// 传入的类型错误
+			throw type_error_exception(obj->toEchoString(), obj->getTypeName(), "OBJECT");
 #endif
 		}
 	}
@@ -184,7 +198,10 @@ void OPERATOR::NOT(vsEval_ptr eval) {
 
 	assert(!stk.empty());
 	data_ptr n1 = eval->pop();
-	assert(n1->getType() == DataType::NUMBER);
+	// 传入的类型错误
+	if (n1->getType() != DataType::NUMBER) {
+		throw type_error_exception(n1->toEchoString(), n1->getTypeName(), "NUMBER");
+	}
 	int a1 = n1->toNumber();
 
 	data_ptr d_temp = data_ptr(new NumData(a1 == 0));
@@ -714,7 +731,8 @@ void OPERATOR::NEW_DEL(vsEval_ptr eval) {
 #if CHECK_Eval
 			std::cerr << "DATA_TYPE = " << id->getTypeName() << std::endl;
 #endif
-			assert(false);
+			// 传入的类型错误
+			throw type_error_exception(id->toEchoString(), id->getTypeName(), "in or get expr");
 			break;
 		}
 	}
@@ -739,7 +757,9 @@ void OPERATOR::NEW_DEF(vsEval_ptr eval)
 	data_ptr id = eval->pop();
 
 	// 根据类型判断
-	assert(id->getType() == DataType::ID_INDEX || id->getType() == DataType::DELEGATION);
+	if (!(id->getType() == DataType::ID_INDEX || id->getType() == DataType::DELEGATION)) {
+		throw type_error_exception(id->toEchoString(), id->getTypeName(), "Identifier");
+	}
 	switch (id->getType()) {
 	case DataType::ID_INDEX:
 		eval->new_regist_identity(id->toString(), d);
@@ -792,7 +812,7 @@ void OPERATOR::NEW_ASSIGN(vsEval_ptr eval)
 #if CHECK_Eval
 			std::cerr << "DATA_TYPE = " << id->getTypeName() << std::endl;
 #endif
-			assert(false);
+			throw type_error_exception(id->toEchoString(), id->getTypeName(), "in or get expr");
 			break;
 		}
 	}
@@ -855,7 +875,7 @@ void OPERATOR::CP(vsEval_ptr eval) {
 			break;
 		}
 		default: {
-			assert(false);
+			throw type_error_exception(id->toEchoString(), id->getTypeName(), "in or get expr");
 		}
 	}
 
@@ -919,7 +939,9 @@ void OPERATOR::ENCLOSED(vsEval_ptr eval) {
 	assert(!frame->stk.empty());
 	auto function_obj = eval->top();
 
-	assert(function_obj->getType() == DataType::FUNCTION);
+	if (function_obj->getType() != DataType::FUNCTION) {
+		throw type_error_exception(function_obj->toEchoString(), function_obj->getTypeName(), "function");
+	}
 	IEvaluable* evalable = reinterpret_cast<IEvaluable*>(&*function_obj);
 	evalable->set_runtime_ctx_ptr(frame);
 }
@@ -995,7 +1017,7 @@ void OPERATOR::CALL_BLK(vsEval_ptr eval)
 			std::cerr << function_obj->getTypeName() << std::endl;
 			assert(false); // 说明委托的类型 或 push的类型错误
 #else
-			assert(false); // 传入的类型错误
+			throw type_error_exception(function_obj->toEchoString(), function_obj->getTypeName(), "function");
 #endif
 		}
 	}

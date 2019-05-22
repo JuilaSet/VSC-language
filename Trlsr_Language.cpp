@@ -335,6 +335,18 @@ void regist_keywords_contents(Context_helper& helper) {
 				}, Context_Type::END)
 			})
 	);
+
+	helper.regist_context(Word(WordType::CONTROLLER, "exit").serialize(),
+		helper.build_context(
+			[&](ContextStk& cstk, _command_set& _vec, Word& w, auto* compiler) {
+				return _command_set{ COMMAND(EXIT) };
+			},
+			{
+				Context([&](ContextStk& cstk, _command_set& _vec, Word& w,  auto* compiler) {
+					return _command_set{ };
+				}, Context_Type::END)
+			})
+	);
 	
 	// IDENTIFIER_SPEC
 	
@@ -781,6 +793,7 @@ void regist_words(WordTypeHelper& helper) {
 	REGIST_CONTROLLER_WORDS(helper, "break");
 
 	REGIST_CONTROLLER_WORDS(helper, "abort");
+	REGIST_CONTROLLER_WORDS(helper, "exit");
 	REGIST_CONTROLLER_WORDS(helper, "extern");
 
 	REGIST_CONTROLLER_WORDS(helper, "def");
@@ -886,6 +899,39 @@ void regist_bnf(Parser& p) {
 	Graphic_builder control_expr_builder("control_expr");
 	BNFGraphic g_control_expr =
 		control_expr_builder.rule()->
+		// exit语句
+		terminal("exit", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[nop] get word:" << w.serialize();
+#endif
+			if (w.getString() == "exit") {
+	#if CHECK_Parser
+				cerr << ", True" << endl;
+	#endif
+				return true;
+			}
+			else {
+				err += "lexer pos: " + to_string(lex_point) + "\tmight be 'nop' here\n";
+				return false;
+			}
+		})->
+		terminal("context_closed", [&](Word w, std::string& err, int lex_point) {
+#if CHECK_Parser
+		cerr << "[context_closed] get word:" << w.serialize();
+#endif
+		if (w.getType() == WordType::CONTEXT_CLOSED) {
+#if CHECK_Parser
+			cerr << ", True" << endl;
+#endif
+			return true;
+		}
+		else {
+			err += "lexer pos: " + to_string(lex_point) + "\tmight be ';' here\n";
+			return false;
+		}
+	})->
+		end()->
+		gotoHead()->
 		// nop语句
 		terminal("nop", [&](Word w, std::string& err, int lex_point) {
 #if CHECK_Parser
@@ -2521,17 +2567,22 @@ buildTasksGraphic(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_graphic,
 		std::cout << __LINE__ << " id : " << nodeid << " 返回信号: " << ret << std::endl;
 #endif
 
-		_taskGraphic->build_node([=](auto& _out, auto& datas, auto& keys) {
+		_taskGraphic->build_node([=](auto& _out, auto datas, auto& keys, bool timeout, bool& isDead) {
 					// 设置外部_data
-					for(auto& pair : datas){
+					for(auto& pair : datas)
 						_eval->_add_extern_data(pair.first, pair.second);
-					}
+
+					if (timeout)
+						_eval->_add_extern_data("timeout", data_ptr(new NumData(1)));
 
 					// 主线程进入入口点, 相当于直接 <call_blk _enter_point>
-					_eval->load_block(1, 0);
+					_eval->load_block(1, 0, nodeid);
 
 					// 执行
 					_eval->eval();
+
+					// 更新死亡状态
+					isDead = _eval->isDead();
 			
 					// 设置返回值
 					_out = _eval->_get_ret_data();
@@ -2546,23 +2597,16 @@ buildTasksGraphic(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_graphic,
 	});
 
 	// 初始化图结构, 遍历每条边
-	vsTool::id_t findex;
 	_taskGraphic->head();
-	proto_graphic->for_each_dfs_norepeat([&_taskGraphic, &findex](auto g, auto node_id) {
+	proto_graphic->for_each_edges([&_taskGraphic](auto g, auto in, auto out) {
 			// 获取结点
-			auto node = g->get_node_ptr(node_id)->get_data();
-			findex = node->getId();
-			_taskGraphic->gotoNode(findex);
-			return true;
-		},  
-		[&_taskGraphic, &findex](auto g, auto node_id) {
-			// 获取结点
-			auto node = g->get_node_ptr(node_id)->get_data();
-			auto nindex = node->getId();
-			_taskGraphic->linkToNode(nindex);
-			_taskGraphic->gotoNode(findex);
-			return true;
-		});
+			auto nin = g->get_node_ptr(in)->get_data();
+			auto nout = g->get_node_ptr(out)->get_data();
+			auto in_index = nin->getId();
+			auto out_index = nout->getId();
+			_taskGraphic->gotoNode(in_index);
+			_taskGraphic->linkToNode(out_index);
+	});
 	_taskGraphic->end();
 
 	// 设置结果
@@ -2581,7 +2625,7 @@ void addProcFromProtoNode(vsTool::graphic_ptr<std::shared_ptr<LeafNode>>& proto_
 		std::cout << __LINE__ << "添加proc: " << nodeid << std::endl;
 #endif
 
-		vm.add_process(front.getResultByString(calc), nodeid); // 编译结果, 代码段id = node的id
+		vm.add_process(front.getResultByString(calc, nodeid), nodeid); // 编译结果, 代码段id = node的id
 	});
 }
 
@@ -2665,13 +2709,16 @@ get_graphic(vsVirtualMachine& vm) {
 
 	// build node
 	std::vector<std::string> vec;
-	_taskGraphic->build_node([=](auto& _out, auto& datas, auto& keys) {
+	_taskGraphic->build_node([=](auto& _out, auto& datas, auto& keys, bool timeout, bool& isDead) {
 
 		// 主线程进入入口点, 相当于直接 <call_blk _enter_point>
-		_eval_main->load_block(1, 0);
+		_eval_main->load_block(1, 0, nodeid);
 
 		// 执行
 		_eval_main->eval();
+
+		// 更新死亡状态
+		isDead = _eval_main->isDead();
 
 		// 设置返回值
 		_out = _eval_main->_get_ret_data();
@@ -2734,7 +2781,7 @@ void test_input_cli() {
 				else
 				{
 					// 生成目标代码
-					compiler.generate_code(p.get_word_vector_ref(), cresult, vsc_ctx_helper);	// 会抛出异常
+					compiler.generate_code(p.get_word_vector_ref(), cresult, vsc_ctx_helper, 0);	// 会抛出异常
 
 					// 搭建图
 					auto graphic = get_graphic(vm);
@@ -2773,10 +2820,12 @@ void test_input_cli() {
 	}
 }
 
-// 
+// 主流程
 int main(int argc, char* argv[]) {
+#if DEBUG_MODE
 	// 文件模式(只支持多线程)
-//	test_vsFrontend("in.tr", InputMode::FileMode);
+	test_vsFrontend("in.tr", InputMode::FileMode);
+#else
 	// 输入模式
 	if (argc == 1)
 	{
@@ -2798,5 +2847,6 @@ int main(int argc, char* argv[]) {
 		std::cerr << "Usage: vsc <-thread> | vsc -file <filename>" << std::endl;
 		exit(-1);
 	}
+#endif
 	return 0;
 };

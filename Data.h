@@ -429,14 +429,15 @@ public:
 class FunctionData: public IEvaluable {
 protected:
 	size_t block_id;							// block代码块地址
+	size_t prc_id;								// 所属处理任务的ID, 代码块地址
 public:
 
-	FunctionData(size_t block_id) : block_id(block_id) {}
+	FunctionData(size_t block_id, size_t prc_id) : block_id(block_id), prc_id(prc_id) {}
 
 	virtual data_ptr cp(std::shared_ptr<vsData> d) override {
 		assert(d->getType() == DataType::FUNCTION);
 		block_id = d->toNumber();
-		return data_ptr(new FunctionData(block_id));
+		return data_ptr(new FunctionData(block_id, prc_id));
 	}
 
 	// 比较的方法

@@ -10,6 +10,7 @@
 #define PCH_H
 
 #define MODE_CIL false	
+#define DEBUG_MODE true
 
 #define CHECK_Tool false
 #define CHECK_Thread false

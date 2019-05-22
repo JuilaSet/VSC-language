@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "vsVirtualMachine.h"
 
-data_ptr vsVirtualMachine::run(vsTool::id_t eval_id, std::string aim){
+data_ptr vsVirtualMachine::run(vsTool::id_t eval_id, std::string aim) throw(type_error_exception) {
 	// 设置会话
 	vsThread::Session<std::string, data_ptr> sess(_taskGraphic);	// 开启会话
 

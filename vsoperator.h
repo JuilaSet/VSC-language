@@ -33,7 +33,7 @@ class type_error_exception : public run_time_exception {
 	std::string _message;
 public:
 	type_error_exception(const std::string name, const std::string type_wrong, const std::string type_need)
-		: _message("type error: " + name + " needs " + type_need + " , error type=" + type_wrong) {}
+		: _message("type error: " + name + " is not type " + type_need + " , error type=" + type_wrong) {}
 
 	std::string what() const {
 		return _message;
@@ -42,7 +42,9 @@ public:
 
 
 // 
+
 // 如果要添加OPERATOR, 先在OPCODE中添加, 再在OPERATOR类中注册方法, 最后在getBasicCommandOfString中添加字符串转换
+
 //
 
 enum class OPCODE :int {
@@ -50,6 +52,7 @@ enum class OPCODE :int {
 	NOP,		// 什么都不做
 	PUSH_POS,	// 当前opcode地址入栈
 	POP,		// 栈顶弹出丢弃数据
+	EXIT,		// 退EVAL线程
 
 	// 转换
 	CAST_NUMBER,	// 转换为number型
@@ -103,6 +106,7 @@ enum class OPCODE :int {
 	CP,			// 对象潜复制
 	ASSIGN,		// 变量赋值
 	ADD,		// 栈前两个元素相加
+	ADDUP,		// 自加 +=
 	SUB,		// 栈前两个元素相减
 	IN,			// 对容器进行索
 
@@ -123,6 +127,8 @@ public:
 	static void ERROR(vsEval_ptr eval);
 
 	static void ABORT(vsEval_ptr eval);
+
+	static void EXIT(vsEval_ptr eval);
 
 	static void NOP(vsEval_ptr eval);
 

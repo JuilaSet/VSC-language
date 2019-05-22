@@ -7,7 +7,9 @@ class vsVirtualMachine;
 class vsblock_static;
 
 //		//
+
 // 异常	//
+
 //		//
 
 struct exception_info {
@@ -34,7 +36,9 @@ public:
 };
 
 //			//
+
 //  解释器	//
+
 //			//
 
 // 堆栈解释器
@@ -81,6 +85,9 @@ protected:
 	// 返回信号
 	std::string _signal;
 
+	// 是否死亡
+	bool is_dead = false;
+
 protected:
 
 	// 根据index获取data对象
@@ -106,6 +113,12 @@ protected:
 	vsTool::id_t _process_id;
 
 public:
+	// 是否死亡
+	bool isDead() { return is_dead; }
+
+	// 设置死亡( 死亡时返回-1 )
+	void setDead() { is_dead = true; stop(-1); }
+
 	// 设置返回信号
 	void set_sign_str(const std::string& str_signal) {
 		_signal = str_signal;
@@ -143,7 +156,7 @@ public:
 	}
 
 	// 加载block, 在调用call_blk时调用
-	void load_block(int enter_point, int paras_count);
+	void load_block(int enter_point, int paras_count, size_t prc_id);
 
 	// 退出block, 会调用pop_frame
 	void exit_block();

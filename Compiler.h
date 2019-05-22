@@ -409,7 +409,7 @@ public:
 class Basic_Compiler {
 public:
 	// 生成list_block的代码
-	virtual void generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper)
+	virtual void generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper, size_t prc_id)
 		throw (Context_error) = 0;
 
 	virtual ~Basic_Compiler() = default;
@@ -518,7 +518,7 @@ protected:
 
 public:
 	// 生成list_block的代码
-	virtual void generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper)
+	virtual void generate_code(const std::vector<Word>& _word_vector, Compile_result& result, Context_helper& helper, size_t prc_id)
 		throw (Context_error, undefined_exception);
 
 	// 当前的ctool

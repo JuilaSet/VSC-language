@@ -17,7 +17,7 @@ vsFrontend::vsFrontend(
 
 
 // 生成编译结果
-Compile_result vsFrontend::getResultByString(const std::string& codes, const std::string& top)
+Compile_result vsFrontend::getResultByString(const std::string& codes, size_t prc_id, const std::string& top)
  throw(Context_error, run_time_exception, ParserFailed) {
 
 	// 通过字符串获取对象
@@ -47,7 +47,7 @@ Compile_result vsFrontend::getResultByString(const std::string& codes, const std
 	else
 	{
 		// 生成目标代码
-		compiler.generate_code(parser.get_word_vector_ref(), cresult, vsc_ctx_helper);	// 会抛出异常
+		compiler.generate_code(parser.get_word_vector_ref(), cresult, vsc_ctx_helper, prc_id);	// 会抛出异常
 //		std::cout << "Code Generated finished!" << std::endl << std::endl;
 	}
 

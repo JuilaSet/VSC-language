@@ -4,9 +4,10 @@
 // vsEvaluator
 
 // 在此之前要使用push_next_temp_paras_info(), 防止exit_block的时候出错
-void vsEvaluator::load_block(int enter_point, int paras_count)
+void vsEvaluator::load_block(int enter_point, int paras_count, size_t prc_id)
 {
-	auto block = this->_vm->get_block_ref(enter_point, _process_id);
+	// 根据当前绑定的ID去执行代码块
+	auto block = this->_vm->get_block_ref(enter_point, prc_id);
 
 	// 设置并传递栈帧
 	_push_and_setting_frame(this->_block_ptr, block, paras_count);
@@ -17,7 +18,7 @@ void vsEvaluator::load_block(int enter_point, int paras_count)
 	// 进入block, 从头开始执行
 	this->_instruct_ptr = &block->instruct();
 	this->_block_ptr = block;
-	ipc = -1; // 跳转后变成0
+	ipc = -1;	// 跳转后变成0
 }
 
 // 退出block
@@ -371,56 +372,63 @@ int vsEvaluator::step() {
 	}
 }
 
-int vsEvaluator::eval() {
-	auto begin = 0;
-	auto end = _instruct_ptr->size();
-	// 一直执行， 直到stop为止
-	for (ipc = begin; true; ++ipc) {
+int vsEvaluator::eval() throw(run_time_exception){
+	try {
+		auto begin = 0;
+		auto end = _instruct_ptr->size();
+		// 一直执行， 直到stop为止
+		for (ipc = begin; true; ++ipc) {
 #if CHECK_Eval
-		std::cerr << "IPC= " << ipc << "\t" << std::ends;
+			std::cerr << "IPC= " << ipc << "\t" << std::ends;
 #endif
-		(*_instruct_ptr)[ipc].opera(this);
+			(*_instruct_ptr)[ipc].opera(this);
 #if CHECK_Eval
-		std::cerr << "Data info:" << std::endl;
-		//  遍历所有的frame
-		for (auto& frame: _stk_frame) {
-			std::cerr << "[";
-			// 遍历全部栈帧的操作数栈
-			std::cerr << "data >" << std::ends;
-			auto& stk = frame->stk;
-			for (auto d : stk) {
-				std::cerr << d->getTypeName() << ": " << d->toEchoString() << ',' << std::ends;
+			std::cerr << "Data info:" << std::endl;
+			//  遍历所有的frame
+			for (auto& frame : _stk_frame) {
+				std::cerr << "[";
+				// 遍历全部栈帧的操作数栈
+				std::cerr << "data >" << std::ends;
+				auto& stk = frame->stk;
+				for (auto d : stk) {
+					std::cerr << d->getTypeName() << ": " << d->toEchoString() << ',' << std::ends;
+				}
+
+				// 遍历每一个栈帧的局部变量表
+				std::cerr << std::endl << "identifier >";
+				auto table = frame->local_var_table;
+				table->for_each([](auto key, auto data) {
+					std::cout << key << '=' << data->toEchoString() << ',' << std::ends;
+					return true;
+				});
+
+				// 遍历每一个栈帧的参数列表
+				std::cerr << std::endl << "paras >";
+				auto list = frame->paras_info.act_para_container;
+				list->for_each([](auto key, auto data) {
+					std::cout << key << '=' << data->toEchoString() << ',' << std::ends;
+					return true;
+				});
+
+				// 是否是强作用域
+				std::cerr << std::endl << "isStrongField >";
+				auto isStrongField = frame->_strong_hold;
+				std::cout << (isStrongField ? "true" : "false") << std::endl;
+				std::cerr << "] " << std::endl;
 			}
-
-			// 遍历每一个栈帧的局部变量表
-			std::cerr << std::endl << "identifier >";
-			auto table = frame->local_var_table;
-			table->for_each([] (auto key, auto data){
-				std::cout << key << '=' << data->toEchoString() << ',' << std::ends;
-				return true;
-			});
-			
-			// 遍历每一个栈帧的参数列表
-			std::cerr << std::endl << "paras >";
-			auto list = frame->paras_info.act_para_container;
-			list->for_each([](auto key, auto data) {
-				std::cout << key << '=' << data->toEchoString() << ',' << std::ends;
-				return true;
-			});
-
-			// 是否是强作用域
-			std::cerr << std::endl << "isStrongField >";
-			auto isStrongField = frame->_strong_hold;
-			std::cout << (isStrongField ? "true" : "false") << std::endl;
-			std::cerr << "] " << std::endl;
+			std::cerr << std::endl << std::endl;
+#endif
+			if (_stop)break;
 		}
-		std::cerr << std::endl << std::endl;
-#endif
-		if (_stop)break;
-	}
 #if CHECK_Eval
-	std::cerr << "VM run finished!" << std::endl;
+		std::cerr << "VM run finished!" << std::endl;
 #endif
+	}
+	catch (type_error_exception e)
+	{
+		std::cerr << e.what() << std::endl;
+		return -1;
+	}
 	return _stop_val;
 }
 

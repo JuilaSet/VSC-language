@@ -22,7 +22,8 @@ namespace vsThread {
 
 	// 返回信号键
 	template<class KEY_TYPE, class DATA_TYPE>
-	using node_mapping_func = std::function<KEY_TYPE(DATA_TYPE&, std::map<KEY_TYPE, DATA_TYPE>&, std::set<KEY_TYPE>&)>;
+	using node_mapping_func = 
+		std::function<KEY_TYPE(DATA_TYPE&, std::map<KEY_TYPE, DATA_TYPE>&, std::set<KEY_TYPE>&, bool timeout, bool& isDead)>;
 
 	// 信号(键值 + 数据)
 	template<class ID_TYPE, class KEY_TYPE, class DATA_TYPE>
@@ -151,15 +152,15 @@ namespace vsThread {
 			// 开始计时(session对象一直存在即可, 否则造成访问出错)
 			if (_time_out != 0) {
 				Timer().AsyncWait(_time_out, [this, &cv]() {
+					bool isDead = false;
 					if (this->_not_ready_flag && !this->_dead_state) {
-						this->_dead_state = true;
-						this->_not_ready_flag = 0;
 						this->_time_out_state = true;
+						this->_not_ready_flag = 0;
+						// 唤醒自己
 						cv.notify_all();
 					}
 				});
 			}
-
 			cv.wait(lock, [this]() { 	// 线程会一直在这里等待
 #if CHECK_Thread
 				auto tid = std::this_thread::get_id();
@@ -178,6 +179,7 @@ namespace vsThread {
 		// 向所有目标发送消息
 		void _send_message_to_dest_and_die(std::condition_variable& cv, const KEY_TYPE& key) {
 			auto tid = std::this_thread::get_id();
+			// 如果目标结点非空, 才会去唤醒它们
 			if (!_dest_nodes.empty()) {
 				for (auto& dest : _dest_nodes) {
 #if CHECK_Thread
@@ -260,8 +262,11 @@ namespace vsThread {
 			_wait(cv, lock);
 			// 在没有死亡的时候执行计算, 发送消息
 			if (!_dead_state) {
+				bool isDead = false;
 				// 执行计算
-				KEY_TYPE k = _calc(_out, _datas, _keys);
+				KEY_TYPE k = _calc(_out, _datas, _keys, this->_time_out_state, isDead);
+				// 用户设置是否死亡
+			//	_dead_state.store(isDead);
 				// 执行完毕, 向结点传递传递数据
 				_send_message_to_dest_and_die(cv, k);
 			}
@@ -286,7 +291,7 @@ namespace vsThread {
 		}
 
 		// 返回是否超时
-		bool is_time_out() { return _time_out_state;	}
+		bool is_time_out() { return _time_out_state; }
 
 		// 检查状态
 		bool is_dead() const { return _dead_state; }
@@ -379,7 +384,7 @@ namespace vsThread {
 		// 根据会话请求分配线程, 不会启动不需要的结点
 		void _alloc_thread(vsTool::id_t first, Session<KEY_TYPE, DATA_TYPE>* sess) {
 			thread_node_g_ptr->for_each_dfs_norepeat(
-				[this, sess](auto g, auto index) {
+				[this, sess, first](auto g, auto index) {
 				auto ptr = g->get_node_ptr(index)->get_data();
 				sess->thread_pool.emplace_back(&_Thread_Node<vsTool::id_t, KEY_TYPE, DATA_TYPE>::eval, ptr, std::ref(sess->cv));
 				return true;

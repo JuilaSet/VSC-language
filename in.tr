@@ -1,57 +1,46 @@
-* Farmer {
+* Alice {
 
-	* calc : <[
-		return <wheat>;
+	* ins: fromBob;
+
+	* calc: <[
+		extern fromBob timeout;
+		if timeout 
+			return <Alice leave>;
+		[
+			echo <Alice see:> fromBob;
+			sleep 1;
+			return <From Alice>;
+		];
 	]>;
 
-	* out : wheat;
+	* out: fromAlice;
+
+	* timeout: 8000;
 
 }
 
-* Dj {
+* Bob {
 
-	* calc : <[
-		return <worker>;
+ 	* ins: fromAlice;
+
+	* calc: <[
+		extern fromAlice timeout;
+		if timeout
+			return <Bob leave>;
+		[
+			echo <Alice see:> fromAlice;
+			sleep 1;
+			return <From Bob>;
+		];
 	]>;
 
-	* out : worker;
+	* out: fromBob;
+
+	* timeout: 5000;
 
 }
 
-* Factory {
+Alice -> Bob;
+Bob -> Alice;
 
-	* ins : wheat worker;
-
-	* calc : <[
-		extern wheat worker;
-		def res add 
-			<flour : 
-> 
-				wheat < from Farmer, 
->
-				worker < from Dj.>;
-		;
-		return res;
-	]>;
-
-	* out: flour;
-
-}
-
-* KFC {
-
-	* ins : flour;
-	
-	* calc : <[
-		extern flour;
-		echo flour;
-		return -1;
-	]>;
-
-}
-
-Factory -> Farmer;
-Factory -> Dj;
-KFC -> Factory;
-
-# KFC;
+#Alice;
